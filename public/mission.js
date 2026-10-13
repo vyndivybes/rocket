@@ -256,7 +256,7 @@ root.addEventListener('submit',async e=>{
 });
 function checkReminders(){
  if(!state.user)return;const now=new Date(),day=now.getDay(),time=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
- for(const item of state.schedule){const key=now.toDateString()+'/'+time+'/'+item.id;if(!item.enabled||item.time!==time||!item.days.includes(day)||state.seen.has(key))continue;state.seen.add(key);flash('Friendly reminder: '+item.title+'. Your choice to join in.');if(state.notifications&&'Notification' in window&&Notification.permission==='granted')new Notification('Saathi activity reminder',{body:item.title+' · '+item.minutes+' minutes'})}
+ for(const item of state.schedule){const key=now.toDateString()+'/'+time+'/'+item.id;if(!item.enabled||item.time!==time||!item.days.includes(day)||state.seen.has(key))continue;state.seen.add(key);flash('Friendly reminder: '+item.title+'. Your choice to join in.');if(state.notifications&&!(state.pushStatus?.ready&&state.pushStatus?.devices>0)&&'Notification' in window&&Notification.permission==='granted')new Notification('Saathi activity reminder',{body:item.title+' · '+item.minutes+' minutes'})}
  if(state.seen.size>200)state.seen.clear();
 }
 async function init(){
