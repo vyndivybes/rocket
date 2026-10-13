@@ -1,5 +1,5 @@
 import {auth,ensureRole,sameOrigin,safeBody,error,json} from '../_lib/core.js';
-const VERSION='DAD_WELCOME_V1';
+const VERSION='PAPA_WELCOME_V2';
 export async function onRequestGet({request,env}){
  const user=await auth(request,env);if(!ensureRole(user,'student'))return error('Student only',403);
  const found=await env.DB.prepare('SELECT 1 AS found FROM student_welcome_ack WHERE student_id=? AND version=?').bind(user.id,VERSION).first();
