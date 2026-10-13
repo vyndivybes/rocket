@@ -14,6 +14,9 @@ SAATHI_STAGE = "preview"
 [env.preview.vars]
 SAATHI_STAGE = "preview"
 SAATHI_VISION_ENABLED = "true"
+# Background push uses staging D1 and independently gated Cloudflare Cron Worker.
+PUSH_DISPATCH_CONFIGURED = "true"
+VAPID_PUBLIC_KEY = "BPefQY1kfQ3a0exuKMqvF49t250GXD-K5T9hEpZAlq-akw1HEJ4edWvfWNRH7wRqsbkwIJT8hdNJwFCMk7-gbKU"
 
 [[env.preview.d1_databases]]
 binding = "DB"
@@ -23,6 +26,7 @@ database_id = "eacc17bb-a4da-46ad-8aca-c488540911d4"
 [env.production.vars]
 SAATHI_STAGE = "production"
 SAATHI_VISION_ENABLED = "false"
+PUSH_DISPATCH_CONFIGURED = "false"
 
 [[env.production.d1_databases]]
 binding = "DB"
