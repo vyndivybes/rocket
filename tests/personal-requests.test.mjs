@@ -36,3 +36,21 @@ test('with empty schedule, companion gives an optional nonjudgmental choice',()=
  assert.equal(result?.kind,'daily-brief');
  assert.match(result.answer,/choose|try/i);
 });
+
+test('learner can ask what the AI remembers and receives only explicitly enabled facts',()=>{
+ const example={...ctx,memories:[
+  {category:'learning',text:'I learn better from diagrams.',useInChat:true},
+  {category:'goal',text:'I want to try flying.',useInChat:true},
+  {category:'interest',text:'Do not share this private draft.',useInChat:false}
+ ]};
+ const answer=answerPersonalRequest('what do you remember about me?',example,now);
+ assert.equal(answer.kind,'memory-recall');
+ assert.match(answer.answer,/I learn better from diagrams/);
+ assert.match(answer.answer,/I want to try flying/);
+ assert.ok(!answer.answer.includes('private draft'));
+});
+test('AI memory recall responds accurately when no facts are enabled',()=>{
+ const answer=answerPersonalRequest('what do you remember about me?',{...ctx,memories:[{category:'interest',text:'Private only',useInChat:false}]},now);
+ assert.equal(answer.kind,'memory-recall');
+ assert.match(answer.answer,/nothing.*enabled/i);
+});
