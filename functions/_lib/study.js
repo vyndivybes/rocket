@@ -138,3 +138,24 @@ export function gradePractice(lessonId,choice){
  const correct=choice===lesson.answerIndex;
  return {lesson,correct,explanation:lesson.explanation,correctOption:lesson.options[lesson.answerIndex]};
 }
+
+
+const FOUNDATION_KEYWORDS=[
+ ['faraday','physics-faraday'],['magnetic flux','physics-faraday'],['induced emf','physics-faraday'],
+ ['newton','physics-newton'],['force','physics-newton'],['acceleration','physics-newton'],
+ ['average speed','physics-speed'],['velocity','physics-speed'],
+ ['derivative','mathematics-derivative'],['differentiate','mathematics-derivative'],
+ ['triangle','maths-pythagoras'],['pythagoras','maths-pythagoras'],
+ ['percentage','maths-percent'],['percent','maths-percent'],
+ ['molar','chemistry-mole'],['mole','chemistry-mole'],['atom','chemistry-atom'],['electrochemistry','chemistry-electrochem'],
+ ['alveoli','biology-alveoli'],['lungs','biology-alveoli'],['dna','biology-genetics'],['transcription','biology-transcription'],
+ ['accounting','accountancy-equation'],['demand','economics-demand']
+];
+export function relevantFoundation(question){
+ if(typeof question!=='string')return null;
+ const q=question.toLowerCase();
+ const link=FOUNDATION_KEYWORDS.find(([term])=>q.includes(term));
+ if(!link)return null;
+ const lesson=LESSONS.find(x=>x.id===link[1]);if(!lesson)return null;
+ return {id:lesson.id,title:lesson.title,concept:lesson.concept,example:lesson.example,explanation:lesson.explanation,reference:lesson.source};
+}
