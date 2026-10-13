@@ -100,7 +100,7 @@ test('multiple questions store only student-owned per-item aggregate outcomes, n
  let grade=await response.json();
  assert.equal(grade.correct,true);assert.equal(grade.questionId,'v2');
  const row=db.prepare('SELECT lesson_id,attempts,correct FROM practice_progress').get();
- assert.deepEqual(row,{lesson_id:lesson.id+'::v2',attempts:1,correct:1});
+ assert.deepEqual({...row},{lesson_id:lesson.id+'::v2',attempts:1,correct:1});
  const summary=(await (await getPractice({request:makeReq('/api/practice',student),env})).json()).progress;
  assert.equal(summary.total,1);
  const r=summary.lessonRevision.find(x=>x.lessonId===lesson.id);
