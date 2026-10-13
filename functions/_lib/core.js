@@ -24,7 +24,7 @@ export function validTask(title, subject, dueDate){
   if(typeof title!=='string'||title.trim().length<2||title.trim().length>180) return 'Task title must be 2–180 characters';
   if(typeof subject!=='string'||subject.length>50) return 'Subject too long';
   if(dueDate!==null && dueDate!==undefined && !/^\d{4}-\d{2}-\d{2}$/.test(dueDate)) return 'Invalid due date';
-  if(dueDate){ const parsed=new Date(`\${dueDate}T00:00:00Z`); if(Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0,10)!==dueDate) return 'Invalid due date'; }
+  if(dueDate){ const parsed=new Date(`${dueDate}T00:00:00Z`); if(Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0,10)!==dueDate) return 'Invalid due date'; }
   return null;
 }
 export function validateQuestion(value){if(typeof value!=='string'||value.trim().length<4||value.length>1600) return 'Question must be 4–1600 characters'; return null;}
@@ -46,11 +46,11 @@ export function randomToken(){const bytes=crypto.getRandomValues(new Uint8Array(
 export async function sha256(t){const digest=await crypto.subtle.digest('SHA-256',encoder.encode(t));return [...new Uint8Array(digest)].map(b=>b.toString(16).padStart(2,'0')).join('')}
 export async function accessKeyHash(key,saltHex){
   if(typeof key!=='string'||!/^[a-f0-9]{64}$/.test(key)||!/^[a-f0-9]{32}$/.test(saltHex||''))throw Error('Invalid access key material');
-  return sha256(`\${saltHex}:\${key}`);
+  return sha256(`${saltHex}:${key}`);
 }
 export function constantEqual(a,b){if(typeof a!=='string'||typeof b!=='string'||a.length!==b.length)return false;let diff=0;for(let i=0;i<a.length;i++)diff|=a.charCodeAt(i)^b.charCodeAt(i);return diff===0;}
 export function parseCookie(request){const header=request.headers.get('Cookie')||'';const found=header.split(';').map(v=>v.trim()).find(v=>v.startsWith('saathi_session='));return found?found.slice('saathi_session='.length):null}
-export function sessionCookie(token,seconds=SESSION_SECONDS){return `saathi_session=\${token}; Max-Age=\${seconds}; HttpOnly; Secure; SameSite=Strict; Path=/api`;}
+export function sessionCookie(token,seconds=SESSION_SECONDS){return `saathi_session=${token}; Max-Age=${seconds}; HttpOnly; Secure; SameSite=Strict; Path=/api`;}
 export function clearCookie(){return 'saathi_session=; Max-Age=0; HttpOnly; Secure; SameSite=Strict; Path=/api';}
 export async function auth(request,env){
   if(!env?.DB)return null;
@@ -80,5 +80,5 @@ export async function acquireAiQuota(env,studentId){
   return (update.meta?.changes??0)>0;
 }
 export function llmMessages(question,board='unconfigured'){
-  return [{role:'system',content:POLICY+` Student board selected: \${board}. This is not proof of up-to-date syllabus; ask the student for chapter/source when needed.`},{role:'user',content:question}];
+  return [{role:'system',content:POLICY+` Student board selected: ${board}. This is not proof of up-to-date syllabus; ask the student for chapter/source when needed.`},{role:'user',content:question}];
 }
