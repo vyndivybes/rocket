@@ -4,7 +4,7 @@ export function qualifyAiAnswer(value) {
  const answer=typeof value==='string'?value.trim():'';
  if(!answer)return {answer:'Saathi could not give a usable answer. Try again or consult your teacher.',replaced:true};
  const falseSafetyActions=[
-  /\bi\s+(?:have|'ve)\s+(?:alerted|notified|contacted|messaged|called)\s+(?:your\s+)?(?:parent|mother|father|guardian|teacher|counsellor|counselor|emergency services|police|ambulance)/i,
+  /\bi\s+(?:have|'ve)\s+(?:alerted|notified|contacted|messaged|called)\s+(?:your\s+)?(?:parent|mother|father|guardian|teacher|(?:school\s+)?counsellor|(?:school\s+)?counselor|emergency services|police|ambulance)/i,
   /\bi\s+called\s+emergency services/i
  ];
  if(falseSafetyActions.some(x=>x.test(answer)))return {answer:'Saathi cannot contact a person or emergency service. If you feel unsafe, reach out directly to a safe trusted adult, teacher, school counsellor or emergency services (112 in India for immediate danger).',replaced:true};
