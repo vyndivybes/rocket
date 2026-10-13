@@ -1,3 +1,4 @@
+import {renderAdminOverview} from './admin-overview.js';
 const root=document.querySelector('#app');
 let currentUser=null, tasks=[], topics=[], references=[],tab='overview',lastAnswer='';
 const escapeHtml=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -20,8 +21,21 @@ function renderApp(){root.innerHTML=`<div class="layout">${sidebar()}<main class
   document.querySelectorAll('[data-tab]').forEach(btn=>btn.addEventListener('click',()=>{tab=btn.dataset.tab;renderApp()}));
   $('logout').onclick=async()=>{await post('logout',{}).catch(()=>{});currentUser=null;tab='overview';renderLogin()};
   wire();
+  if(currentUser.role==='admin')void refreshAdminSummary();
 }
-function content(){if(currentUser.role==='admin')return `<div class="grid"><section class="card wide"><span class="chip">Administration</span><h2 style="margin-top:13px">Application overview</h2><p class="muted">Aggregated counts only. Administrators cannot read student chats, study task titles or act as a parent.</p><button id="admin-summary" class="btn secondary">Refresh operational counts</button><div id="admin-stats" class="metric" style="margin-top:16px" aria-live="polite">—</div><p class="notice">Account provisioning and access-key rotation require a separate audited procedure. This staging workspace contains no real student data.</p></section></div>`;if(currentUser.role==='parent')return `<div class="grid"><section class="card wide"><h2>Shared study progress</h2><p class="muted">Student-approved task counts, without notes, chat history or emotional monitoring.</p><button class="btn secondary" id="summary">Refresh summary</button><div id="aggregate" class="metric" style="margin-top:16px">—</div><p class="notice">There are no automatic safety alerts in this prototype. If a child may be unsafe, contact appropriate trusted people directly.</p></section></div>`;
+async function refreshAdminSummary(){
+  const container=$('admin-stats');
+  if(!container)return;
+  container.setAttribute('aria-busy','true');
+  try{
+    const data=await api('admin-summary');
+    if($('admin-stats'))$('admin-stats').innerHTML=renderAdminOverview(data);
+  }catch(err){
+    if($('admin-stats'))$('admin-stats').textContent='Unable to load operational overview.';
+    showMessage(err.message);
+  }finally{if($('admin-stats'))$('admin-stats').removeAttribute('aria-busy');}
+}
+function content(){if(currentUser.role==='admin')return `<div><div class="row between" style="margin:24px 0 10px"><h2>System overview</h2><button id="admin-summary" type="button" class="btn secondary">Refresh overview</button></div><div id="admin-stats" aria-live="polite" class="muted">Loading operational information…</div></div>`;if(currentUser.role==='parent')return `<div class="grid"><section class="card wide"><h2>Shared study progress</h2><p class="muted">Student-approved task counts, without notes, chat history or emotional monitoring.</p><button class="btn secondary" id="summary">Refresh summary</button><div id="aggregate" class="metric" style="margin-top:16px">—</div><p class="notice">There are no automatic safety alerts in this prototype. If a child may be unsafe, contact appropriate trusted people directly.</p></section></div>`;
   if(tab==='teacher')return `<div class="grid"><section class="card wide"><span class="chip">Ask, understand, practise</span><h2 style="margin-top:15px">What are you working on?</h2><form id="ask-form"><label class="field">Your question<textarea id="question" maxlength="1600" required placeholder="Why does changing magnetic flux induce an emf?"></textarea></label><div class="row"><button class="btn" type="submit">Explain it</button><span class="notice">12 requests per day · No chat transcript stored</span></div></form><div id="answer-wrap" hidden><h2 style="margin-top:25px">Saathi's response</h2><div class="answer" id="answer"></div><p class="notice" id="answer-note"></p></div></section></div>`;
   if(tab==='planner')return `<div class="grid"><section class="card"><h2>Add a study commitment</h2><form id="task-form"><label class="field">Task<input name="title" maxlength="180" minlength="2" required placeholder="Revise electromagnetic induction"></label><label class="field">Subject<input name="subject" maxlength="50" placeholder="Physics"></label><label class="field">Due date<input type="date" name="due_date"></label><button type="submit" class="btn">Add task</button></form></section><section class="card"><h2>My study commitments</h2><div id="task-list">${taskList()}</div></section></div>`;
   if(tab==='library')return `<div class="grid"><section class="card wide"><h2>Start with a concept</h2><p class="muted">Illustrative Class 12 topics, not a certified curriculum. Ask your school for your board's current syllabus.</p><div class="topic-list">${topics.map(t=>`<button data-topic="${escapeHtml(t.topic)}" class="topic">${escapeHtml(t.subject)} · ${escapeHtml(t.topic)}</button>`).join('')}</div><h2 style="margin-top:28px">Authoritative starting points</h2><ul class="note-list">${references.map(s=>`<li><a href="${escapeHtml(s.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(s.label)}</a> — ${escapeHtml(s.type)}</li>`).join('')}</ul></section></div>`;
@@ -33,6 +47,6 @@ function wire(){document.querySelectorAll('[data-go]').forEach(e=>e.onclick=()=>
   if($('task-form'))$('task-form').onsubmit=async e=>{e.preventDefault();const data=Object.fromEntries(new FormData(e.currentTarget));try{await post('tasks',{title:data.title,subject:data.subject||'General',due_date:data.due_date||null});const r=await api('tasks');tasks=r.tasks;renderApp();showMessage('Task added',true)}catch(err){showMessage(err.message)}};
   document.querySelectorAll('[data-task]').forEach(btn=>btn.onclick=async()=>{try{await post('tasks',{action:'complete',id:btn.dataset.task,done:btn.dataset.done==='1'});tasks=(await api('tasks')).tasks;renderApp()}catch(err){showMessage(err.message)}});
   if($('summary'))$('summary').onclick=async()=>{try{const r=await api('parent-summary');$('aggregate').textContent=`${r.completed} / ${r.assigned} complete`;}catch(err){showMessage(err.message)}};
-  if($('admin-summary'))$('admin-summary').onclick=async()=>{try{const r=await api('admin-summary');$('admin-stats').textContent=`${r.students} students · ${r.parents} parents · ${r.totalTasks} study tasks`;}catch(err){showMessage(err.message)}};
+  if($('admin-summary'))$('admin-summary').onclick=()=>refreshAdminSummary();
 }
 init();
