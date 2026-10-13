@@ -36,7 +36,7 @@ export function safetyRoute(message){
   // Avoid misclassifying ordinary academic third-person questions as first-person crises.
   const immediatePatterns=[
     /\b(?:i am|i'm|im)\s+(?:suicidal|thinking (?:about|of) suicide|thinking (?:about|of) (?:harming|hurting|killing) myself)\b/,
-    /\bi\s+(?:want to|am going to|might|plan to|intend to|feel like)\s+(?:kill myself|end my life|die|hurt myself|harm myself|cut myself|hurting myself|harming myself|cutting myself)\b/,
+    /\b(?:i\s+(?:want to|am going to|might|plan to|intend to|feel like)|i'm going to|im going to)\s+(?:kill myself|end my life|die|hurt myself|harm myself|cut myself|hurting myself|harming myself|cutting myself)\b/,
     /\bi\s+(?:have a plan to|am planning to)\s+(?:end my life|kill myself|hurt myself)\b/,
     /\bi\s+(?:do not|don't)\s+want\s+to\s+(?:live|be alive|exist)(?:\s+anymore)?\b/,
     /\bi\s+(?:overdosed|took too many pills|swallowed too many pills)\b/,
@@ -52,7 +52,7 @@ export function safetyRoute(message){
     /\bsomeone\s+(?:hurt|hit|threatened|assaulted)\s+me\b/
   ];
   if(unsafePatterns.some(pattern=>pattern.test(text))){
-    return {type:'safety',answer:'I’m sorry you’re facing this. You deserve safety and support from real people. If telling a parent could put you at risk, contact another safe trusted adult, teacher, school counsellor or child-protection service. In immediate danger in India, call 112. I cannot contact anyone or send an alert on your behalf.'};
+    return {type:'safety',answer:'I’m sorry you’re facing this. You deserve safety and support from real people. If telling a parent could put you at risk, contact another trusted adult who is safe, a teacher, school counsellor or child-protection service. In immediate danger in India, call 112. I cannot contact anyone or send an alert on your behalf.'};
   }
   return null;
 }
