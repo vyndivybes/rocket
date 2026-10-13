@@ -28,6 +28,7 @@ test('a due reminder is sent only once; notification never includes private less
  assert.equal(x.db.prepare('SELECT attempted FROM push_dispatch_health WHERE singleton=1').get().attempted,0);
  assert.equal(x.db.prepare('SELECT state FROM push_deliveries').get().state,'ACCEPTED');
  assert.equal(JSON.stringify(sent[0].payload).includes('Physics'),false);
+ assert.equal(sent[0].payload.kind,'SAATHI_REMINDER_V1');
 });
 test('requires bearer auth and preview env; never sends outside local time or bedtime',async()=>{
  const x=setup();let sent=0;const testSender=async()=>{sent++};
