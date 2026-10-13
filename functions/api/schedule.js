@@ -16,6 +16,12 @@ export async function onRequestPost({request,env}){
    await env.DB.prepare('UPDATE schedule_items SET enabled=CASE WHEN enabled=1 THEN 0 ELSE 1 END WHERE id=? AND student_id=?').bind(b.id,user.id).run();
   return r.meta?.changes?json({ok:true}):error('Event not found',404);
  }
+ if(b.action==='update'){
+  if(typeof b.id!=='string'||b.id.length>150)return error('Invalid activity');
+  const invalid=validSchedule(b);if(invalid)return error(invalid);
+  const result=await env.DB.prepare('UPDATE schedule_items SET title=?,kind=?,time_local=?,days_json=?,minutes=? WHERE id=? AND student_id=?').bind(b.title.trim(),b.kind,b.time,JSON.stringify(b.days),b.minutes,b.id,user.id).run();
+  return (result.meta?.changes??0)>0?json({ok:true}):error('Event not found',404);
+ }
  if(b.action!==undefined)return error('Invalid action');
  const invalid=validSchedule(b);if(invalid)return error(invalid);
  const count=await env.DB.prepare('SELECT COUNT(*) total FROM schedule_items WHERE student_id=?').bind(user.id).first();
