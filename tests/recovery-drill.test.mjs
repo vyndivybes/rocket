@@ -10,7 +10,7 @@ test('synthetic SQLite export and restore preserves Saathi tables and per-studen
  let source,restored;
  try{
   source=new DatabaseSync(':memory:');
-  for(const name of ['0001_initial','0003_admin','0004_study','0005_mission'])
+  for(const name of ['0001_initial','0003_admin','0004_study','0005_mission','0006_companion_name','0007_personal_memory'])
    source.exec(readFileSync(new URL('../migrations/'+name+'.sql',import.meta.url),'utf8'));
   const insert=source.prepare('INSERT INTO users(id,username,role,password_salt,password_hash) VALUES(?,?,?,?,?)');
   insert.run('student-a','synthetic-a','student','0'.repeat(32),'a'.repeat(64));
