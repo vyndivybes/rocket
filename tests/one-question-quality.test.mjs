@@ -10,5 +10,5 @@ test('AI teacher and pilot modes explicitly prioritize one worked problem at a t
 });
 test('child-facing Saathi interface explains one question at a time and offers checked practice',()=>{
  assert.match(mission,/one question at a time/i);
- assert.match(mission,/Lessons & practice/);
+ assert.match(mission,/Lessons &amp; practice/);
 });
