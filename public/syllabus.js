@@ -14,6 +14,13 @@ function renderSubject(s){
  const literature=s.curriculumUnitType==='literary_texts';
  const main=s.chapters?.length?'<p>Qualified '+(literature?'literary texts':'complete chapters')+': 0 of '+s.totalChapters+'. A foundation lesson does not establish mastery.</p>'+
     '<ol>'+s.chapters.map(renderUnit).join('')+'</ol>':'<p>No verified unit inventory yet. No percentage is claimed.</p>';
+ const skillPractice=s.skillPractice?.length?
+    '<h3>Foundational skill practice (not a literature completion)</h3><ul>'+s.skillPractice.map(p=>
+      '<li>'+esc(p.title)+' — '+Number(p.attempts)+' attempts; '+Number(p.correct)+' correct'+
+      ' · '+(p.revision==='review_worked_example'?'Review the worked example':
+          p.revision==='try_new_unseen_question'?'Try a new unseen question; repeated answers are not mastery':'Not assessed yet')+
+      ' · <a href="/">Open learning workspace</a></li>'
+    ).join('')+'</ul><p>These scores reflect repeated short fixed exercises, not independent exam readiness or textbook completion.</p>':'';
  const fiction=s.fictionChoices?.length?
     '<p><strong>Novel selection requires school confirmation:</strong> '+s.fictionChoices.map(esc).join(' OR ')+'. Neither novel is marked complete or automatically selected.</p>':'';
  const sections=s.assessmentSections?.length?
@@ -21,7 +28,7 @@ function renderSubject(s){
  const foundation=s.foundationSkillLessonIds?.length?'<p>General writing foundation exercise available in Lessons &amp; practice; it does not count as a Kaleidoscope text.</p>':'';
  const formative=s.formativeTopics?.length?'<p>Additional formative topics: '+s.formativeTopics.map(esc).join(', ')+'.</p>':'';
  return '<section class="card" style="margin:16px 0;padding:20px"><h2>'+esc(s.subject)+(s.code?' ('+esc(s.code)+')':'')+'</h2>'+
-   '<p><strong>Coverage:</strong> INCOMPLETE · '+esc(state)+'</p>'+main+fiction+sections+foundation+formative+
+   '<p><strong>Coverage:</strong> INCOMPLETE · '+esc(state)+'</p>'+main+skillPractice+fiction+sections+foundation+formative+
    '<p>Exam readiness: HOLD. '+(literature?'Seminar and literature assessment require teacher review.':'Practical and internal assessment requirements need teacher verification; do not perform hazardous laboratory work unsupervised.')+'</p>'+
    '<p><a target="_blank" rel="noopener noreferrer" href="'+esc(s.officialSource)+'">Read official curriculum source</a></p></section>';
 }
