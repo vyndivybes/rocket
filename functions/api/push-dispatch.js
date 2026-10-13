@@ -9,7 +9,7 @@ export async function onRequestPost({request,env,data}){
  if(bearer!=='Bearer '+env.PUSH_DISPATCH_SECRET)return error('Unauthorized',403);
  const sender=data?.testSender || (await import('@mmmike/web-push/send')).sendPushNotification;
  const now=data?.testNow ?? Date.now();
- const rows=await env.DB.prepare("SELECT d.id device_id,d.student_id,d.endpoint,d.p256dh,d.auth,d.timezone,d.quiet_from,d.quiet_to,s.id schedule_id,s.days_json,s.time_local,s.enabled FROM push_devices d JOIN schedule_items s ON s.student_id=d.student_id WHERE d.enabled=1 AND s.enabled=1 LIMIT 250").all();
+ const rows=await env.DB.prepare("SELECT d.id device_id,d.student_id,d.endpoint,d.p256dh,d.auth,d.timezone,d.quiet_from,d.quiet_to,s.id schedule_id,s.days_json,s.time_local,s.enabled FROM push_devices d JOIN schedule_items s ON s.student_id=d.student_id JOIN learner_experience p ON p.student_id=d.student_id AND json_extract(p.preferences_json,'$.quietMode')=0 AND json_extract(p.preferences_json,'$.remindersEnabled')=1 WHERE d.enabled=1 AND s.enabled=1 LIMIT 250").all();
  let attempted=0,accepted=0,failed=0;
  for(const r of rows.results||[]){
   let days;try{days=JSON.parse(r.days_json)}catch{continue}
