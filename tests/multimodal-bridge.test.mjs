@@ -29,8 +29,8 @@ test('VAOS bounded voice segmentation fits Saathi student replies',()=>{
 test('allowlist and size validation reject forged, spoofed or oversized uploads',()=>{
  assert.equal(classifyLocalStudyFile('lesson.txt','text/plain',1800).kind,'text');
  assert.equal(classifyLocalStudyFile('notes.md','text/markdown',2000).kind,'text');
- assert.equal(classifyLocalStudyFile('homework.docx','application/vnd.openxmlformats-officedocument.wordprocessingml.document',2000).kind,'unsupported');
- assert.equal(classifyLocalStudyFile('chapter.pdf','application/pdf',2000).kind,'unsupported');
+ assert.equal(classifyLocalStudyFile('homework.docx','application/vnd.openxmlformats-officedocument.wordprocessingml.document',2000).kind,'document');
+ assert.equal(classifyLocalStudyFile('chapter.pdf','application/pdf',2000).kind,'document');
  assert.equal(classifyLocalStudyFile('lesson.mp4','video/mp4',2000000).kind,'video-frame-only');
  assert.equal(classifyLocalStudyFile('test.exe','image/png',400),null);
  assert.equal(classifyLocalStudyFile('big.txt','text/plain',5_000_000),null);
@@ -43,7 +43,7 @@ test('learner opt-in vision analyzes image without storing input or model output
  const x=await setup(),learner=await x.cookie('learner');
  const r=await analyze({request:request('/api/analyze-image',learner,{image:png,question:'Help me understand this science diagram.',confirm:'ANALYZE IMAGE'}),env:x.env});
  assert.equal(r.status,200);const d=await r.json();
- assert.match(d.answer,/image/);assert.equal(x.calls.length,1);assert.match(x.calls[0].model,/vision/);
+ assert.match(d.answer,/image/);assert.equal(x.calls.length,1);assert.match(x.calls[0].model,/gemma-4/);
  assert.equal(x.db.prepare('SELECT COUNT(*) AS n FROM notes').get().n,0);
  assert.equal(x.db.prepare('SELECT COUNT(*) AS n FROM personal_memories').get().n,0);
  assert.ok(!JSON.stringify(d).includes('data:image'));
@@ -67,7 +67,7 @@ test('missing vision provider is an honest hold, not a fabricated image explanat
 test('account model licence hold blocks image inference without consuming AI quota',async()=>{
  const x=await setup(),c=await x.cookie('learner');
  const result=await analyze({request:request('/api/analyze-image',c,{image:png,question:'Explain this drawing',confirm:'ANALYZE IMAGE'}),env:{...x.env,SAATHI_VISION_ENABLED:undefined}});
- assert.equal(result.status,503);assert.match((await result.json()).error,/licence acceptance/i);
+ assert.equal(result.status,503);assert.match((await result.json()).error,/disabled/i);
  assert.equal(x.calls.length,0);
  assert.equal(x.db.prepare('SELECT COUNT(*) AS n FROM ai_usage').get().n,0);
 });
