@@ -16,7 +16,7 @@ async function setup(){
  const prepare=(sql,args=[])=>({bind(...x){return prepare(sql,x)},async first(){return db.prepare(sql).get(...args)||null},async all(){return{results:db.prepare(sql).all(...args)}},async run(){return{meta:{changes:Number(db.prepare(sql).run(...args).changes)}}}});
  const salt='0123456789abcdef0123456789abcdef',hash=await accessKeyHash(KEY,salt),sid=randomUUID();const ins=db.prepare('INSERT INTO users(id,username,role,password_salt,password_hash,board,linked_student_id) VALUES(?,?,?,?,?,?,?)');ins.run(sid,'learner','student',salt,hash,'unconfigured',null);ins.run(randomUUID(),'parent','parent',salt,hash,'unconfigured',sid);
  let calls=[];
- const env={DB:{prepare},AI:{async run(model,payload){calls.push({model,payload});return {response:'I can see an image, but exact handwriting may require confirmation.'}}}};
+ const env={SAATHI_VISION_ENABLED:'true',DB:{prepare},AI:{async run(model,payload){calls.push({model,payload});return {response:'I can see an image, but exact handwriting may require confirmation.'}}}};
  const cookie=async username=>{const r=await login({request:request('/api/login','',{username,password:KEY}),env});assert.equal(r.status,200);return r.headers.get('Set-Cookie').split(';')[0]};
  return{env,db,cookie,get calls(){return calls}};
 }
@@ -61,4 +61,12 @@ test('missing vision provider is an honest hold, not a fabricated image explanat
  const r=await analyze({request:request('/api/analyze-image',cookie,{image:png,question:'What is shown?',confirm:'ANALYZE IMAGE'}),env:{...x.env,AI:null}});
  assert.equal(r.status,503);
  const data=await r.json();assert.match(data.error,/vision|unavailable/i);
+});
+
+test('account model licence hold blocks image inference without consuming AI quota',async()=>{
+ const x=await setup(),c=await x.cookie('learner');
+ const result=await analyze({request:request('/api/analyze-image',c,{image:png,question:'Explain this drawing',confirm:'ANALYZE IMAGE'}),env:{...x.env,SAATHI_VISION_ENABLED:undefined}});
+ assert.equal(result.status,503);assert.match((await result.json()).error,/licence acceptance/i);
+ assert.equal(x.calls.length,0);
+ assert.equal(x.db.prepare('SELECT COUNT(*) AS n FROM ai_usage').get().n,0);
 });
