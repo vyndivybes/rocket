@@ -5,11 +5,13 @@ import {buildDailyBrief} from './daily-brief.js';
 import {detectStudyLinkQuestion} from './link-intent.js';
 import {stripCompanionCall,DEFAULT_COMPANION_NAME} from './companion-name.js';
 import {answerPersonalRequest} from './personal-requests.js';
+import {createVoiceReadback} from './voice-readback.js';
+import {detectMediaFile,frameTimeLabel} from './media-file.js';
 const root=document.getElementById('mission-root');
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const state={user:null,tab:'home',mode:'companion',notes:[],schedule:[],tasks:[],knowledgePacks:[],packId:null,memories:[],linkSource:null,linkUrl:'',linkText:'',linkQuestion:'',linkAnswer:'',linkEvidence:[],answer:'',answerReference:null,companionName:DEFAULT_COMPANION_NAME,nameConfigured:false,notifications:false,seen:new Set()};
+const state={user:null,tab:'home',mode:'companion',notes:[],schedule:[],tasks:[],knowledgePacks:[],packId:null,memories:[],linkSource:null,linkUrl:'',linkText:'',linkQuestion:'',linkAnswer:'',linkEvidence:[],answer:'',answerReference:null,mediaFile:null,mediaObjectUrl:null,mediaKind:null,mediaQuestion:'',mediaAnswer:'',mediaTimeLabel:null,companionName:DEFAULT_COMPANION_NAME,nameConfigured:false,notifications:false,seen:new Set()};
 const sketchState=createSketchState();
-const tabs=[['home','Mission home'],['companion','Talk to your AI'],['schedule','Scheduler'],['notes','Notes'],['art','Art studio'],['pilot','Pilot academy'],['knowledge','Knowledge packs'],['links','Study links'],['memory','AI memory'],['privacy','My data'],['identity','Name your AI']];
+const tabs=[['home','Mission home'],['companion','Talk to your AI'],['schedule','Scheduler'],['notes','Notes'],['art','Art studio'],['pilot','Pilot academy'],['knowledge','Knowledge packs'],['links','Study links'],['media','My uploads'],['memory','AI memory'],['privacy','My data'],['identity','Name your AI']];
 const dayNames=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 async function api(name,data){
  const options={credentials:'same-origin',headers:{'Content-Type':'application/json'}};
@@ -44,6 +46,13 @@ function art(){
 function pilot(){
  return '<section class="hero"><div><span class="tag">Mission · Future pilot</span><h2 style="font-size:35px">The sky is worth exploring.</h2><p class="sub">Start with curiosity, then develop Maths and Physics through real concepts. For learning only—not actual flight instructions.</p><div class="actions">'+button('companion','Ask your aviation mentor')+'</div></div><div class="orb"><div class="orbit">✈</div></div></section><div class="tiles"><section class="card"><h2>Forces of flight</h2><p class="muted">Lift, weight, thrust and drag. Draw an airplane and four arrows, then talk through what each force does.</p><button class="btn secondary" data-ask-pilot="Explain lift, weight, thrust and drag to a beginner using simple physics">Explore four forces</button></section><section class="card"><h2>Pilot maths</h2><p class="muted">Angles, time, distance and rate; build confidence with worked steps instead of memorising answers.</p><button class="btn secondary" data-ask-pilot="Give me one beginner maths question linked to aviation, then help me solve it step by step">Practise Maths</button></section><section class="card"><h2>Why weather matters</h2><p class="muted">Clouds, air pressure and wind as science topics. This section does not provide real flight decisions or weather briefings.</p><button class="btn secondary" data-ask-pilot="Teach me how air pressure relates to weather, with a simple experiment at home">Study weather</button></section><section class="card"><h2>Official India pathway</h2><p class="muted">DGCA states Physics and Mathematics at 10+2 for flight-crew examination registration other than the PPL category. Confirm current licensing through DGCA rather than relying on AI.</p><a href="https://pariksha.dgca.gov.in/Form/PLT_FAQs" target="_blank" rel="noopener noreferrer">Official DGCA FAQ ↗</a></section></div><section class="card" style="margin-top:18px"><h2>Art and flight belong together</h2><p class="muted">Sketch an imaginary aircraft using geometric shapes, then name your design. Your creativity is part of the journey.</p>'+button('art','Draw aircraft art')+'</section>';
 }
+
+function media(){
+ const kind=state.mediaKind;
+ return '<section class="card"><h2>Study your own files</h2><p class="muted">This is a private, learner-initiated preview. Text files are read locally and passed to Study links. Images can be sent for a one-image AI explanation after you approve. Video stays on this device: select a moment and analyse ONLY that single frame, not its audio or full timeline.</p><label class="form-field">Select a study file<input id="media-file-input" type="file" accept=".txt,.md,.csv,.json,.srt,.vtt,.jpg,.jpeg,.png,.webp,.mp4,.webm,.pdf,.doc,.docx,.ppt,.pptx"></label><p class="small">Currently: text (TXT/MD/CSV/SRT/VTT/JSON), still images (PNG/JPG/WebP), a selected video frame (MP4/WebM). Full PDF, Word and slides extraction is not yet commissioned; copy permitted text into Study links instead.</p></section>'+
+ (kind?'<section class="card" style="margin-top:16px"><h2>'+esc(state.mediaFile?.name||'Selected media')+'</h2><p class="small">'+(kind==='video-frame-only'?'This is one selected frame. It does not include speech, motion or the rest of the video.':'One still image can be analysed, but handwriting and detailed diagrams may be misread.')+'</p>'+(kind==='video-frame-only'?'<div class="canvas-frame"><video id="media-video" controls muted playsinline style="width:100%;max-height:330px"></video></div><p class="small">Pause on the exact frame you want to discuss before analysing.</p>':'')+'<form id="media-study-form"><label class="form-field">What should '+esc(state.companionName)+' explain?<textarea name="question" required minlength="4" maxlength="1500" placeholder="Explain the diagram one step at a time or suggest improvements to my sketch.">'+esc(state.mediaQuestion)+'</textarea></label><button type="submit" id="analyze-media" class="btn">Analyse with my approval</button></form>'+(state.mediaAnswer?'<div class="ai-answer">'+esc(state.mediaAnswer)+'</div><p class="small">AI vision may be inaccurate. No source file or answer is saved by Saathi. Verify classroom concepts with a teacher and textbook.</p>':'')+'</section>':'');
+}
+
 function knowledge(){
  const packs=state.knowledgePacks;
  if(!packs.length)return '<section class="card"><h2>Knowledge library</h2><p class="muted">Learning packs are temporarily unavailable. You can still use the foundation practice lessons.</p><a class="btn secondary" href="/">Open Lessons &amp; practice</a></section>';
@@ -78,17 +87,18 @@ function memory(){
 function privacy(){
  return '<section class="card"><h2>Control your student information</h2><p class="muted">You can download your notes, routine, tasks and academic preferences; or erase saved learning data while retaining your login. Downloads may contain personal details—store them privately.</p><div class="actions"><button class="btn secondary" id="export">Download my data</button><button class="btn warn" id="erase">Erase saved learning data</button></div><p class="notice">The parent sees aggregate task and practice counts only. Cloudflare provider backups may retain deleted data under their separate policies. Your companion cannot automatically alert another person.</p><a href="/privacy.html">Read privacy and safety notice ↗</a></section>';
 }
-const headings={home:'Your mission starts here',companion:'Your AI companion',schedule:'Your scheduler',notes:'Private notes',art:'Creative studio',pilot:'Pilot academy',knowledge:'Knowledge packs',links:'Study links',memory:'Your AI memory',privacy:'My data',identity:'Give your AI a name'};
-const descriptions={home:'Your dreams deserve curiosity, balance and room to grow.',companion:'A helper for studying, planning, art and ordinary conversations.',schedule:'Study, draw, play, move and recharge—at your pace.',notes:'Your ideas are for you.',art:'Explore drawing, painting and modern art.',pilot:'Connect your dream of flying with science and creativity.',knowledge:'Source-linked aviation, art and study modules.',links:'Ask your AI about a webpage or a captioned video, with visible evidence.',memory:'You decide what your AI remembers and when it can use it.',privacy:'Your choices and records, under your control.',identity:'Make your companion yours: choose a name and change it whenever you like.'};
+const headings={home:'Your mission starts here',companion:'Your AI companion',schedule:'Your scheduler',notes:'Private notes',art:'Creative studio',pilot:'Pilot academy',knowledge:'Knowledge packs',links:'Study links',media:'My uploads',memory:'Your AI memory',privacy:'My data',identity:'Give your AI a name'};
+const descriptions={home:'Your dreams deserve curiosity, balance and room to grow.',companion:'A helper for studying, planning, art and ordinary conversations.',schedule:'Study, draw, play, move and recharge—at your pace.',notes:'Your ideas are for you.',art:'Explore drawing, painting and modern art.',pilot:'Connect your dream of flying with science and creativity.',knowledge:'Source-linked aviation, art and study modules.',links:'Ask your AI about a webpage or a captioned video, with visible evidence.',media:'Photos and selected video frames, explained carefully and privately.',memory:'You decide what your AI remembers and when it can use it.',privacy:'Your choices and records, under your control.',identity:'Make your companion yours: choose a name and change it whenever you like.'};
 function identity(){
  return '<section class="card"><span class="tag">Your personal AI · Your choice</span><h2 style="margin-top:15px">What would you like to call your AI?</h2><p class="muted">Choose any short name, such as Nova, Jarvis, Sky, Vimaan or something you invent. You can rename it anytime. The name stays private in your learner account; it does not change that this is an AI, not a human.</p><form id="name-form"><label class="form-field">My AI companion’s name<input name="name" type="text" required minlength="2" maxlength="24" autocomplete="off" placeholder="e.g. Nova" value="'+(state.nameConfigured?esc(state.companionName):'')+'"></label><button type="submit" class="btn">Save my AI’s name</button></form><div class="notice">After naming your AI, tap the microphone and say “Hey '+esc(state.nameConfigured?state.companionName:'Nova')+', open my notes” or ask it a question. Listening starts only when you press Speak; this is not an always-on wake word.</div><p class="small">Your AI can help with a daily briefing, scheduling, private notes, aviation inspiration, sketching and step-by-step study. It cannot secretly monitor you, message people or replace real friendships.</p></section>';
 }
-const panels={home,companion,schedule,notes,art,pilot,knowledge,studyLinks,memory,privacy,identity};
+const panels={home,companion,schedule,notes,art,pilot,knowledge,studyLinks,media,memory,privacy,identity};
 panels.links=studyLinks;
 function render(){
  document.title=(state.nameConfigured?state.companionName:'My AI')+' | Mission Control';
  root.innerHTML='<div class="mc"><aside class="side"><div><div class="wordmark">'+esc(state.companionName)+'<b>.</b></div><div class="under">Mission Control · Birthday Edition</div></div><nav class="tabs" aria-label="AI companion sections">'+tabs.map(([name,title])=>'<button type="button" class="'+(state.tab===name?'active':'')+'" data-tab="'+name+'">'+esc(name==='companion'?'Talk to '+state.companionName:title)+'</button>').join('')+'</nav><div class="sidefoot">AI companion, not a person or emergency service.</div><a class="btn ghost" href="/">← Learning workspace</a></aside><main class="content"><header class="mast"><div><div class="kicker">Your AI · Mission Control</div><h1 class="display">'+(state.tab==='companion'?'Talk to '+esc(state.companionName):headings[state.tab])+'</h1><p class="sub">'+descriptions[state.tab]+'</p></div><span class="tag">Private student space</span></header><div class="status" id="status" role="status"></div>'+panels[state.tab]()+'<footer class="footer">Your chosen companion is an AI tool. Verify important learning facts. Timed reminders only work while this page is open. <a href="/privacy.html">Privacy & safety</a></footer></main></div>';
  if(state.tab==='art')attachDrawing();
+ if(state.tab==='media'&&state.mediaKind==='video-frame-only'&&state.mediaObjectUrl){const video=document.getElementById('media-video');if(video)video.src=state.mediaObjectUrl;}
 }
 function attachDrawing(){
  const canvas=document.getElementById('sketch'),ctx=canvas?.getContext('2d');if(!ctx)return;
@@ -124,7 +134,7 @@ root.addEventListener('click',async e=>{
  if(b.id==='calendar-export'){const text=buildCalendar(state.schedule.filter(x=>x.enabled));const blob=new Blob([text],{type:'text/calendar;charset=utf-8'}),url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download='saathi-my-week.ics';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);flash('Calendar file downloaded. Import it into your phone calendar and enable that calendar’s alerts. This app does not install them for you.');return}
  if(b.id==='enable-notifications'){state.notifications=true;if('Notification' in window && Notification.permission==='default')await Notification.requestPermission();flash('Optional alerts enabled while this page is open. Background notifications are not available.');return}
  if(b.id==='voice'){const Recognition=window.SpeechRecognition||window.webkitSpeechRecognition;if(!Recognition){flash('Voice recognition not available on this browser. Try typing.');return}const recognition=new Recognition();recognition.lang='en-IN';recognition.continuous=false;recognition.onresult=r=>{const rawPhrase=r.results[0][0].transcript;const phrase=stripCompanionCall(rawPhrase,state.nameConfigured?state.companionName:null);if(!phrase){flash('I’m here. What would you like to ask?');return}const nav=matchVoiceCommand(phrase);if(nav){state.tab=nav;render();flash('Opened '+nav+' from your spoken request.');return}const local=answerPersonalRequest(phrase,{schedule:state.schedule,tasks:state.tasks,memories:state.memories});if(local){state.answer=local.answer;state.tab='companion';render();flash(state.companionName+' used your private daily plan. No AI request was needed.');return}const q=document.getElementById('question');if(q)q.value=phrase;flash('Voice captured. Review it and press Ask.')};recognition.onerror=()=>flash('Microphone input unavailable; please type.');recognition.start();flash('Listening after your tap.');return}
- if(b.id==='speak-answer'){if(!('speechSynthesis' in window)){flash('Speech output not available.');return}speechSynthesis.cancel();const speech=new SpeechSynthesisUtterance(state.answer.slice(0,3000));speech.lang='en-IN';speechSynthesis.speak(speech);return}
+ if(b.id==='speak-answer'){const speaker=createVoiceReadback({synthesis:window.speechSynthesis,UtteranceClass:window.SpeechSynthesisUtterance,onError:()=>flash('Spoken reply unavailable. You can read the answer instead.')});if(!speaker.speak(state.answer))flash('Speech unavailable; the written reply is still shown.');return}
  if(b.id==='save-png'){const canvas=document.getElementById('sketch'),link=document.createElement('a');link.download='my-artwork.png';link.href=canvas.toDataURL('image/png');link.click();flash('Art saved to your device, not uploaded.');return}
  if(b.id==='clear-png'){if(confirm('Clear the sketch? Unsaved artwork will be lost.')){sketchState.clear();attachDrawing();flash('Canvas cleared.')}return}
  if(b.id==='save-link-note'){if(!state.linkAnswer)return;if(!confirm('Save this AI-generated explanation to your private notes?'))return;const title=('Link lesson: '+(state.linkSource?.title||'Study explanation')).slice(0,120);const reference=state.linkSource?.url?'Source: '+state.linkSource.url+'\n':'Source text pasted by learner (original not verified).\n';const body=(reference+'Question: '+state.linkQuestion+'\n\nAI explanation (check accuracy):\n'+state.linkAnswer).slice(0,3000);await api('notes',{title,body});state.notes=(await api('notes')).notes;flash('Saved as a private note. It was not automatically added to AI memory.');return}
@@ -133,9 +143,57 @@ root.addEventListener('click',async e=>{
  if(b.id==='erase'){if(!confirm('Erase your notes, routine, study tasks and study progress? Login will remain.'))return;if(prompt('Type ERASE MY STUDY DATA to confirm')!=='ERASE MY STUDY DATA')return;await api('my-data',{action:'erase-learning-data',confirm:'ERASE MY STUDY DATA'});state.notes=[];state.schedule=[];state.memories=[];state.companionName=DEFAULT_COMPANION_NAME;state.nameConfigured=false;state.tab='identity';render();flash('Study information erased. Provider backups may retain data temporarily.');return}
  }catch(err){flash(err.message)}
 });
+
+async function captureMediaImage(){
+ let canvas=document.createElement('canvas'),w,h,drawSource,release=()=>{};
+ if(state.mediaKind==='image'){
+  drawSource=await createImageBitmap(state.mediaFile);release=()=>drawSource.close?.();w=drawSource.width;h=drawSource.height;
+ }else if(state.mediaKind==='video-frame-only'){
+  drawSource=document.getElementById('media-video');
+  if(!drawSource||drawSource.readyState<2)throw Error('Play or pause the video at a visible frame before analysing.');
+  w=drawSource.videoWidth;h=drawSource.videoHeight;
+  state.mediaTimeLabel=frameTimeLabel(drawSource.currentTime);
+ }else throw Error('Only images and selected video frames can be analysed.');
+ if(!w||!h||w*h>60_000_000)throw Error('Image dimensions are invalid or too large.');
+ const scale=Math.min(1,800/Math.max(w,h));canvas.width=Math.max(1,Math.round(w*scale));canvas.height=Math.max(1,Math.round(h*scale));
+ const ctx=canvas.getContext('2d');ctx.fillStyle='white';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.drawImage(drawSource,0,0,canvas.width,canvas.height);
+ release();
+ let quality=.78,uri=canvas.toDataURL('image/jpeg',quality);
+ while(uri.length>600000&&quality>.35){quality-=.1;uri=canvas.toDataURL('image/jpeg',quality)}
+ if(uri.length>600000)throw Error('Image too large after resizing; select a simpler or smaller image.');
+ return uri;
+}
+root.addEventListener('change',async e=>{
+ if(e.target?.id!=='media-file-input')return;
+ const file=e.target.files?.[0];if(!file)return;
+ if(state.mediaObjectUrl){URL.revokeObjectURL(state.mediaObjectUrl);state.mediaObjectUrl=null}
+ const kind=detectMediaFile(file.name,file.size);state.mediaFile=null;state.mediaKind=null;state.mediaAnswer='';
+ if(!kind){flash('Unsupported format or oversized file. Use a small text file, image or video.');return}
+ if(kind==='unsupported'){flash('PDF/DOCX/PPT conversion is not qualified in Saathi yet. Copy a permitted passage into Study links instead.');return}
+ if(kind==='text'){
+  let passage=await file.text();
+  passage=passage.replace(/\u0000/g,'').slice(0,12000);
+  if(passage.trim().length<40){flash('This text file does not contain enough readable material.');return}
+  state.linkSource={kind:'manual',url:'',title:file.name,status:'ready'};
+  state.linkText=passage;state.linkQuestion='Please teach me this material one step at a time.';state.tab='links';render();flash('Text file read on your device. Review the passage and ask your question.');return;
+ }
+ state.mediaFile=file;state.mediaKind=kind;
+ if(kind==='video-frame-only')state.mediaObjectUrl=URL.createObjectURL(file);
+ render();flash(kind==='image'?'Image ready. Enter a question and approve analysis.':'Local video ready. Pause at the frame you want to discuss.');
+});
+
 root.addEventListener('submit',async e=>{
  e.preventDefault();const form=e.target,fd=new FormData(form);const btn=form.querySelector('[type=submit]');if(btn)btn.disabled=true;
  try{
+ if(form.id==='media-study-form'){
+   if(!state.mediaFile||!['image','video-frame-only'].includes(state.mediaKind))throw Error('Select a supported image or video frame.');
+   state.mediaQuestion=String(fd.get('question')||'').trim();if(state.mediaQuestion.length<4)throw Error('Please enter a question.');
+   const imageData=await captureMediaImage();
+   if(!confirm('Send this single image/frame to Cloudflare Workers AI for analysis? No media file or answer will be saved to Saathi.')){flash('Analysis cancelled.');return}
+   const label=state.mediaKind==='video-frame-only'?'This is one selected frame at '+state.mediaTimeLabel+' from a local video, not a full video. ':'';
+   const answer=await api('analyze-image',{image:imageData,question:(label+state.mediaQuestion).slice(0,1600),confirm:'ANALYZE IMAGE'});
+   state.mediaAnswer=answer.answer;render();flash('AI analysed one selected image. Verify visual details and any handwriting before use.');
+ }
  if(form.id==='source-link-form'){state.linkQuestion='';const notice=await importStudyLink(String(fd.get('url')||'').trim());render();flash(notice);}
  if(form.id==='study-question-form'){state.linkText=String(fd.get('text')||'');state.linkQuestion=String(fd.get('question')||'');if(!state.linkSource)state.linkSource={kind:'manual',url:'',title:'Learner-pasted study passage'};const source={type:state.linkSource.kind==='manual'?'manual':state.linkSource.kind,url:state.linkSource.url||'',title:state.linkSource.title,text:state.linkText};const result=await api('ask',{mode:'teacher',question:state.linkQuestion,source});state.linkAnswer=result.answer;state.linkEvidence=result.sourceEvidence||[];render();flash('Answer based on the supplied source excerpts. Review the evidence and confirm accuracy.')}
  if(form.id==='memory-form'){const entry={action:fd.get('id')?'update':'create',category:fd.get('category'),text:fd.get('text'),useInChat:fd.get('useInChat')!==null};if(fd.get('id'))entry.id=fd.get('id');await api('personal-memory',entry);state.memories=(await api('personal-memory')).memories;render();flash(entry.useInChat?'Memory saved and enabled for AI recall.':'Memory saved privately without AI recall.');}
