@@ -75,7 +75,7 @@ function wire(){
   if($('ask-form'))$('ask-form').onsubmit=async e=>{e.preventDefault();const button=e.currentTarget.querySelector('button');button.disabled=true;const q=$('question').value;try{const r=await post('ask',{question:q});$('answer-wrap').hidden=false;$('answer').textContent=r.answer;$('answer-note').textContent=r.notice||'';}catch(err){showMessage(err.message)}finally{button.disabled=false}};
   if($('task-form'))$('task-form').onsubmit=async e=>{e.preventDefault();const data=Object.fromEntries(new FormData(e.currentTarget));try{await post('tasks',{title:data.title,subject:data.subject||'General',due_date:data.due_date||null});const r=await api('tasks');tasks=r.tasks;renderApp();showMessage('Task added',true)}catch(err){showMessage(err.message)}};
   document.querySelectorAll('[data-task]').forEach(btn=>btn.onclick=async()=>{try{await post('tasks',{action:'complete',id:btn.dataset.task,done:btn.dataset.done==='1'});tasks=(await api('tasks')).tasks;renderApp()}catch(err){showMessage(err.message)}});
-  if($('summary'))$('summary').onclick=async()=>{try{const r=await api('parent-summary');$('aggregate').textContent=`${r.completed} / ${r.assigned} complete`;}catch(err){showMessage(err.message)}};
+  if($('summary'))$('summary').onclick=async()=>{try{const r=await api('parent-summary');$('aggregate').textContent=`${r.completed} / ${r.assigned} tasks complete · ${r.practiceCorrect} / ${r.practiceAttempts} practice correct`;}catch(err){showMessage(err.message)}};
   if($('admin-summary'))$('admin-summary').onclick=()=>refreshAdminSummary();
 }
 init();
