@@ -10,21 +10,12 @@ export const PHYSICS_CHAPTERS=[
  'Wave Optics','Dual Nature of Radiation and Matter','Atoms','Nuclei',
  'Semiconductor Electronics: Materials, Devices and Simple Circuits'
 ];
-const available=['Physics','Chemistry','Mathematics','Biology','English','Accountancy','Economics','History','Computer Science'];
+const available=['Physics','Chemistry','Mathematics','Biology','English Elective'];
+// Compatibility entrypoint: return the same authoritative syllabus evidence as the student API.
+// Never let the legacy function tell learners that a mapped CBSE course is unmapped.
 export function syllabusInventory(selected=available,lessonList=[]){
- const subjects=selected.filter(s=>available.includes(s));
- return subjects.map(subject=>{
-   const chapters=subject==='Physics'?PHYSICS_CHAPTERS.map((name,i)=>({
-     id:'physics-'+(i+1),number:i+1,title:name,
-     foundationLessonIds:i===5?lessonList.filter(l=>l.id==='physics-faraday').map(l=>l.id):[],
-     status:i===5&&lessonList.some(l=>l.id==='physics-faraday')?'foundation_only':'no_qualified_lesson'
-   })):[];
-   return {subject,board:'CBSE',academicYear:'2026-27',mappingStatus:subject==='Physics'?'official_chapter_titles_verified':'not_yet_verified',
-     chapters,qualifiedChapters:0,totalChapters:subject==='Physics'?14:null,
-     coverageStatus:'INCOMPLETE',officialSource:subject==='Physics'?PHYSICS_SOURCE:SYLLABUS_SOURCE};
- });
+ return academicInventory(selected,lessonList);
 }
-
 
 // English Elective (001), Class XII 2026–27. CBSE's official syllabus lists
 // individual Kaleidoscope works, rather than a set of numbered NCERT chapters.
@@ -65,6 +56,16 @@ export const SUBJECT_MAP={
  Mathematics:{code:'041',source:'https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Maths_SecP2_2026-27.pdf',pages:'7–9',titles:['Relations and Functions','Inverse Trigonometric Functions','Matrices','Determinants','Continuity and Differentiability','Applications of Derivatives','Integrals','Application of the Integrals','Differential Equations','Vectors','Three-dimensional Geometry','Linear Programming','Probability'],foundation:{5:['mathematics-derivative'],13:['mathematics-conditional-probability']}},
  Biology:{code:'044',source:'https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Biology_SecP2_2026-27.pdf',pages:'9–11',titles:['Sexual Reproduction in Flowering Plants','Human Reproduction','Reproductive Health','Principles of Inheritance and Variation','Molecular Basis of Inheritance','Evolution','Human Health and Diseases','Microbes in Human Welfare','Biotechnology - Principles and Processes','Biotechnology and its Applications','Organisms and Populations','Ecosystem','Biodiversity and its Conservation'],foundation:{5:['biology-transcription','biology-genetics'],6:['biology-evolution-selection']},formative:['Environmental Issues']}
 };
+// Official CBSE 2026–27 Class XII assessment structures (maximum marks, not earned scores).
+// Science practicals require physical school/teacher sign-off; Mathematics uses internal
+// assessment, while English Elective uses a seminar. None are app-certified.
+export const SUBJECT_ASSESSMENT=Object.freeze({
+ Physics:Object.freeze({theory:70,practical:30,internal:0,seminar:0}),
+ Chemistry:Object.freeze({theory:70,practical:30,internal:0,seminar:0}),
+ Mathematics:Object.freeze({theory:80,practical:0,internal:20,seminar:0}),
+ Biology:Object.freeze({theory:70,practical:30,internal:0,seminar:0}),
+ 'English Elective':Object.freeze({theory:80,practical:0,internal:0,seminar:20})
+});
 function aggregateLessonAttempts(lessonId,progress){
  const revision=revisionForLesson(lessonId,progress);
  if(revision)return {attempts:revision.attempts,correct:revision.correct};
@@ -92,6 +93,6 @@ export function academicInventory(selected,lessonList=[],progress=[]){
      revision:attempts===0?'not_assessed':correct<attempts?'review_worked_example':'try_new_unseen_question',
      certified:false};
   }).filter(Boolean);
-  return {subject,code:m.code,board:'CBSE',academicYear:'2026-27',mappingStatus:'official_outline_verified',chapters,qualifiedChapters:0,totalChapters:chapters.length,coverageStatus:'INCOMPLETE',officialSource:m.source,sourcePages:m.pages,formativeTopics:m.formative||[],examReadiness:'HOLD',curriculumUnitType:m.literatureTexts?'literary_texts':'chapters',...(m.literatureTexts?{fictionChoices:[...ENGLISH_ELECTIVE_FICTION],fictionChoiceStatus:'school_choice_required',assessmentSections:ENGLISH_ELECTIVE_ASSESSMENT.map(section=>({...section})),foundationSkillLessonIds:skillPractice.map(p=>p.lessonId),skillPractice,practicalStatus:'not_applicable_seminar_review_required'}:{practicalStatus:'teacher_assessment_required'})};
+  return {subject,code:m.code,board:'CBSE',academicYear:'2026-27',mappingStatus:'official_outline_verified',chapters,qualifiedChapters:0,totalChapters:chapters.length,foundationChapterCount:chapters.filter(ch=>ch.status==='foundation_only').length,unmappedChapterCount:chapters.filter(ch=>ch.status!=='foundation_only').length,coverageStatus:'INCOMPLETE',assessmentStructure:{...SUBJECT_ASSESSMENT[subject]},assessmentStatus:'teacher_review_required',officialSource:m.source,sourcePages:m.pages,formativeTopics:m.formative||[],examReadiness:'HOLD',curriculumUnitType:m.literatureTexts?'literary_texts':'chapters',...(m.literatureTexts?{fictionChoices:[...ENGLISH_ELECTIVE_FICTION],fictionChoiceStatus:'school_choice_required',assessmentSections:ENGLISH_ELECTIVE_ASSESSMENT.map(section=>({...section})),foundationSkillLessonIds:skillPractice.map(p=>p.lessonId),skillPractice,practicalStatus:'not_applicable_seminar_review_required'}:{practicalStatus:subject==='Mathematics'?'not_applicable_internal_assessment_required':'teacher_assessment_required'})};
  });
 }
