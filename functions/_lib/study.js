@@ -88,7 +88,7 @@ export const LESSONS=[
   example:'20% of 150 = (20/100)×150 = 30.',
   question:'What is 15% of 200?',
   options:['15','20','30','40'],answerIndex:2,
-  explanation:'15/100×200=30.',
+  explanation:'Convert 15% to the fraction 15/100, then multiply by 200: (15/100) × 200 = 30.',
   source:'Numeracy foundation; useful for checking calculations.'},
  {id:'chemistry-mole',subject:'Chemistry',title:'Moles and molar mass',duration:10,
   concept:'Amount of substance in moles equals mass in grams divided by molar mass in g/mol.',
