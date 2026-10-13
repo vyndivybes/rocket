@@ -1,0 +1,8 @@
+name = "saathi-push-dispatch-preview"
+main = "workers/saathi-push-cron.js"
+compatibility_date = "2026-10-13"
+# No cron is activated until VAPID and secret commissioning. To activate,
+# configure secured variables then add [triggers] crons = ["* * * * *"].
+[vars]
+PUSH_DISPATCH_CONFIGURED = "false"
+SAATHI_PUSH_URL = "https://feat-saathi-academic-mvp.saathi-student-ai.pages.dev/api/push-dispatch"
