@@ -29,5 +29,6 @@ export async function onRequestPost({request,env,data}){
    await env.DB.prepare("UPDATE push_deliveries SET state='FAILED' WHERE id=?").bind(id).run();
   }
  }
+ await env.DB.prepare("UPDATE push_dispatch_health SET last_run_at=CURRENT_TIMESTAMP,source_rows=?,attempted=?,accepted=?,failed=? WHERE singleton=1").bind(rows.results?.length||0,attempted,accepted,failed).run();
  return json({status:'ATTEMPTED_NOT_DEVICE_CONFIRMED',attempted,accepted,failed,sourceRows:rows.results?.length||0,notice:'Push acceptance by gateway does not establish handset display.'});
 }
