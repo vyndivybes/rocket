@@ -13,5 +13,5 @@ test('calendar export avoids injection and skips disabled schedules',()=>{
  const value=buildCalendar([{id:'safe',title:'Paint\nBEGIN:VEVENT',time:'18:00',days:[2],minutes:15,enabled:true},{id:'no',title:'Disabled',time:'19:00',days:[2],minutes:20,enabled:false}],new Date('2026-10-13T10:00:00'));
  assert.ok(!value.includes('SUMMARY:Paint\nBEGIN:VEVENT'));
  assert.ok(!value.includes('SUMMARY:Disabled'));
- assert.equal((value.match(/BEGIN:VEVENT/g)||[]).length,1);
+ assert.equal((value.match(/(?:^|\r\n)BEGIN:VEVENT(?:\r\n|$)/g)||[]).length,1);
 });
