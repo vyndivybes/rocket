@@ -23,6 +23,7 @@ function dbAdapter() {
  const db=new DatabaseSync(':memory:');
  db.exec(readFileSync(new URL('../migrations/0001_initial.sql',import.meta.url),'utf8'));
  db.exec(readFileSync(new URL('../migrations/0003_admin.sql',import.meta.url),'utf8'));
+ db.exec(readFileSync(new URL('../migrations/0004_study.sql',import.meta.url),'utf8'));
  const prepare=(sql,args=[])=>({bind(...v){return prepare(sql,v)},async first(){return db.prepare(sql).get(...args)||null},async all(){return {results:db.prepare(sql).all(...args)}},async run(){return {meta:{changes:Number(db.prepare(sql).run(...args).changes)}}}});
  return {db,DB:{prepare}};
 }
