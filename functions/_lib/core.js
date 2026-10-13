@@ -15,7 +15,7 @@ export const TOPICS = [
 ];
 export const SOURCES = [
   {label:'NCERT official textbooks',url:'https://ncert.nic.in/textbook.php',type:'official catalogue'},
-  {label:'CBSE Academic curriculum',url:'https://cbseacademic.nic.in/curriculum_2026.html',type:'official curriculum index'}
+  {label:'CBSE 2026–27 curriculum (confirm only if your board is CBSE)',url:'https://cbseacademic.nic.in/curriculum_2027.html',type:'official curriculum index'}
 ];
 export function json(data,status=200){return new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff'}})}
 export function error(message,status=400){return json({error:message},status)}
