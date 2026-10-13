@@ -57,7 +57,12 @@ export async function auth(request,env){
   const token=parseCookie(request);
   if(!token||!/^([a-f0-9]{64})$/.test(token))return null;
   const hash=await sha256(token);
-  return await env.DB.prepare('SELECT u.id,u.username,u.role,u.board,u.linked_student_id FROM sessions s JOIN users u ON u.id=s.user_id WHERE s.token_hash=? AND s.expires_at>?').bind(hash,Math.floor(Date.now()/1000)).first();
+  const expiresAt=Math.floor(Date.now()/1000);
+  const studentOrGuardian=await env.DB.prepare('SELECT u.id,u.username,u.role,u.board,u.linked_student_id FROM sessions s JOIN users u ON u.id=s.user_id WHERE s.token_hash=? AND s.expires_at>?').bind(hash,expiresAt).first();
+  if(studentOrGuardian)return studentOrGuardian;
+  // Independent admin session table; no implicit authority over student/parent APIs.
+  const administrator=await env.DB.prepare('SELECT u.id,u.username FROM admin_sessions s JOIN admin_users u ON u.id=s.admin_id WHERE s.token_hash=? AND s.expires_at>?').bind(hash,expiresAt).first();
+  return administrator?{...administrator,role:'admin',board:'unconfigured',linked_student_id:null}:null;
 }
 export async function safeBody(request,max=4096){
   if(!request.headers.get('content-type')?.includes('application/json'))throw new Error('JSON content type required');
