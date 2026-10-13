@@ -7,7 +7,7 @@ import {onRequestPost as dispatch} from '../functions/api/push-dispatch.js';
 const origin='https://saathi-preview.pages.dev';
 function setup(){
  const db=new DatabaseSync(':memory:');
- for(const m of ['0001_initial','0003_admin','0004_study','0005_mission','0006_companion_name','0007_personal_memory','0008_push_devices'])db.exec(readFileSync(new URL('../migrations/'+m+'.sql',import.meta.url),'utf8'));
+ for(const m of ['0001_initial','0003_admin','0004_study','0005_mission','0006_companion_name','0007_personal_memory','0008_push_devices','0009_push_health'])db.exec(readFileSync(new URL('../migrations/'+m+'.sql',import.meta.url),'utf8'));
  const prepare=(sql,args=[])=>({bind(...x){return prepare(sql,x)},async first(){return db.prepare(sql).get(...args)||null},async all(){return {results:db.prepare(sql).all(...args)}},async run(){return{meta:{changes:Number(db.prepare(sql).run(...args).changes)}}}});
  const student=randomUUID(),sid=randomUUID(),did=randomUUID();
  db.prepare('INSERT INTO users(id,username,role,password_salt,password_hash,board) VALUES(?,?,?,?,?,?)').run(student,'learner','student','0'.repeat(32),'1'.repeat(64),'unconfigured');
@@ -25,6 +25,7 @@ test('a due reminder is sent only once; notification never includes private less
  const second=await dispatch({request:x.request(),env:x.env,data:{testSender,testNow}});
  assert.equal((await second.json()).attempted,0);assert.equal(sent.length,1);
  assert.equal(x.db.prepare('SELECT COUNT(*) AS n FROM push_deliveries').get().n,1);
+ assert.equal(x.db.prepare('SELECT attempted FROM push_dispatch_health WHERE singleton=1').get().attempted,0);
  assert.equal(x.db.prepare('SELECT state FROM push_deliveries').get().state,'ACCEPTED');
  assert.equal(JSON.stringify(sent[0].payload).includes('Physics'),false);
 });
