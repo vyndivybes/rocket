@@ -4,7 +4,7 @@ export function buildDailyBrief(input,now=new Date()){
  const tasks=Array.isArray(input?.tasks)?input.tasks:[];
  const dateKey=now.getFullYear()+'-'+pad(now.getMonth()+1)+'-'+pad(now.getDate());
  const current=pad(now.getHours())+':'+pad(now.getMinutes());
- const todayEvents=schedule.filter(s=>s&&s.enabled===true&&Array.isArray(s.days)&&s.days.includes(now.getDay())&&/^([01]\\d|2[0-3]):[0-5]\\d$/.test(s.time))
+ const todayEvents=schedule.filter(s=>s&&s.enabled===true&&Array.isArray(s.days)&&s.days.includes(now.getDay())&&/^([01][0-9]|2[0-3]):[0-5][0-9]$/.test(s.time))
  .sort((a,b)=>a.time.localeCompare(b.time)).map(({id,title,time,kind,minutes})=>({id,title,time,kind,minutes}));
  const active=tasks.filter(t=>t&&t.done!==true&&t.done!==1);
  const dueToday=active.filter(t=>t.due_date===dateKey).length;
