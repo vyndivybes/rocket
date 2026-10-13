@@ -9,9 +9,9 @@ import {createVoiceReadback} from './voice-readback.js';
 import {detectMediaFile,frameTimeLabel} from './media-file.js';
 const root=document.getElementById('mission-root');
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const state={user:null,tab:'home',mode:'companion',notes:[],schedule:[],tasks:[],knowledgePacks:[],packId:null,memories:[],linkSource:null,linkUrl:'',linkText:'',linkQuestion:'',linkAnswer:'',linkEvidence:[],answer:'',answerReference:null,mediaFile:null,mediaObjectUrl:null,mediaKind:null,mediaQuestion:'',mediaAnswer:'',mediaTimeLabel:null,visionEnabled:false,companionName:DEFAULT_COMPANION_NAME,nameConfigured:false,notifications:false,seen:new Set()};
+const state={user:null,tab:'home',mode:'companion',notes:[],schedule:[],tasks:[],knowledgePacks:[],packId:null,memories:[],linkSource:null,linkUrl:'',linkText:'',linkQuestion:'',linkAnswer:'',linkEvidence:[],answer:'',answerReference:null,mediaFile:null,mediaObjectUrl:null,mediaKind:null,mediaQuestion:'',mediaAnswer:'',mediaTimeLabel:null,visionEnabled:false,adaptivePlan:null,companionName:DEFAULT_COMPANION_NAME,nameConfigured:false,notifications:false,seen:new Set()};
 const sketchState=createSketchState();
-const tabs=[['home','Mission home'],['companion','Talk to your AI'],['schedule','Scheduler'],['notes','Notes'],['art','Art studio'],['pilot','Pilot academy'],['knowledge','Knowledge packs'],['links','Study links'],['media','My uploads'],['memory','AI memory'],['privacy','My data'],['identity','Name your AI']];
+const tabs=[['home','Mission home'],['adaptive','Study priorities'],['companion','Talk to your AI'],['schedule','Scheduler'],['notes','Notes'],['art','Art studio'],['pilot','Pilot academy'],['knowledge','Knowledge packs'],['links','Study links'],['media','My uploads'],['memory','AI memory'],['privacy','My data'],['identity','Name your AI']];
 const dayNames=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 async function api(name,data){
  const options={credentials:'same-origin',headers:{'Content-Type':'application/json'}};
@@ -22,6 +22,11 @@ async function api(name,data){
 }
 function flash(message){const element=document.getElementById('status');if(element)element.textContent=message}
 function button(tab,label){return '<button type="button" class="btn secondary" data-tab="'+tab+'">'+label+'</button>'}
+function adaptive(){
+ const p=state.adaptivePlan;
+ if(!p)return '<section class="card"><h2>Study priorities</h2><p>Practice evidence not available. Continue checked foundation lessons.</p></section>';
+ return '<section class="card"><h2>Next learning steps</h2><p class="muted">From graded foundation practice only—not an educational diagnosis, predicted marks or school-certified curriculum.</p>'+p.recommendations.map(x=>'<div class="listitem"><div><span class="tag">'+esc(x.status)+'</span><h3>'+esc(x.title)+'</h3><p class="small">'+esc(x.subject)+' · '+Number(x.minutes)+' minutes · '+Number(x.attempts)+' attempts, '+Number(x.correct)+' correct</p><p class="muted">'+esc(x.reason)+'</p></div></div>').join('')+'<p class="small">'+esc(p.notice)+'</p><a class="btn secondary" href="/">Open Lessons &amp; practice</a></section>';
+}
 function home(){
  const briefing=buildDailyBrief({schedule:state.schedule,tasks:state.tasks});
  const agenda=briefing.todayEvents.slice(0,6).map(x=>'<div class="listitem"><strong>'+esc(x.time)+'</strong><span>'+esc(x.title)+'</span><span class="small">'+Number(x.minutes)+' min</span></div>').join('');
@@ -92,7 +97,7 @@ const descriptions={home:'Your dreams deserve curiosity, balance and room to gro
 function identity(){
  return '<section class="card"><span class="tag">Your personal AI · Your choice</span><h2 style="margin-top:15px">What would you like to call your AI?</h2><p class="muted">Choose any short name, such as Nova, Jarvis, Sky, Vimaan or something you invent. You can rename it anytime. The name stays private in your learner account; it does not change that this is an AI, not a human.</p><form id="name-form"><label class="form-field">My AI companion’s name<input name="name" type="text" required minlength="2" maxlength="24" autocomplete="off" placeholder="e.g. Nova" value="'+(state.nameConfigured?esc(state.companionName):'')+'"></label><button type="submit" class="btn">Save my AI’s name</button></form><div class="notice">After naming your AI, tap the microphone and say “Hey '+esc(state.nameConfigured?state.companionName:'Nova')+', open my notes” or ask it a question. Listening starts only when you press Speak; this is not an always-on wake word.</div><p class="small">Your AI can help with a daily briefing, scheduling, private notes, aviation inspiration, sketching and step-by-step study. It cannot secretly monitor you, message people or replace real friendships.</p></section>';
 }
-const panels={home,companion,schedule,notes,art,pilot,knowledge,studyLinks,media,memory,privacy,identity};
+const panels={home,adaptive,companion,schedule,notes,art,pilot,knowledge,studyLinks,media,memory,privacy,identity};
 panels.links=studyLinks;
 function render(){
  document.title=(state.nameConfigured?state.companionName:'My AI')+' | Mission Control';
@@ -220,6 +225,6 @@ function checkReminders(){
  if(state.seen.size>200)state.seen.clear();
 }
 async function init(){
- try{state.user=await api('me');if(state.user.role!=='student'){root.innerHTML='<main class="boot"><h1>Student-only space</h1><a href="/">Back to dashboard</a></main>';return}const [notes,schedule,tasks,prefs,packs,memories,mediaStatus]=await Promise.all([api('notes'),api('schedule'),api('tasks'),api('companion-preferences'),api('knowledge-packs').catch(()=>({packs:[]})),api('personal-memory'),api('media-status').catch(()=>({enabled:false}))]);state.notes=notes.notes;state.schedule=schedule.items;state.tasks=tasks.tasks;state.knowledgePacks=packs.packs;state.memories=memories.memories;state.visionEnabled=mediaStatus.enabled===true;state.companionName=prefs.name;state.nameConfigured=prefs.configured;if(!prefs.configured)state.tab='identity';render();setInterval(checkReminders,30000)}catch{root.innerHTML='<main class="boot"><h1>Sign in as a student</h1><p>Mission Control requires the learner login.</p><a href="/">Go to learner login</a></main>'}
+ try{state.user=await api('me');if(state.user.role!=='student'){root.innerHTML='<main class="boot"><h1>Student-only space</h1><a href="/">Back to dashboard</a></main>';return}const [notes,schedule,tasks,prefs,packs,memories,mediaStatus,adaptivePlan]=await Promise.all([api('notes'),api('schedule'),api('tasks'),api('companion-preferences'),api('knowledge-packs').catch(()=>({packs:[]})),api('personal-memory'),api('media-status').catch(()=>({enabled:false})),api('adaptive-plan').catch(()=>null)]);state.notes=notes.notes;state.schedule=schedule.items;state.tasks=tasks.tasks;state.knowledgePacks=packs.packs;state.memories=memories.memories;state.visionEnabled=mediaStatus.enabled===true;state.adaptivePlan=adaptivePlan;state.companionName=prefs.name;state.nameConfigured=prefs.configured;if(!prefs.configured)state.tab='identity';render();setInterval(checkReminders,30000)}catch{root.innerHTML='<main class="boot"><h1>Sign in as a student</h1><p>Mission Control requires the learner login.</p><a href="/">Go to learner login</a></main>'}
 }
 init();
