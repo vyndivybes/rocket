@@ -1,9 +1,10 @@
 import {buildCalendar} from './calendar-export.js';
 import {matchVoiceCommand} from './voice-commands.js';
 import {createSketchState} from './sketch-state.js';
+import {buildDailyBrief} from './daily-brief.js';
 const root=document.getElementById('mission-root');
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const state={user:null,tab:'home',mode:'companion',notes:[],schedule:[],answer:'',notifications:false,seen:new Set()};
+const state={user:null,tab:'home',mode:'companion',notes:[],schedule:[],tasks:[],answer:'',notifications:false,seen:new Set()};
 const sketchState=createSketchState();
 const tabs=[['home','Mission home'],['companion','Talk to Saathi'],['schedule','Scheduler'],['notes','Notes'],['art','Art studio'],['pilot','Pilot academy'],['privacy','My data']];
 const dayNames=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
@@ -17,7 +18,10 @@ async function api(name,data){
 function flash(message){const element=document.getElementById('status');if(element)element.textContent=message}
 function button(tab,label){return '<button type="button" class="btn secondary" data-tab="'+tab+'">'+label+'</button>'}
 function home(){
- return '<section class="hero"><div><span class="tag">A birthday gift · Your future starts here</span><h2 style="font-size:clamp(27px,3vw,43px);line-height:1.15;letter-spacing:-.04em;margin:22px 0">Future pilot.<br>Original artist.<br>Your own story.</h2><p class="sub">One question, one drawing, one game, one great day. Saathi is here to help you explore—not tell you who to be.</p><div class="actions">'+button('companion','Talk with Saathi')+button('pilot','Explore aviation')+'</div></div><div class="orb"><div class="orbit">S</div></div></section><div class="tiles"><section class="card"><h2>Flight deck</h2><p class="muted">Discover aircraft, physics, maths and aviation.</p>'+button('pilot','Start flying lessons')+'</section><section class="card"><h2>Creative studio</h2><p class="muted">Sketch, experiment with colour and express your modern-art ideas.</p>'+button('art','Open sketchbook')+'</section><section class="card"><h2>Balanced daily life</h2><p class="muted">'+state.schedule.length+' scheduled activities, including exercise, sport and rest.</p>'+button('schedule','My scheduler')+'</section><section class="card"><h2>Private notebook</h2><p class="muted">'+state.notes.length+' notes. Keep sketches, questions and ideas in writing.</p>'+button('notes','Open notes')+'</section></div>';
+ const briefing=buildDailyBrief({schedule:state.schedule,tasks:state.tasks});
+ const agenda=briefing.todayEvents.slice(0,6).map(x=>'<div class="listitem"><strong>'+esc(x.time)+'</strong><span>'+esc(x.title)+'</span><span class="small">'+Number(x.minutes)+' min</span></div>').join('');
+ const overview='<section class="card" style="margin-top:20px"><span class="chip">Today · '+esc(briefing.dateLabel)+'</span><h2 style="margin-top:15px">Your daily briefing</h2><p class="muted">'+esc(briefing.nextStep)+'</p><div class="row"><span class="tag">'+briefing.openTasks+' unfinished study tasks</span><span class="tag">'+briefing.dueToday+' due today</span>'+(briefing.overdue?'<span class="tag">'+briefing.overdue+' past due — adjust if needed</span>':'')+'</div><h3 style="margin-top:21px">Your activity plan</h3>'+(agenda||'<p class="small">Nothing scheduled today. Try a short lesson, art or time outside.</p>')+'<div class="actions"><button class="btn secondary" data-tab="schedule">Edit my schedule</button><a class="btn ghost" href="/">My study tasks</a></div></section>';
+ return '<section class="hero"><div><span class="tag">A birthday gift · Your future starts here</span><h2 style="font-size:clamp(27px,3vw,43px);line-height:1.15;letter-spacing:-.04em;margin:22px 0">Future pilot.<br>Original artist.<br>Your own story.</h2><p class="sub">One question, one drawing, one game, one great day. Saathi is here to help you explore—not tell you who to be.</p><div class="actions">'+button('companion','Talk with Saathi')+button('pilot','Explore aviation')+'</div></div><div class="orb"><div class="orbit">S</div></div></section><div class="tiles"><section class="card"><h2>Flight deck</h2><p class="muted">Discover aircraft, physics, maths and aviation.</p>'+button('pilot','Start flying lessons')+'</section><section class="card"><h2>Creative studio</h2><p class="muted">Sketch, experiment with colour and express your modern-art ideas.</p>'+button('art','Open sketchbook')+'</section><section class="card"><h2>Balanced daily life</h2><p class="muted">'+state.schedule.length+' scheduled activities, including exercise, sport and rest.</p>'+button('schedule','My scheduler')+'</section><section class="card"><h2>Private notebook</h2><p class="muted">'+state.notes.length+' notes. Keep sketches, questions and ideas in writing.</p>'+button('notes','Open notes')+'</section></div>'+overview;
 }
 function companion(){
  const modes=[['companion','Companion'],['teacher','Patient teacher'],['planner','Organiser'],['pilot','Pilot mentor'],['artist','Art mentor']];
@@ -96,6 +100,6 @@ function checkReminders(){
  if(state.seen.size>200)state.seen.clear();
 }
 async function init(){
- try{state.user=await api('me');if(state.user.role!=='student'){root.innerHTML='<main class="boot"><h1>Student-only space</h1><a href="/">Back to dashboard</a></main>';return}const [notes,schedule]=await Promise.all([api('notes'),api('schedule')]);state.notes=notes.notes;state.schedule=schedule.items;render();setInterval(checkReminders,30000)}catch{root.innerHTML='<main class="boot"><h1>Sign in as a student</h1><p>Mission Control requires the learner login.</p><a href="/">Go to Saathi login</a></main>'}
+ try{state.user=await api('me');if(state.user.role!=='student'){root.innerHTML='<main class="boot"><h1>Student-only space</h1><a href="/">Back to dashboard</a></main>';return}const [notes,schedule,tasks]=await Promise.all([api('notes'),api('schedule'),api('tasks')]);state.notes=notes.notes;state.schedule=schedule.items;state.tasks=tasks.tasks;render();setInterval(checkReminders,30000)}catch{root.innerHTML='<main class="boot"><h1>Sign in as a student</h1><p>Mission Control requires the learner login.</p><a href="/">Go to Saathi login</a></main>'}
 }
 init();
