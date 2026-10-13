@@ -95,7 +95,7 @@ export const LESSONS=[
   example:'One mole of water (H₂O) has an approximate molar mass of 18 g/mol; 18 g is therefore about 1 mol.',
   question:'Approximately how many moles are in 36 g of water (molar mass 18 g/mol)?',
   options:['0.5 mol','2 mol','18 mol','36 mol'],answerIndex:1,
-  explanation:'n=m/M=36/18=2 mol.',
+  explanation:'Divide the given water mass (36 g) by molar mass (18 g/mol). The result is 2 moles of water.',
   source:'Introductory chemistry; check standard atomic masses and textbook conventions.'},
  {id:'chemistry-atom',subject:'Chemistry',title:'Atoms and ions',duration:8,
   concept:'A neutral atom has equal numbers of protons and electrons. Cations are positively charged ions formed when electrons are lost.',
