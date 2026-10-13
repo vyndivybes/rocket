@@ -29,13 +29,30 @@ export function validTask(title, subject, dueDate){
 }
 export function validateQuestion(value){if(typeof value!=='string'||value.trim().length<4||value.length>1600) return 'Question must be 4–1600 characters'; return null;}
 export function safetyRoute(message){
-  // Deterministic catches for clear first-person emergencies only. NOT a complete safeguarding classifier.
-  const text=message.toLowerCase();
-  if(/\b(i (want to|am going to|might) (kill myself|end my life|die)|i('| a)?m (suicidal|thinking of suicide)|i (hurt myself|cut myself)|i don't want to live)\b/.test(text)){
+  // Deterministic first-response layer for explicit adolescent risk disclosures.
+  // NOT a full classifier; omissions and false positives remain possible.
+  if(typeof message!=='string')return null;
+  const text=message.toLowerCase().replace(/[’]/g,"'").replace(/\s+/g,' ').trim();
+  // Avoid misclassifying ordinary academic third-person questions as first-person crises.
+  const immediatePatterns=[
+    /\b(?:i am|i'm|im)\s+(?:suicidal|thinking (?:about|of) suicide|thinking (?:about|of) (?:harming|hurting|killing) myself)\b/,
+    /\bi\s+(?:want to|am going to|might|plan to|intend to|feel like)\s+(?:kill myself|end my life|die|hurt myself|harm myself|cut myself|hurting myself|harming myself|cutting myself)\b/,
+    /\bi\s+(?:have a plan to|am planning to)\s+(?:end my life|kill myself|hurt myself)\b/,
+    /\bi\s+(?:do not|don't)\s+want\s+to\s+(?:live|be alive|exist)(?:\s+anymore)?\b/,
+    /\bi\s+(?:overdosed|took too many pills|swallowed too many pills)\b/,
+    /\bi\s+(?:hurt myself|cut myself|am thinking about suicide)\b/
+  ];
+  if(immediatePatterns.some(pattern=>pattern.test(text))){
     return {type:'urgent',answer:'I’m concerned about your immediate safety. Please stop studying for now and contact a safe trusted adult or local emergency services. If you are in India and in immediate danger, call 112. If the danger involves a parent or guardian, reach another trusted adult, teacher, counsellor, or emergency service. I cannot contact anyone or send an alert myself.'};
   }
-  if(/\b(my (parent|father|mother|guardian|teacher) (hurts|hits|threatens|abuses) me|i am (being abused|unsafe at home))\b/.test(text)){
-    return {type:'safety',answer:'I’m sorry you’re facing this. You deserve safety. If telling a parent could put you at risk, talk to another trusted adult, school counsellor or local child-protection or emergency service. In immediate danger in India, call 112. I cannot send alerts on your behalf.'};
+  const unsafePatterns=[
+    /\bmy\s+(?:parent|father|mother|guardian|teacher|uncle|aunt|coach|relative|brother|sister)\s+(?:hurts|hits|threatens|abuses|touches)\s+me(?:\s+inappropriately)?\b/,
+    /\bi\s+(?:am|'m)\s+(?:being abused|unsafe at home|being threatened at home|being bullied at school|being bullied online)\b/,
+    /\bsomeone\s+(?:is|has been)\s+(?:forcing|pressuring|threatening)\s+me\s+to\s+(?:send|share|take)\s+(?:pictures|photos|images)\b/,
+    /\bsomeone\s+(?:hurt|hit|threatened|assaulted)\s+me\b/
+  ];
+  if(unsafePatterns.some(pattern=>pattern.test(text))){
+    return {type:'safety',answer:'I’m sorry you’re facing this. You deserve safety and support from real people. If telling a parent could put you at risk, contact another safe trusted adult, teacher, school counsellor or child-protection service. In immediate danger in India, call 112. I cannot contact anyone or send an alert on your behalf.'};
   }
   return null;
 }
