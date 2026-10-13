@@ -6,14 +6,15 @@ const VIDEO_EXT=new Set(['mp4','webm']);
 const TEXT_MAX=120000;
 const IMAGE_MAX=560000;
 const VIDEO_MAX=18000000;
-export const VISION_MODEL='@cf/meta/llama-3.2-11b-vision-instruct';
+export const VISION_MODEL='@cf/google/gemma-4-26b-a4b-it';
 export function classifyLocalStudyFile(name,mime,bytes){
  if(typeof name!=='string'||name.length>160||!Number.isSafeInteger(bytes)||bytes<1)return null;
  const ext=name.split('.').pop().toLowerCase();
  if(TEXT_EXT.has(ext)&&bytes<=TEXT_MAX)return {kind:'text',maxBytes:TEXT_MAX};
  if(IMAGE_EXT.has(ext)&&bytes<=IMAGE_MAX)return {kind:'image',maxBytes:IMAGE_MAX};
  if(VIDEO_EXT.has(ext)&&bytes<=VIDEO_MAX)return {kind:'video-frame-only',maxBytes:VIDEO_MAX};
- if(['doc','docx','pdf','ppt','pptx','odt'].includes(ext))return {kind:'unsupported',notice:'Full document extraction is not commissioned. Copy text from this document into Study links, or use a supported plain-text file.'};
+ if(['pdf','docx','pptx'].includes(ext))return bytes<=1000000?{kind:'document',maxBytes:1000000}:null;
+ if(['doc','ppt','odt'].includes(ext))return {kind:'unsupported',notice:'Legacy office documents are not supported; convert to PDF/DOCX/PPTX first.'};
  return null;
 }
 export function validateImageData(value){
