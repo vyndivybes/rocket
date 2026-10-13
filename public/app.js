@@ -1,6 +1,7 @@
 import {renderAdminOverview} from './admin-overview.js';
+import {renderMyDay,renderMySpace} from './experience-ui.js';
 const root=document.querySelector('#app');
-let currentUser=null, tasks=[], topics=[], references=[], profile=null, lessons=[], practice={total:0,correct:0,byLesson:[]},activeLessonId=null,activeQuestionId='base',tab='overview';
+let currentUser=null, tasks=[], topics=[], references=[], profile=null, lessons=[], practice={total:0,correct:0,byLesson:[]},activeLessonId=null,activeQuestionId='base',tab='overview',experience=null,ideas=[],experienceReady=false;
 const escapeHtml=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const $=(id)=>document.getElementById(id);
 async function api(path,options={}){
@@ -15,11 +16,30 @@ async function init(){try{currentUser=await api('me');await loadView();}catch{re
 function renderLogin(){root.innerHTML=`<div class="login-wrap"><main class="login-card"><div class="logo-mark" aria-hidden="true">S</div><div class="eyebrow" style="margin-top:18px">Student-first AI</div><h1>Meet Saathi.</h1><p class="muted">A calmer way to learn, plan and make progress in Class 12.</p><form id="login-form"><label class="field">Username<input name="username" autocomplete="username" required minlength="3" maxlength="40"></label><label class="field">Private access key<input name="password" type="password" autocomplete="current-password" required minlength="64" maxlength="64" pattern="[a-f0-9]{64}"></label><button type="submit" class="btn">Sign in securely</button></form><p id="message" hidden role="alert"></p><div class="divider"></div><p class="notice">Private access only. A parent or operator must provision student and guardian accounts. Conversations are not stored. Saathi is an AI, not a person or crisis service.</p></main></div>`;
   $('login-form').onsubmit=async(e)=>{e.preventDefault();const b=Object.fromEntries(new FormData(e.currentTarget));try{await post('login',b);currentUser=await api('me');await loadView()}catch(err){showMessage(err.message)}};
 }
-async function loadView(){if(currentUser?.role==='student'){const [a,b,p,l,v]=await Promise.all([api('tasks'),api('topics'),api('profile'),api('lessons'),api('practice')]);tasks=a.tasks;topics=b.topics;references=b.sources;profile=p.profile;lessons=l.lessons;practice=v.progress;if(!profile)tab='setup'}renderApp()}
-function sidebar(){return `<aside class="rail"><div><div class="brand">saathi<span style="color:#d1ba7e">.</span></div><div class="subtitle">study and grow</div></div><nav aria-label="Main navigation">${(currentUser.role==='admin'?[['overview','Administration']]:currentUser.role==='parent'?[['overview','Parent overview']]:[['overview','My day'],['setup','My subjects'],['library','Lessons & practice'],['teacher','Ask Saathi'],['planner','Study planner']]).map(([id,label])=>`<button type="button" data-tab="${id}" class="nav-item ${tab===id?'selected':''}">${label}</button>`).join('')}</nav>${currentUser.role==='student'?'<a class="nav-item" href="/syllabus.html" style="display:block;text-decoration:none">2026–27 Syllabus</a><a class="nav-item" href="/mission.html" style="display:block;text-decoration:none;font-weight:700;background:#244e5d;color:#e6fff7">✦ Mission Control</a>':''}<div class="foot">Your ideas belong to you.<br>AI cannot replace people, teachers or emergency care.</div><button id="logout" class="btn outline" style="color:white">Sign out</button></aside>`}
-function renderApp(){root.innerHTML=`<div class="layout">${sidebar()}<main class="main"><div class="top"><div><div class="eyebrow">${currentUser.role==='admin'?'Administration':currentUser.role==='parent'?'Guardian view':'Class 12 workspace'}</div><h1>${currentUser.role==='admin'?'Administration':({overview:'Your learning space',setup:'Set up your studies',lesson:'Foundation lesson',teacher:'Ask Saathi',planner:'Study planner',library:'Lessons & practice'})[tab]}</h1><p class="muted">${currentUser.role==='admin'?'Manage the application, not private student conversations.':currentUser.role==='parent'?'Only aggregate commitments — never private conversations.':'Small steps. Real progress. You decide the pace.'}</p></div><span class="chip">${escapeHtml(currentUser.board||'Not configured')}</span></div><div id="message" role="status" hidden></div><div id="content">${content()}</div><footer>Saathi v0.1 · Study helper, not a substitute for your teacher or trusted adults. Academic outputs need verification. · <a href="/privacy.html">Privacy & safety</a></footer></main></div>`;
+async function loadView(){
+ if(currentUser?.role==='student'){
+  const [a,b,p,l,v]=await Promise.all([api('tasks'),api('topics'),api('profile'),api('lessons'),api('practice')]);
+  tasks=a.tasks;topics=b.topics;references=b.sources;profile=p.profile;lessons=l.lessons;practice=v.progress;
+  const [setting,proposals]=await Promise.allSettled([api('experience'),api('upgrade-requests')]);
+  experienceReady=setting.status==='fulfilled'&&proposals.status==='fulfilled';
+  experience=setting.status==='fulfilled'?setting.value.preferences:null;
+  ideas=proposals.status==='fulfilled'?proposals.value.ideas:[];
+  if(!profile)tab='setup';
+ }
+ renderApp();
+}
+function sidebar(){return `<aside class="rail"><div><div class="brand">saathi<span style="color:#d1ba7e">.</span></div><div class="subtitle">study and grow</div></div><nav aria-label="Main navigation">${(currentUser.role==='admin'?[['overview','Administration']]:currentUser.role==='parent'?[['overview','Parent overview']]:[['overview','My day'],['myspace','My Saathi'],['setup','My subjects'],['library','Lessons & practice'],['teacher','Ask Saathi'],['planner','Study planner']]).map(([id,label])=>`<button type="button" data-tab="${id}" class="nav-item ${tab===id?'selected':''}">${label}</button>`).join('')}</nav>${currentUser.role==='student'?'<a class="nav-item" href="/syllabus.html" style="display:block;text-decoration:none">2026–27 Syllabus</a><a class="nav-item" href="/mission.html" style="display:block;text-decoration:none;font-weight:700;background:#244e5d;color:#e6fff7">✦ Mission Control</a>':''}<div class="foot">Your ideas belong to you.<br>AI cannot replace people, teachers or emergency care.</div><button id="logout" class="btn outline" style="color:white">Sign out</button></aside>`}
+function renderApp(){
+ if(currentUser?.role==='student'){
+  document.documentElement.dataset.saathiTheme=experience?.theme||'sky';
+  document.documentElement.dataset.saathiTextSize=experience?.textSize||'normal';
+ }else{
+  delete document.documentElement.dataset.saathiTheme;
+  delete document.documentElement.dataset.saathiTextSize;
+ }
+ root.innerHTML=`<div class="layout">${sidebar()}<main class="main"><div class="top"><div><div class="eyebrow">${currentUser.role==='admin'?'Administration':currentUser.role==='parent'?'Guardian view':'Class 12 workspace'}</div><h1>${currentUser.role==='admin'?'Administration':({overview:'My day',myspace:'My Saathi',setup:'Set up your studies',lesson:'Foundation lesson',teacher:'Ask Saathi',planner:'Study planner',library:'Lessons & practice'})[tab]}</h1><p class="muted">${currentUser.role==='admin'?'Manage the application, not private student conversations.':currentUser.role==='parent'?'Only aggregate commitments — never private conversations.':'Small steps. Real progress. You decide the pace.'}</p></div><span class="chip">${escapeHtml(currentUser.board||'Not configured')}</span></div><div id="message" role="status" hidden></div><div id="content">${content()}</div><footer>Saathi v0.1 · Study helper, not a substitute for your teacher or trusted adults. Academic outputs need verification. · <a href="/privacy.html">Privacy & safety</a></footer></main></div>`;
   document.querySelectorAll('[data-tab]').forEach(btn=>btn.addEventListener('click',()=>{tab=btn.dataset.tab;renderApp()}));
-  $('logout').onclick=async()=>{await post('logout',{}).catch(()=>{});currentUser=null;tab='overview';renderLogin()};
+  $('logout').onclick=async()=>{await post('logout',{}).catch(()=>{});currentUser=null;experience=null;ideas=[];experienceReady=false;delete document.documentElement.dataset.saathiTheme;delete document.documentElement.dataset.saathiTextSize;tab='overview';renderLogin()};
   wire();
   if(currentUser.role==='admin')void refreshAdminSummary();
 }
@@ -71,11 +91,10 @@ function lessonView(){
  <p class="notice">Feedback is provided after submitting. Answers remain on the server.</p></section></div>`;
 }
 function homeView(){
- const assigned=tasks.length,done=tasks.filter(x=>x.done).length;
- return `<div class="grid"><section class="card wide" style="background:linear-gradient(120deg,#193a52,#24556a);color:white"><span class="chip">Your birthday mission</span><h2 style="color:white;margin-top:15px">Future pilot. Original artist. Your own story.</h2><p style="color:#d2e9ee">Saathi Mission Control is your AI companion, organiser, private notebook, art studio and activity scheduler.</p><a class="btn" href="/mission.html" style="text-decoration:none;background:#80dad2;color:#103342">Launch Mission Control →</a></section><section class="card"><span class="chip">Learn</span><h2 style="margin-top:13px">One idea at a time</h2><p class="muted">Start with a short lesson and check your understanding yourself.</p><p class="metric">${practice.correct} <span class="notice">correct practice answers</span></p><button class="btn" data-go="library">Continue learning</button></section><section class="card"><span class="chip">Plan</span><h2 style="margin-top:13px">Your study goals</h2><p class="metric">${done} <span class="notice">/ ${assigned} tasks finished</span></p><p class="muted">Your daily target: ${profile?.dailyMinutes||30} minutes. Breaks matter too.</p><button class="btn secondary" data-go="planner">My planner</button></section><section class="card wide"><h2>Ask Saathi when you need another explanation</h2><p class="muted">Ask for hints, worked steps, feedback or a short quiz. AI answers may make mistakes, so check important facts with your textbooks.</p><div class="row"><button class="btn secondary" data-go="teacher">Ask Saathi</button><button class="btn outline" data-go="setup">Change my subjects</button></div></section></div>`;
+ return renderMyDay({tasks,practice,lessons,prefs:experience});
 }
-
 function content(){if(currentUser.role==='admin')return `<div><div class="row between" style="margin:24px 0 10px"><h2>System overview</h2><button id="admin-summary" type="button" class="btn secondary">Refresh overview</button></div><div id="admin-stats" aria-live="polite" class="muted">Loading operational information…</div></div>`;if(currentUser.role==='parent')return `<div class="grid"><section class="card wide"><h2>Shared study progress</h2><p class="muted">Student-approved task counts, without notes, chat history or emotional monitoring.</p><button class="btn secondary" id="summary">Refresh summary</button><div id="aggregate" class="metric" style="margin-top:16px">—</div><p class="notice">There are no automatic safety alerts in this prototype. If a child may be unsafe, contact appropriate trusted people directly.</p></section></div>`;
+  if(tab==='myspace')return renderMySpace(experience,ideas,experienceReady?'ready':'unavailable');
   if(tab==='setup')return setupView();
   if(tab==='library')return libraryView();
   if(tab==='lesson')return lessonView();
@@ -87,6 +106,33 @@ function content(){if(currentUser.role==='admin')return `<div><div class="row be
 }
 function taskList(){return tasks.length?tasks.map(t=>`<div class="task"><div><strong class="${t.done?'done':''}">${escapeHtml(t.title)}</strong><span class="notice">${escapeHtml(t.subject)} ${t.due_date?'· Due '+escapeHtml(t.due_date):''}</span></div><button class="btn small secondary" data-task="${escapeHtml(t.id)}" data-done="${t.done?0:1}">${t.done?'Undo':'Complete'}</button></div>`).join(''):'<p class="muted">No commitments yet. Add one small task to begin.</p>'}
 function wire(){
+ if($('experience-form'))$('experience-form').onsubmit=async e=>{
+  e.preventDefault();
+  const form=e.currentTarget,fd=new FormData(form);
+  const next={theme:fd.get('theme'),assistStyle:fd.get('assistStyle'),textSize:fd.get('textSize'),
+    visibleCards:fd.getAll('visibleCards'),quietMode:fd.has('quietMode'),remindersEnabled:fd.has('remindersEnabled')};
+  const button=form.querySelector('[type="submit"]');button.disabled=true;
+  try{const saved=await post('experience',next);experience=saved.preferences;renderApp();showMessage('Your space is saved.',true)}
+  catch(err){showMessage(err.message)}finally{if(button.isConnected)button.disabled=false}
+ };
+ if($('reset-experience'))$('reset-experience').onclick=async()=>{
+  const calm={theme:'sky',assistStyle:'balanced',textSize:'normal',visibleCards:['learn','plan','create','explore'],quietMode:true,remindersEnabled:false};
+  try{const saved=await post('experience',calm);experience=saved.preferences;renderApp();showMessage('Calm defaults restored.',true)}
+  catch(err){showMessage(err.message)}
+ };
+ if($('upgrade-form'))$('upgrade-form').onsubmit=async e=>{
+  e.preventDefault();const form=e.currentTarget,button=form.querySelector('[type="submit"]');
+  button.disabled=true;
+  try{await post('upgrade-requests',{action:'add',idea:new FormData(form).get('idea')});
+   ideas=(await api('upgrade-requests')).ideas;renderApp();showMessage('Idea saved for review. No software was changed.',true)}
+  catch(err){showMessage(err.message)}finally{if(button.isConnected)button.disabled=false}
+ };
+ document.querySelectorAll('[data-delete-idea]').forEach(btn=>btn.onclick=async()=>{
+  try{await post('upgrade-requests',{action:'delete',id:btn.dataset.deleteIdea});
+   ideas=(await api('upgrade-requests')).ideas;renderApp();showMessage('Idea deleted.',true)}
+  catch(err){showMessage(err.message)}
+ });
+
   document.querySelectorAll('[data-lesson]').forEach(el=>el.onclick=()=>{activeLessonId=el.dataset.lesson;activeQuestionId='base';tab='lesson';renderApp()});
   if($('profile-form'))$('profile-form').onsubmit=async e=>{e.preventDefault();const form=e.currentTarget;const fd=new FormData(form);const payload={board:fd.get('board'),stream:fd.get('stream'),subjects:fd.getAll('subjects'),dailyMinutes:Number(fd.get('dailyMinutes'))};try{await post('profile',payload);currentUser=await api('me');tab='overview';await loadView();showMessage('Study preferences saved.',true)}catch(err){showMessage(err.message)}};
   if($('question-select'))$('question-select').onchange=e=>{activeQuestionId=e.target.value;renderApp()};
