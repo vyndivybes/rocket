@@ -15,6 +15,12 @@ export function qualifyAiAnswer(value) {
   /\b(?:you\s+)?(?:do\s+not|don't)\s+need\s+(?:real\s+)?friends\b/i
  ];
  if(unsafeDependency.some(x=>x.test(answer)))return {answer:'Saathi is an AI study and planning tool, not a substitute for trusted people. You can talk with a safe trusted adult, friend, teacher or counsellor when you need support. You should not be asked to keep safety concerns secret.',replaced:true};
+ const falseMemoryClaims=[
+  /\bi\s+(?:have\s+|'ve\s+)?saved\s+(?:that|this|it)\s+to\s+(?:my\s+)?memory\b/i,
+  /\bi\s+(?:have\s+|'ve\s+)?added\s+(?:that|this|it)\s+to\s+my\s+memory\b/i,
+  /\bi\s+(?:will\s+|'ll\s+)?always\s+remember\s+(?:that|this|it)\b/i
+ ];
+ if(falseMemoryClaims.some(x=>x.test(answer)))return {answer:'I can discuss this now, but I did not save it to your personal memory. To remember it for later, open AI memory, review the text, and choose whether to enable recall in future chats.',replaced:true};
  const falseToolClaims=[
   /\bi\s+(?:have|'ve)\s+(?:scheduled|created|set)\s+(?:the\s+|a\s+|your\s+)?reminder\b/i,
   /\bi\s+(?:will|'ll)\s+send\s+you\s+a\s+notification\b/i,
