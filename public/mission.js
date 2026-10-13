@@ -1,8 +1,10 @@
 import {buildCalendar} from './calendar-export.js';
 import {matchVoiceCommand} from './voice-commands.js';
+import {createSketchState} from './sketch-state.js';
 const root=document.getElementById('mission-root');
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const state={user:null,tab:'home',mode:'companion',notes:[],schedule:[],answer:'',notifications:false,seen:new Set()};
+const sketchState=createSketchState();
 const tabs=[['home','Mission home'],['companion','Talk to Saathi'],['schedule','Scheduler'],['notes','Notes'],['art','Art studio'],['pilot','Pilot academy'],['privacy','My data']];
 const dayNames=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 async function api(name,data){
@@ -48,10 +50,11 @@ function render(){
 function attachDrawing(){
  const canvas=document.getElementById('sketch'),ctx=canvas?.getContext('2d');if(!ctx)return;
  ctx.fillStyle='#fffdf8';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.lineCap='round';ctx.lineJoin='round';let down=false;
+ const saved=sketchState.snapshot();if(saved){const image=new Image();image.onload=()=>ctx.drawImage(image,0,0,canvas.width,canvas.height);image.src=saved;}
  const point=e=>{const r=canvas.getBoundingClientRect();return [(e.clientX-r.left)*canvas.width/r.width,(e.clientY-r.top)*canvas.height/r.height]};
  canvas.onpointerdown=e=>{e.preventDefault();down=true;canvas.setPointerCapture(e.pointerId);const [x,y]=point(e);ctx.lineWidth=Number(document.getElementById('width').value)*2;ctx.strokeStyle=document.getElementById('color').value;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+.2,y+.2);ctx.stroke()};
  canvas.onpointermove=e=>{if(!down)return;const [x,y]=point(e);ctx.lineTo(x,y);ctx.stroke()};
- canvas.onpointerup=canvas.onpointercancel=()=>{down=false;ctx.beginPath()};
+ canvas.onpointerup=canvas.onpointercancel=()=>{if(down){down=false;ctx.beginPath();sketchState.remember(canvas.toDataURL('image/png'))}};
 }
 async function refresh(kind){const data=await api(kind);state[kind]=kind==='schedule'?data.items:data.notes;render()}
 root.addEventListener('click',async e=>{
@@ -74,7 +77,7 @@ root.addEventListener('click',async e=>{
  if(b.id==='voice'){const Recognition=window.SpeechRecognition||window.webkitSpeechRecognition;if(!Recognition){flash('Voice recognition not available on this browser. Try typing.');return}const recognition=new Recognition();recognition.lang='en-IN';recognition.continuous=false;recognition.onresult=r=>{const phrase=r.results[0][0].transcript;const nav=matchVoiceCommand(phrase);if(nav){state.tab=nav;render();flash('Opened '+nav+' from your spoken request.');return}const q=document.getElementById('question');if(q)q.value=phrase;flash('Voice captured. Review it and press Ask.')};recognition.onerror=()=>flash('Microphone input unavailable; please type.');recognition.start();flash('Listening after your tap.');return}
  if(b.id==='speak-answer'){if(!('speechSynthesis' in window)){flash('Speech output not available.');return}speechSynthesis.cancel();const speech=new SpeechSynthesisUtterance(state.answer.slice(0,3000));speech.lang='en-IN';speechSynthesis.speak(speech);return}
  if(b.id==='save-png'){const canvas=document.getElementById('sketch'),link=document.createElement('a');link.download='my-saathi-art.png';link.href=canvas.toDataURL('image/png');link.click();flash('Art saved to your device, not uploaded.');return}
- if(b.id==='clear-png'){if(confirm('Clear the sketch? Unsaved artwork will be lost.'))attachDrawing();return}
+ if(b.id==='clear-png'){if(confirm('Clear the sketch? Unsaved artwork will be lost.')){sketchState.clear();attachDrawing();flash('Canvas cleared.')}return}
  if(b.id==='export'){const data=(await api('my-data')).data,blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download='saathi-my-learning-data.json';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);flash('Private data file downloaded. Keep it safe.');return}
  if(b.id==='erase'){if(!confirm('Erase your notes, routine, study tasks and study progress? Login will remain.'))return;if(prompt('Type ERASE MY STUDY DATA to confirm')!=='ERASE MY STUDY DATA')return;await api('my-data',{action:'erase-learning-data',confirm:'ERASE MY STUDY DATA'});state.notes=[];state.schedule=[];render();flash('Study information erased. Provider backups may retain data temporarily.');return}
  }catch(err){flash(err.message)}
