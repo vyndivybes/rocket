@@ -22,6 +22,14 @@ Cloudflare Pages/Functions, Workers AI, dedicated D1 and GitHub. Preview uses `s
 - Drawing persists only during the currently open page (in memory across tabs); local PNG download; no artwork uploads.
 - A home-screen web-app manifest and icon.
 
+## 13 October continuation — Safety, daily briefing and recovery
+- Expanded deterministic teen-safeguarding first-response coverage (self-harm language, bullying, unsafe-home disclosures and coercive image requests). Ordinary educational questions have explicit false-positive tests. This remains **partial safeguarding**, not human-reviewed or a complete classifier.
+- Added local-device **Daily Mission Briefing**: today's enabled schedule, next activity, unfinished tasks and deadline counts; no notes, chat transcripts or AI inference used to prepare the briefing.
+- Independent live Workers AI spot check: eight general curriculum foundation questions, all answered correctly across **two** model requests. The first multi-question response exhausted its output budget after question 6, so the final two questions were retested separately. This spot check is **not** a 30+ item broad accuracy/child-safety benchmark or a guarantee of personalised tutoring accuracy.
+- Verified real Cloudflare D1 Time Travel on a **disposable synthetic** database `saathi-recovery-drill-20261013` (UUID `1d1d6cbb-0aff-427f-ae9f-9d334d5ab5e6`). Inserted `before-change`, captured bookmark, changed record to `after-change`, POST restored to bookmark, queried `before-change` again, then deleted database. Restoring completed with success. No Saathi production/staging D1 data was changed by this drill.
+- GitHub Actions run `38392090625`: **71/71 tests passed**. Cloudflare Pages staging deployment `6c84cca6-b171-41d5-83c7-18070cd42bc9` of commit `bc0db7ea698a37d4da5a871f92d0fb5af5f1b892`: SUCCESS. These are development gates, not permission to activate production.
+- Existing staging retains one synthetic learner, linked parent and admin; production still has zero accounts and production deployments remain disabled.
+
 ## Perform — verified
 - GitHub Actions run 38348185847: `npm run check`, **51 tests / 51 passed**, including login/roles, note privacy, student-only deletion, starter-week consent/duplicate prevention, schedule editing, calendar formatting, bounded AI modes and in-memory sketch-state.
 - Cloudflare Pages preview deployment `303f002d-9a00-44d4-a746-7b33c566258f`, commit `ac9c45d04e8b6120522d8a6a151329e38216e16d`: **deployment SUCCESS**, independent Cloudflare build logs show `npm run check` with **51/51 passed** and Functions Worker compiled.
@@ -39,7 +47,7 @@ Cloudflare Pages/Functions, Workers AI, dedicated D1 and GitHub. Preview uses `s
 2. Correct school board/stream/current textbook content mapping and independent review of **30+ real academic answers** (LLM can make mistakes; the curated foundation bank is *not* a certified syllabus).
 3. Qualified child-safeguarding and family privacy/consent/retention policy, including emergency escalation alternatives; prompt patterns alone are not sufficient.
 4. Secure everyday credential rotation, account deletion/recovery and realistic device management for a minor.
-5. A separately observed Cloudflare D1 recovery/rollback drill on disposable data, with retention limits verified.
+5. **Partially satisfied:** live D1 Time Travel restore on synthetic disposable data PASSED. Actual Saathi-schema backup/restore, backup retention evaluation, and application-level recovery/rollback rehearsals remain open.
 6. Actual usage/billing review within Cloudflare/GitHub free-tier allowances; no paid integration authorized.
 
 No change to production or real student accounts is authorized by this staging acceptance.
