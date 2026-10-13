@@ -17,6 +17,7 @@ SAATHI_VISION_ENABLED = "true"
 # Background push uses staging D1 and independently gated Cloudflare Cron Worker.
 PUSH_DISPATCH_CONFIGURED = "true"
 VAPID_PUBLIC_KEY = "BPefQY1kfQ3a0exuKMqvF49t250GXD-K5T9hEpZAlq-akw1HEJ4edWvfWNRH7wRqsbkwIJT8hdNJwFCMk7-gbKU"
+VAPID_SUBJECT = "mailto:info@vayushastr.com"
 
 [[env.preview.d1_databases]]
 binding = "DB"
