@@ -49,7 +49,7 @@ function pilot(){
 
 function media(){
  const kind=state.mediaKind;
- return '<section class="card"><h2>Study your own files</h2><p class="muted">This is a private, learner-initiated preview. Text files are read locally and passed to Study links. Image analysis requires a separately licensed vision provider and your explicit approval. Video stays on this device: select a moment and analyse ONLY that single frame, not its audio or full timeline.</p><label class="form-field">Select a study file<input id="media-file-input" type="file" accept=".txt,.md,.csv,.json,.srt,.vtt,.jpg,.jpeg,.png,.webp,.mp4,.webm,.pdf,.doc,.docx,.ppt,.pptx"></label><p class="small">Currently: text (TXT/MD/CSV/SRT/VTT/JSON), still images (PNG/JPG/WebP), a selected video frame (MP4/WebM). Full PDF, Word and slides extraction is not yet commissioned; copy permitted text into Study links instead.</p><p class="notice">'+(state.visionEnabled?'Vision available for one still image after approval.':'Image/video-frame AI vision is currently on hold awaiting model licence approval. Text files remain usable.')+'</p></section>'+
+ return '<section class="card"><h2>Study your own files</h2><p class="muted">This is a private, learner-initiated preview. Text files are read locally and passed to Study links. Image analysis requires a separately licensed vision provider and your explicit approval. Video stays on this device: select a moment and analyse ONLY that single frame, not its audio or full timeline.</p><label class="form-field">Select a study file<input id="media-file-input" type="file" accept=".txt,.md,.csv,.json,.srt,.vtt,.jpg,.jpeg,.png,.webp,.mp4,.webm,.pdf,.docx,.pptx"></label><p class="small">Currently: text (TXT/MD/CSV/SRT/VTT/JSON), still images (PNG/JPG/WebP), a selected video frame (MP4/WebM). PDF, DOCX and PPTX are converted to an editable text excerpt with consent (1 MB limit); embedded images, tables, formulas and scanned pages may be incomplete. Other Office formats are not supported.</p><p class="notice">'+(state.visionEnabled?'Vision available for one still image after approval.':'Image/video-frame AI vision is currently on hold awaiting model licence approval. Text files remain usable.')+'</p></section>'+
  (kind?'<section class="card" style="margin-top:16px"><h2>'+esc(state.mediaFile?.name||'Selected media')+'</h2><p class="small">'+(kind==='video-frame-only'?'This is one selected frame. It does not include speech, motion or the rest of the video.':'One still image can be analysed, but handwriting and detailed diagrams may be misread.')+'</p>'+(kind==='video-frame-only'?'<div class="canvas-frame"><video id="media-video" controls muted playsinline style="width:100%;max-height:330px"></video></div><p class="small">Pause on the exact frame you want to discuss before analysing.</p>':'')+'<form id="media-study-form"><label class="form-field">What should '+esc(state.companionName)+' explain?<textarea name="question" required minlength="4" maxlength="1500" placeholder="Explain the diagram one step at a time or suggest improvements to my sketch.">'+esc(state.mediaQuestion)+'</textarea></label><button type="submit" id="analyze-media" class="btn" '+(state.visionEnabled?'':'disabled')+'>Analyse with my approval</button></form>'+(state.mediaAnswer?'<div class="ai-answer">'+esc(state.mediaAnswer)+'</div><p class="small">AI vision may be inaccurate. No source file or answer is saved by Saathi. Verify classroom concepts with a teacher and textbook.</p>':'')+'</section>':'');
 }
 
@@ -169,7 +169,18 @@ root.addEventListener('change',async e=>{
  if(state.mediaObjectUrl){URL.revokeObjectURL(state.mediaObjectUrl);state.mediaObjectUrl=null}
  const kind=detectMediaFile(file.name,file.size);state.mediaFile=null;state.mediaKind=null;state.mediaAnswer='';
  if(!kind){flash('Unsupported format or oversized file. Use a small text file, image or video.');return}
- if(kind==='unsupported'){flash('PDF/DOCX/PPT conversion is not qualified in Saathi yet. Copy a permitted passage into Study links instead.');return}
+ if(kind==='unsupported'){flash('Legacy Office document type not supported. Convert it to PDF, DOCX or PPTX, or paste a permitted excerpt into Study links.');return}
+ if(kind==='document'){
+  if(!confirm('Convert this small PDF/DOCX/PPTX into text using Cloudflare document processing? It will not be saved by Saathi.')){flash('Conversion cancelled.');return}
+  let raw='';const arr=new Uint8Array(await file.arrayBuffer());
+  for(let start=0;start<arr.length;start+=8192)raw+=String.fromCharCode(...arr.subarray(start,start+8192));
+  try{
+   const result=await api('convert-document',{name:file.name,base64:btoa(raw),confirm:'CONVERT DOCUMENT'});
+   state.linkSource={kind:'manual',url:'',title:result.name,status:'ready'};
+   state.linkText=result.text;state.linkQuestion='Explain the main ideas in this document step by step, and help me study one question at a time.';
+   state.tab='links';render();flash('Document converted to a limited, editable text excerpt. Check diagrams, equations and tables against the original.');return
+  }catch(err){flash(err.message);return}
+ }
  if(kind==='text'){
   let passage=await file.text();
   passage=passage.replace(/\u0000/g,'').slice(0,12000);
