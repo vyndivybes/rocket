@@ -4,6 +4,7 @@ import {readFileSync} from 'node:fs';
 import {splitVoiceText} from '../public/voice-readback.js';
 import {validateImageData, classifyLocalStudyFile} from '../functions/_lib/media-intake.js';
 import {onRequestPost as analyze} from '../functions/api/analyze-image.js';
+import {onRequestGet as mediaStatus} from '../functions/api/media-status.js';
 import {onRequestPost as login} from '../functions/api/login.js';
 import {DatabaseSync} from 'node:sqlite';
 import {randomUUID} from 'node:crypto';
@@ -69,4 +70,12 @@ test('account model licence hold blocks image inference without consuming AI quo
  assert.equal(result.status,503);assert.match((await result.json()).error,/licence acceptance/i);
  assert.equal(x.calls.length,0);
  assert.equal(x.db.prepare('SELECT COUNT(*) AS n FROM ai_usage').get().n,0);
+});
+
+test('status announces model licence hold to learners but not anonymous visitors',async()=>{
+ const x=await setup(),cookie=await x.cookie('learner');
+ const response=await mediaStatus({request:request('/api/media-status',cookie),env:{...x.env,SAATHI_VISION_ENABLED:undefined}});
+ assert.equal(response.status,200);
+ const body=await response.json();assert.equal(body.enabled,false);assert.match(body.notice,/licence/i);
+ assert.equal((await mediaStatus({request:request('/api/media-status'),env:x.env})).status,403);
 });
