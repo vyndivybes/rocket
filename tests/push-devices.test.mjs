@@ -27,3 +27,28 @@ test('push endpoints are honest about uncommissioned delivery and do not store d
 });
 test('service worker uses generic lock-screen text and never stores source titles',()=>{const src=readFileSync(new URL('../public/saathi-push-sw.js',import.meta.url),'utf8');assert.match(src,/private study schedule/);assert.ok(!src.includes('lessonTitle'));});
 test('cron is disabled by default pending private signing credentials',()=>{const cfg=readFileSync(new URL('../wrangler.push.toml',import.meta.url),'utf8');assert.match(cfg,/PUSH_DISPATCH_CONFIGURED = "false"/);assert.ok(!/^[^#\n]*crons\s*=\s*\[/m.test(cfg));});
+
+test('commissioned student can subscribe, see device count and revoke without exposing keys',async()=>{
+ const db=new DatabaseSync(':memory:');
+ for(const n of ['0001_initial','0003_admin','0004_study','0005_mission','0006_companion_name','0007_personal_memory','0008_push_devices'])db.exec(readFileSync(new URL('../migrations/'+n+'.sql',import.meta.url),'utf8'));
+ const prepare=(sql,args=[])=>({bind(...x){return prepare(sql,x)},async first(){return db.prepare(sql).get(...args)||null},async all(){return {results:db.prepare(sql).all(...args)}},async run(){return {meta:{changes:Number(db.prepare(sql).run(...args).changes)}}}});
+ const salt='0123456789abcdef0123456789abcdef',hash=await accessKeyHash(KEY,salt),student=randomUUID(),other=randomUUID();
+ const ins=db.prepare('INSERT INTO users(id,username,role,password_salt,password_hash,board) VALUES(?,?,?,?,?,?)');
+ ins.run(student,'learner','student',salt,hash,'unconfigured');
+ ins.run(other,'other','student',salt,hash,'unconfigured');
+ const env={DB:{prepare},SAATHI_STAGE:'preview',PUSH_DISPATCH_CONFIGURED:'true',PUSH_DISPATCH_SECRET:'S'.repeat(40),VAPID_PRIVATE_KEY:'P'.repeat(43),VAPID_PUBLIC_KEY:'A'.repeat(87),VAPID_SUBJECT:'mailto:info@vayushastr.com'};
+ const {onRequestPost:login}=await import('../functions/api/login.js');
+ const loginCookie=async name=>(await login({request:req('/api/login','',{username:name,password:KEY}),env})).headers.get('Set-Cookie').split(';')[0];
+ const cookie=await loginCookie('learner');
+ const status=await (await onRequestGet({request:req('/api/push-device',cookie),env})).json();
+ assert.equal(status.ready,true);assert.equal(status.devices,0);assert.ok(!JSON.stringify(status).includes(env.PUSH_DISPATCH_SECRET));
+ const sub={action:'register',endpoint:'https://fcm.googleapis.com/fcm/send/synthetic',p256dh:'Z'.repeat(87),auth:'Y'.repeat(22),timezone:'Asia/Kolkata',quietFrom:22,quietTo:7};
+ assert.equal((await onRequestPost({request:req('/api/push-device',cookie,sub),env})).status,200);
+ assert.equal(db.prepare('SELECT COUNT(*) n FROM push_devices WHERE student_id=?').get(student).n,1);
+ assert.equal((await (await onRequestGet({request:req('/api/push-device',cookie),env})).json()).devices,1);
+ assert.equal((await onRequestPost({request:req('/api/push-device',await loginCookie('other'),{action:'remove',endpoint:sub.endpoint}),env})).status,200);
+ assert.equal(db.prepare('SELECT COUNT(*) n FROM push_devices WHERE student_id=?').get(student).n,1);
+ assert.equal((await onRequestPost({request:req('/api/push-device',cookie,sub,'https://evil.test'),env})).status,403);
+ assert.equal((await onRequestPost({request:req('/api/push-device',cookie,{action:'remove',endpoint:sub.endpoint}),env})).status,200);
+ assert.equal(db.prepare('SELECT COUNT(*) n FROM push_devices').get().n,0);
+});
