@@ -12,7 +12,7 @@ const ORIGIN='https://saathi-preview.pages.dev',KEY='0123456789abcdef'.repeat(4)
 function req(path,cookie='',body,origin=ORIGIN){return new Request(ORIGIN+path,{method:body===undefined?'GET':'POST',headers:{Origin:origin,'Content-Type':'application/json',...(cookie?{Cookie:cookie}:{})},body:body===undefined?undefined:JSON.stringify(body)})}
 async function setup(){
  const db=new DatabaseSync(':memory:');
- for(const m of ['0001_initial','0003_admin','0004_study','0005_mission'])db.exec(readFileSync(new URL('../migrations/'+m+'.sql',import.meta.url),'utf8'));
+ for(const m of ['0001_initial','0003_admin','0004_study','0005_mission','0006_companion_name','0007_personal_memory'])db.exec(readFileSync(new URL('../migrations/'+m+'.sql',import.meta.url),'utf8'));
  const prepare=(sql,params=[])=>({bind(...x){return prepare(sql,x)},async first(){return db.prepare(sql).get(...params)||null},async all(){return {results:db.prepare(sql).all(...params)}},async run(){return {meta:{changes:Number(db.prepare(sql).run(...params).changes)}}}});
  const env={DB:{prepare}},salt='0123456789abcdef0123456789abcdef',hash=await accessKeyHash(KEY,salt),student=randomUUID(),other=randomUUID();
  const stmt=db.prepare('INSERT INTO users(id,username,role,password_salt,password_hash,board,linked_student_id) VALUES(?,?,?,?,?,?,?)');
