@@ -13,7 +13,7 @@ import {onRequestPost as logout} from '../functions/api/logout.js';
 const BASE='https://saathi-preview.pages.dev';
 const TEST_ACCESS_KEY='0123456789abcdef'.repeat(4);
 function dbAdapter(){
- const db=new DatabaseSync(':memory:');db.exec(readFileSync(new URL('../migrations/0001_initial.sql',import.meta.url),'utf8'));
+ const db=new DatabaseSync(':memory:');db.exec(readFileSync(new URL('../migrations/0001_initial.sql',import.meta.url),'utf8'));db.exec(readFileSync(new URL('../migrations/0003_admin.sql',import.meta.url),'utf8'));
  function prepare(sql,args=[]){return {bind(...v){return prepare(sql,v)},async first(){return db.prepare(sql).get(...args)||null},async all(){return {results:db.prepare(sql).all(...args)}},async run(){return {meta:{changes:Number(db.prepare(sql).run(...args).changes)}}}}}
  return {db,api:{prepare}};
 }
