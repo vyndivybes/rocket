@@ -11,6 +11,7 @@ export async function onRequestPost({request,env}){
  if(first)return json({answer:first.answer,kind:first.type,notice:'No image was transmitted for analysis and no external alert was sent.'});
  const validation=validateImageData(body.image);
  if(validation)return error(validation,415);
+ if(env.SAATHI_VISION_ENABLED!=='true')return error('Image vision requires account-level model licence acceptance and explicit activation; no image was transmitted or saved.',503);
  if(!env.AI?.run)return error('Image vision provider unavailable; no image has been stored.',503);
  if(!await acquireAiQuota(env,user.id))return error('Daily AI limit reached. Image not processed or stored.',429);
  const messages=[
