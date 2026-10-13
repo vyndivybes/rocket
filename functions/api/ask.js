@@ -4,6 +4,7 @@ import {relevantFoundation} from '../_lib/study.js';
 import {selectKnowledgeContext} from '../_lib/knowledge-packs.js';
 import {qualifyAiAnswer} from '../_lib/response-guard.js';
 import {DEFAULT_COMPANION_NAME} from '../_lib/companion-name.js';
+import {buildMemoryContext} from '../_lib/personal-memory.js';
 export async function onRequestPost({request,env}){
   if(!sameOrigin(request))return error('Origin denied',403);
   const user=await auth(request,env);if(!ensureRole(user,'student'))return error('Student only',403);
@@ -18,6 +19,8 @@ export async function onRequestPost({request,env}){
     const prefs=await env.DB.prepare('SELECT name FROM companion_preferences WHERE student_id=?').bind(user.id).first();
     const chosenName=prefs?.name??DEFAULT_COMPANION_NAME;
     const messages=llmMessages(b.question,user.board);
+    const saved=await env.DB.prepare('SELECT category,text,use_in_chat FROM personal_memories WHERE student_id=? AND use_in_chat=1 ORDER BY updated_at DESC,id LIMIT 8').bind(user.id).all();
+    messages[0].content+=buildMemoryContext(saved.results||[]);
     messages[0].content+=' Your student-selected AI nickname is "'+chosenName+'". Refer to yourself by this nickname if useful, but ALWAYS make clear that you are an AI, not a human friend. Your role and safeguarding restrictions never change with this nickname.';
     messages[0].content+=' MODE: '+mode+'. '+COACH_PROMPTS[mode]+' Student is aspiring to be a pilot and enjoys sketching and painting. These are inspiration topics, not assumptions about competence. Do not imply you can independently schedule, notify or run tools.';
     const foundation=(mode==='teacher'||mode==='pilot')?relevantFoundation(b.question):null;
