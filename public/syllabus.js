@@ -23,13 +23,19 @@ function renderSubject(s){
     ).join('')+'</ul><p>These scores reflect repeated short fixed exercises, not independent exam readiness or textbook completion.</p>':'';
  const fiction=s.fictionChoices?.length?
     '<p><strong>Novel selection requires school confirmation:</strong> '+s.fictionChoices.map(esc).join(' OR ')+'. Neither novel is marked complete or automatically selected.</p>':'';
+ const exam=s.assessmentStructure;
+ const examParts=exam?[
+  ['Theory',exam.theory],['Practical',exam.practical],
+  ['Internal assessment',exam.internal],['Seminar',exam.seminar]
+ ].filter(x=>x[1]>0).map(x=>esc(x[0])+': '+Number(x[1])+' marks'):[];
+ const examNote=examParts.length?'<p><strong>CBSE examination structure:</strong> '+examParts.join(' · ')+'. These are maximum marks, not learner scores; assessment status: teacher review required.</p>':'';
  const sections=s.assessmentSections?.length?
     '<h3>Official assessment components</h3><ul>'+s.assessmentSections.map(x=>'<li>'+esc(x.name)+' — '+Number(x.marks)+' marks</li>').join('')+'</ul><p>These are examination requirements, not earned marks or readiness scores. The internal seminar needs teacher review.</p>':'';
  const foundation=s.foundationSkillLessonIds?.length?'<p>General writing foundation exercise available in Lessons &amp; practice; it does not count as a Kaleidoscope text.</p>':'';
- const formative=s.formativeTopics?.length?'<p>Additional formative topics: '+s.formativeTopics.map(esc).join(', ')+'.</p>':'';
+ const formative=s.formativeTopics?.length?'<p><strong>Formative-only topics (not part of summative theory-paper marks):</strong> '+s.formativeTopics.map(esc).join(', ')+'. School-based discussion and formative assessment may still apply.</p>':'';
  return '<section class="card" style="margin:16px 0;padding:20px"><h2>'+esc(s.subject)+(s.code?' ('+esc(s.code)+')':'')+'</h2>'+
-   '<p><strong>Coverage:</strong> INCOMPLETE · '+esc(state)+'</p>'+main+skillPractice+fiction+sections+foundation+formative+
-   '<p>Exam readiness: HOLD. '+(literature?'Seminar and literature assessment require teacher review.':'Practical and internal assessment requirements need teacher verification; do not perform hazardous laboratory work unsupervised.')+'</p>'+
+   '<p><strong>Coverage:</strong> INCOMPLETE · '+esc(state)+'</p>'+examNote+main+skillPractice+fiction+sections+foundation+formative+
+   '<p>Exam readiness: HOLD. '+(literature?'Seminar and literature assessment require teacher review.':s.subject==='Mathematics'?'Internal assessment must be reviewed by the school; Mathematics has no laboratory practical examination.':'Practical assessment requires teacher verification; do not perform hazardous laboratory work unsupervised.')+'</p>'+
    '<p><a target="_blank" rel="noopener noreferrer" href="'+esc(s.officialSource)+'">Read official curriculum source</a></p></section>';
 }
 async function load(){
