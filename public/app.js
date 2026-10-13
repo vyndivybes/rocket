@@ -36,7 +36,7 @@ async function refreshAdminSummary(){
   }finally{if($('admin-stats'))$('admin-stats').removeAttribute('aria-busy');}
 }
 function setupView(){
- const current=profile||{board:'unconfigured',stream:'Science',subjects:['Physics','Chemistry','Mathematics'],dailyMinutes:30};
+ const current=profile||{board:'unconfigured',stream:'Science',subjects:['Physics','Chemistry','Mathematics','Biology'],dailyMinutes:30};
  const subjects=['Physics','Chemistry','Mathematics','Biology','Accountancy','Economics','History','English'];
  const boards=['unconfigured','CBSE','ISC','State','Other'],streams=['Science','Commerce','Humanities','Mixed'];
  const opts=(values,chosen)=>values.map(v=>`<option value="${escapeHtml(v)}" ${v===chosen?'selected':''}>${escapeHtml(v==='unconfigured'?'Choose later':v)}</option>`).join('');
