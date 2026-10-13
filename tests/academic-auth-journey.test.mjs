@@ -57,6 +57,9 @@ test('authenticated learner can explicitly select English Elective 001 while kee
   board:'CBSE',stream:'Science',subjects:['Physics','Chemistry','English Elective'],dailyMinutes:30
  }),env});
  assert.equal(save.status,200);
+ const lessonsResponse=await getLessons({request:makeReq('/api/lessons',learnerCookie),env});
+ const selectedLessons=(await lessonsResponse.json()).lessons;
+ assert.ok(selectedLessons.some(lesson=>lesson.id==='english-argument'),'general writing foundation must remain accessible to elective learner');
  const saved=await (await getProfile({request:makeReq('/api/profile',learnerCookie),env})).json();
  assert.deepEqual(saved.profile.subjects,['Physics','Chemistry','English Elective']);
  const response=await coverage({request:makeReq('/api/syllabus-coverage',learnerCookie),env});
