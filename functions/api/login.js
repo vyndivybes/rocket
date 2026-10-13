@@ -7,10 +7,14 @@ export async function onRequestPost({request,env}){
   const password=input.password;
   if(!/^[a-z0-9._-]{3,40}$/.test(username)||typeof password!=='string'||!/^[a-f0-9]{64}$/.test(password))return error('Invalid login',401);
   if(!await throttle(env,`login:${username}`))return error('Too many attempts; try again later',429);
-  const user=await env.DB.prepare('SELECT * FROM users WHERE username=?').bind(username).first();
+  let user=await env.DB.prepare('SELECT * FROM users WHERE username=?').bind(username).first();
+  let administrator=false;
+  if(!user){user=await env.DB.prepare('SELECT * FROM admin_users WHERE username=?').bind(username).first();administrator=!!user;}
   if(!user||!constantEqual(await accessKeyHash(password,user.password_salt),user.password_hash))return error('Invalid login',401);
   const token=randomToken();const expires=Math.floor(Date.now()/1000)+SESSION_SECONDS;
-  await env.DB.prepare('INSERT INTO sessions(token_hash,user_id,expires_at) VALUES(?,?,?)').bind(await sha256(token),user.id,expires).run();
-  const response=json({user:{username:user.username,role:user.role,board:user.board}});
+  const table=administrator?'admin_sessions':'sessions';
+  const idField=administrator?'admin_id':'user_id';
+  await env.DB.prepare(`INSERT INTO ${table}(token_hash,${idField},expires_at) VALUES(?,?,?)`).bind(await sha256(token),user.id,expires).run();
+  const response=json({user:{username:user.username,role:administrator?'admin':user.role,board:administrator?'unconfigured':user.board}});
   response.headers.set('Set-Cookie',sessionCookie(token));return response;
 }
