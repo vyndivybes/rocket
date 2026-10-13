@@ -16,7 +16,7 @@ export function renderAdminOverview(data) {
       ${metric('Students',data.students,'Registered learner accounts')}
       ${metric('Parents',data.parents,'Guardian accounts')}
       ${metric('Administrators',data.admins,'Operational roles only')}
-      ${metric('Study tasks',data.totalTasks,'${remaining} incomplete; ${count(data.completedTasks)} completed')}
+      ${metric('Study tasks',data.totalTasks,`${remaining} incomplete; ${count(data.completedTasks)} completed`)}
       ${metric('Linked parent accounts',data.linkedParents,'Verified learner associations')}
       ${metric('Boards configured',data.configuredBoards,'Students with a board selected')}
       ${metric('AI attempts today',data.aiAttemptsToday,'Aggregate requests (UTC), not prompts')}
