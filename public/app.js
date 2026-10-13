@@ -39,7 +39,7 @@ function renderApp(){
  }
  root.innerHTML=`<div class="layout">${sidebar()}<main class="main"><div class="top"><div><div class="eyebrow">${currentUser.role==='admin'?'Administration':currentUser.role==='parent'?'Guardian view':'Class 12 workspace'}</div><h1>${currentUser.role==='admin'?'Administration':({overview:'My day',myspace:'My Saathi',setup:'Set up your studies',lesson:'Foundation lesson',teacher:'Ask Saathi',planner:'Study planner',library:'Lessons & practice'})[tab]}</h1><p class="muted">${currentUser.role==='admin'?'Manage the application, not private student conversations.':currentUser.role==='parent'?'Only aggregate commitments — never private conversations.':'Small steps. Real progress. You decide the pace.'}</p></div><span class="chip">${escapeHtml(currentUser.board||'Not configured')}</span></div><div id="message" role="status" hidden></div><div id="content">${content()}</div><footer>Saathi v0.1 · Study helper, not a substitute for your teacher or trusted adults. Academic outputs need verification. · <a href="/privacy.html">Privacy & safety</a></footer></main></div>`;
   document.querySelectorAll('[data-tab]').forEach(btn=>btn.addEventListener('click',()=>{tab=btn.dataset.tab;renderApp()}));
-  $('logout').onclick=async()=>{await post('logout',{}).catch(()=>{});currentUser=null;tab='overview';renderLogin()};
+  $('logout').onclick=async()=>{await post('logout',{}).catch(()=>{});currentUser=null;experience=null;ideas=[];experienceReady=false;delete document.documentElement.dataset.saathiTheme;delete document.documentElement.dataset.saathiTextSize;tab='overview';renderLogin()};
   wire();
   if(currentUser.role==='admin')void refreshAdminSummary();
 }
