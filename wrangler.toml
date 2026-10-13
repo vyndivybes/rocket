@@ -2,7 +2,27 @@ name = "saathi-student-ai"
 compatibility_date = "2026-10-13"
 pages_build_output_dir = "./public"
 
+# Safe default: development/preview NEVER uses production student records.
 [[d1_databases]]
+binding = "DB"
+database_name = "saathi-staging"
+database_id = "eacc17bb-a4da-46ad-8aca-c488540911d4"
+
+[vars]
+SAATHI_STAGE = "preview"
+
+[env.preview.vars]
+SAATHI_STAGE = "preview"
+
+[[env.preview.d1_databases]]
+binding = "DB"
+database_name = "saathi-staging"
+database_id = "eacc17bb-a4da-46ad-8aca-c488540911d4"
+
+[env.production.vars]
+SAATHI_STAGE = "production"
+
+[[env.production.d1_databases]]
 binding = "DB"
 database_name = "saathi-private"
 database_id = "339a3e76-27df-451a-93b5-8fdb99038754"
