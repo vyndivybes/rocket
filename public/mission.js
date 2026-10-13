@@ -25,7 +25,7 @@ function button(tab,label){return '<button type="button" class="btn secondary" d
 function adaptive(){
  const p=state.adaptivePlan;
  if(!p)return '<section class="card"><h2>Study priorities</h2><p>Practice evidence not available. Continue checked foundation lessons.</p></section>';
- return '<section class="card"><h2>Next learning steps</h2><p class="muted">From graded foundation practice only—not an educational diagnosis, predicted marks or school-certified curriculum.</p>'+p.recommendations.map(x=>'<div class="listitem"><div><span class="tag">'+esc(x.status)+'</span><h3>'+esc(x.title)+'</h3><p class="small">'+esc(x.subject)+' · '+Number(x.minutes)+' minutes · '+Number(x.attempts)+' attempts, '+Number(x.correct)+' correct</p><p class="muted">'+esc(x.reason)+'</p></div></div>').join('')+'<p class="small">'+esc(p.notice)+'</p><a class="btn secondary" href="/">Open Lessons &amp; practice</a></section>';
+ return '<section class="card"><h2>Next learning steps</h2><p class="muted">From graded foundation practice only—not an educational diagnosis, predicted marks or school-certified curriculum.</p>'+p.recommendations.map(x=>'<div class="listitem"><div><span class="tag">'+esc(x.status)+'</span><h3>'+esc(x.title)+'</h3><p class="small">'+esc(x.subject)+' · '+Number(x.minutes)+' minutes · '+Number(x.attempts)+' attempts, '+Number(x.correct)+' correct</p><p class="muted">'+esc(x.reason)+'</p></div><div class="actions"><button type="button" class="btn secondary" data-plan-lesson="'+esc(x.lessonId)+'">Review suggested revision schedule</button></div></div>').join('')+'<p class="small">'+esc(p.notice)+'</p><a class="btn secondary" href="/">Open Lessons &amp; practice</a></section>';
 }
 function home(){
  const briefing=buildDailyBrief({schedule:state.schedule,tasks:state.tasks});
@@ -120,6 +120,20 @@ root.addEventListener('click',async e=>{
  const dataset=b.dataset;
  if(dataset.tab){state.tab=dataset.tab;render();return}
  if(dataset.mode){state.mode=dataset.mode;render();return}
+ if(dataset.planLesson){
+ const lesson=state.adaptivePlan?.recommendations?.find(x=>x.lessonId===dataset.planLesson);
+ if(!lesson)return;
+ state.tab='schedule';render();
+ const form=document.getElementById('schedule-form');
+ form.elements.title.value=('Revision: '+lesson.title).slice(0,100);
+ form.elements.kind.value='study';
+ form.elements.minutes.value=String([10,15,20,30,45,60].find(m=>m>=lesson.minutes)||15);
+ for(const input of form.querySelectorAll('[name="days"]'))input.checked=input.value==='1'||input.value==='4';
+ form.elements.time.value='17:30';
+ form.elements.title.focus();
+ flash('Recommended lesson added to the draft only. Only save after reviewing the days, time and duration. No reminder has been created yet.');
+ return;
+ }
  if(dataset.askPilot){state.mode='pilot';state.tab='companion';render();document.getElementById('question').value=dataset.askPilot;return}
  if(dataset.memoryDraft){const q=document.getElementById('question');const draft=q?.value||'';state.tab='memory';render();const f=document.getElementById('memory-form');f.elements.text.value=draft.slice(0,240);f.elements.text.focus();flash('Review and explicitly save this memory. AI recall is off unless you choose it.');return}
  if(dataset.pack){state.packId=dataset.pack==='all'?null:dataset.pack;state.tab='knowledge';render();return}
