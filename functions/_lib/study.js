@@ -1,3 +1,4 @@
+import {publicQuestions,questionForGrade} from './question-bank.js';
 // Short, editorially drafted FOUNDATION lessons, not a board-certified syllabus.
 // Only the server receives answerIndex. Clients receive lessonView() without the key.
 export const SUBJECTS=['Physics','Chemistry','Mathematics','Biology','Accountancy','Economics','History','English','English Elective'];
@@ -178,8 +179,9 @@ export const LESSONS=[
 
 ];
 export function lessonView(lesson){
- const {answerIndex,...publicFields}=lesson;
- return publicFields;
+ // Never expose the grading key or answer explanation before the attempt.
+ const {answerIndex,explanation,...publicFields}=lesson;
+ return {...publicFields,questions:publicQuestions(lesson)};
 }
 export function validateProfile(body){
  if(!body||typeof body!=='object'||Array.isArray(body))return 'Invalid profile';
@@ -190,11 +192,15 @@ export function validateProfile(body){
  if(!DAILY_MINUTES.includes(body.dailyMinutes))return 'Choose a supported daily study target';
  return null;
 }
-export function gradePractice(lessonId,choice){
+export function gradePractice(lessonId,choice,questionId='base'){
  const lesson=LESSONS.find(x=>x.id===lessonId);
  if(!lesson||!Number.isInteger(choice)||choice<0||choice>3)return null;
- const correct=choice===lesson.answerIndex;
- return {lesson,correct,explanation:lesson.explanation,correctOption:lesson.options[lesson.answerIndex]};
+ const question=questionForGrade(lesson,questionId);
+ if(!question)return null;
+ const correct=choice===question.answerIndex;
+ const progressKey=question.id==='base'?lesson.id:lesson.id+'::'+question.id;
+ return {lesson,questionId:question.id,progressKey,correct,
+  explanation:question.explanation,correctOption:question.options[question.answerIndex]};
 }
 
 
