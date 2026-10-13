@@ -36,5 +36,8 @@ test('English Elective holds the school novel choice and records verified assess
   assert.equal(s.assessmentSections.reduce((sum,section)=>sum+section.marks,0),100);
   assert.deepEqual(s.assessmentSections.map(s=>s.marks),[20,8,20,22,10,20]);
   assert.equal(s.practicalStatus,'not_applicable_seminar_review_required');
-  assert.deepEqual(s.foundationSkillLessonIds,['english-argument']);
+  assert.ok(s.foundationSkillLessonIds.includes('english-argument'));
+  assert.equal(s.foundationSkillLessonIds.length,5);
+  assert.ok(s.skillPractice.every(p=>p.certified===false));
+  assert.equal(s.qualifiedChapters,0);
 });
