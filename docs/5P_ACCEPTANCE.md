@@ -23,15 +23,15 @@ Cloudflare Pages/Functions, Workers AI, dedicated D1 and GitHub. Preview uses `s
 - A home-screen web-app manifest and icon.
 
 ## Perform — verified
-- GitHub Actions run 38347945934: `npm run check`, **50 tests / 50 passed**, including login/roles, note privacy, student-only deletion, starter-week consent/duplicate prevention, schedule editing, calendar formatting, bounded AI modes and in-memory sketch-state.
-- Cloudflare Pages preview deployment `8d1bd709-81e5-4cac-9be9-d5653bf0c022`, commit `8e9e937075d8abb5d4a2f76dee0465c6b1f68610`: **deployment SUCCESS**, independent Cloudflare build logs show `npm run check` with **50/50 passed** and Functions Worker compiled.
+- GitHub Actions run 38348185847: `npm run check`, **51 tests / 51 passed**, including login/roles, note privacy, student-only deletion, starter-week consent/duplicate prevention, schedule editing, calendar formatting, bounded AI modes and in-memory sketch-state.
+- Cloudflare Pages preview deployment `303f002d-9a00-44d4-a746-7b33c566258f`, commit `ac9c45d04e8b6120522d8a6a151329e38216e16d`: **deployment SUCCESS**, independent Cloudflare build logs show `npm run check` with **51/51 passed** and Functions Worker compiled.
 - Anonymous live preview opened the Mission Control student-only sign-in boundary; `/api/me` yielded 401 without a session; `/api/health` reported DB and AI bindings present.
 - D1 staging contains 1 test student, 1 linked parent and 1 admin; zero real student profiles, notes or scheduled activities at verification. Production contains zero accounts and no study records. Cloudflare production deployments remain **disabled**.
 - In earlier human testing, the owner verified all three account sign-ins and prior learner material and parent progress views. **New Mission Control interactive sign-in, drawing, voice, reminder import and full on-device journeys have NOT yet been independently user-verified.**
 
 ## Persist — implemented controls
 - Draft PR review boundary, source tests on push/PR, Cloudflare preview tests before deploy, deployment branch scope and production-off setting.
-- Environment guard and separate staging/production databases.
+- Environment guard and separate staging/production databases. A **synthetic SQLite snapshot/export→restore regression test** passed with student data integrity and row ownership preserved. This is not a live Cloudflare D1 disaster recovery acceptance.
 - Privacy-safe student-owned export and erase functionality; no automatically shared notes or conversation histories.
 
 ## Remaining non-negotiable commissioning gates
