@@ -1,0 +1,11 @@
+name = "saathi-student-ai"
+compatibility_date = "2026-10-13"
+pages_build_output_dir = "./public"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "saathi-private"
+database_id = "339a3e76-27df-451a-93b5-8fdb99038754"
+
+[ai]
+binding = "AI"
