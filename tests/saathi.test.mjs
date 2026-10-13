@@ -102,7 +102,7 @@ test('AI call invokes allowed model, handles crisis before inference and enforce
  for(let i=0;i<12;i++){
   const resp=await ask({request:req('/api/ask',{method:'POST',cookie,body:{question:'Explain electromagnetic induction'}}),env:x.env});
   assert.equal(resp.status,200);
-  assert.equal((await body(resp)).kind,'study');
+  assert.equal((await body(resp)).kind,'teacher');
  }
  assert.equal(x.inference,12);
  const extra=await ask({request:req('/api/ask',{method:'POST',cookie,body:{question:'Explain electromagnetic induction'}}),env:x.env});
