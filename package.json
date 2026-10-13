@@ -1,0 +1,14 @@
+{
+  "name": "saathi-student-ai",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/*.test.mjs",
+    "lint": "node --check functions/_lib/core.js && node --check functions/api/ask.js && node --check public/app.js",
+    "check": "npm run lint && npm test"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  }
+}
