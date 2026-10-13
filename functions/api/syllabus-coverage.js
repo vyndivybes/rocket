@@ -1,12 +1,17 @@
 import {auth,ensureRole,error,json} from '../_lib/core.js';
 import {LESSONS} from '../_lib/study.js';
-import {syllabusInventory,SYLLABUS_SOURCE,SAMPLE_PAPERS} from '../_lib/syllabus-catalog.js';
+import {academicInventory,SYLLABUS_SOURCE,SAMPLE_PAPERS} from '../_lib/syllabus-catalog.js';
+import {commissioningStatus} from '../_lib/commissioning.js';
 export async function onRequestGet({request,env}){
  const user=await auth(request,env);
  if(!ensureRole(user,'student'))return error('Student only',403);
- const profile=await env.DB.prepare('SELECT subjects_json FROM study_profiles WHERE student_id=?').bind(user.id).first().catch(()=>null);
- let subjects;try{subjects=JSON.parse(profile?.subjects_json||'null')}catch{subjects=null}
- if(!Array.isArray(subjects)||!subjects.length)subjects=['Physics','Chemistry','Mathematics','Biology','English'];
- const board=user.board||'unconfigured';
- return json({board,academicYear:'2026-27',boardConfirmed:board==='CBSE',subjects:syllabusInventory(subjects,LESSONS),officialCurriculum:SYLLABUS_SOURCE,officialSamplePapers:SAMPLE_PAPERS,disclaimer:'Chapter names only where independently checked. No complete syllabus teaching or mastery is certified.'});
+ let profile,progress;
+ try{
+  profile=await env.DB.prepare('SELECT subjects_json FROM study_profiles WHERE student_id=?').bind(user.id).first();
+  progress=await env.DB.prepare('SELECT lesson_id,attempts,correct FROM practice_progress WHERE student_id=?').bind(user.id).all();
+ }catch{return error('Academic records unavailable; no coverage inferred',503)}
+ let subjects;try{subjects=JSON.parse(profile?.subjects_json||'null')}catch{return error('Invalid academic profile; confirm subjects again',409)}
+ if(!Array.isArray(subjects)||!subjects.length)return error('Confirm your board and subjects in My subjects',409);
+ const board=user.board||'unconfigured',applicable=board==='CBSE';
+ return json({board,academicYear:'2026-27',boardConfirmed:applicable,boardEvidence:'learner_selected_not_school_verified',subjects:applicable?academicInventory(subjects,LESSONS,progress.results||[]):[],selectedSubjects:subjects,commissioning:commissioningStatus(),officialCurriculum:SYLLABUS_SOURCE,officialSamplePapers:SAMPLE_PAPERS,disclaimer:'Official outlines do not certify teaching coverage. Foundation accuracy is not chapter mastery or exam readiness. English requires confirmation of Core 301 or Elective 001.'});
 }

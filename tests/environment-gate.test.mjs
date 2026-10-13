@@ -22,3 +22,10 @@ test('missing marker or misconfigured environment fails closed',async()=>{
   const response=await onRequest({request:request(),env:{},next:async()=>new Response('must-not-pass')});
   assert.equal(response.status,503);
 });
+
+test('production is blocked despite a correct database marker and a forged release variable',async()=>{
+ let called=false;
+ const env={...envWithMarker('production','production'),SAATHI_RELEASE_APPROVED:'true'};
+ const r=await onRequest({request:request(),env,next:async()=>{called=true;return new Response('unsafe')}});
+ assert.equal(r.status,503);assert.equal(called,false);
+});
