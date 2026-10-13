@@ -18,7 +18,7 @@ test('synthetic SQLite export and restore preserves Saathi tables and per-studen
   source.prepare('INSERT INTO notes(id,student_id,title,body) VALUES(?,?,?,?)').run('one','student-a','Private A','Synthetic drawing idea A');
   source.prepare('INSERT INTO notes(id,student_id,title,body) VALUES(?,?,?,?)').run('two','student-b','Private B','Synthetic drawing idea B');
   source.prepare('INSERT INTO schedule_items(id,student_id,title,kind,time_local,days_json,minutes) VALUES(?,?,?,?,?,?,?)').run('event-a','student-a','Evening movement','movement','17:30','[1,3,5]',15);
-  source.exec('VACUUM INTO '+JSON.stringify(backup));
+  source.exec("VACUUM INTO '"+backup.replaceAll("'","''")+"'");
   restored=new DatabaseSync(backup);
   assert.deepEqual(restored.prepare('PRAGMA foreign_key_check').all(),[]);
   assert.equal(restored.prepare('SELECT COUNT(*) AS n FROM users').get().n,2);
