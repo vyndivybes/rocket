@@ -49,3 +49,31 @@ test('non CBSE board does not receive applicable CBSE inventory and record failu
  const old=env.DB.prepare;env.DB.prepare=(sql)=>sql.startsWith('SELECT subjects_json')?{bind(){return this},async first(){throw Error('offline')}}:old(sql);
  assert.equal((await coverage({request:makeReq('/api/syllabus-coverage',c),env})).status,503);
 });
+
+
+test('authenticated learner can explicitly select English Elective 001 while keeping school qualification held',async()=>{
+ const {env,cookie}=await setup(),learnerCookie=await cookie('class12');
+ const save=await postProfile({request:makeReq('/api/profile',learnerCookie,{
+  board:'CBSE',stream:'Science',subjects:['Physics','Chemistry','English Elective'],dailyMinutes:30
+ }),env});
+ assert.equal(save.status,200);
+ const saved=await (await getProfile({request:makeReq('/api/profile',learnerCookie),env})).json();
+ assert.deepEqual(saved.profile.subjects,['Physics','Chemistry','English Elective']);
+ const response=await coverage({request:makeReq('/api/syllabus-coverage',learnerCookie),env});
+ assert.equal(response.status,200);
+ const data=await response.json();
+ assert.deepEqual(data.selectedSubjects,['Physics','Chemistry','English Elective']);
+ const english=data.subjects.find(s=>s.subject==='English Elective');
+ assert.equal(english.code,'001');assert.equal(english.totalChapters,16);
+ assert.equal(english.qualifiedChapters,0);assert.equal(english.fictionChoiceStatus,'school_choice_required');
+ assert.equal(data.boardEvidence,'learner_selected_not_school_verified');
+ assert.equal(data.commissioning.productionEligible,false);
+ const denied=await coverage({request:makeReq('/api/syllabus-coverage',await cookie('guardian')),env});
+ assert.equal(denied.status,403);
+ const invalid=await postProfile({request:makeReq('/api/profile',learnerCookie,{
+  board:'CBSE',stream:'Science',subjects:['English','English Elective'],dailyMinutes:30
+ }),env});
+ assert.equal(invalid.status,400);
+ const after=await (await getProfile({request:makeReq('/api/profile',learnerCookie),env})).json();
+ assert.deepEqual(after.profile.subjects,saved.profile.subjects);
+});
