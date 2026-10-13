@@ -80,3 +80,22 @@ test('syllabus UI distinguishes skill practice from qualified literature and doe
  assert.match(js,/not a literature completion/);
  assert.doesNotMatch(js,/answerIndex/);
 });
+
+
+test('syllabus progress includes new variant attempts without promoting chapters to qualified',()=>{
+ const rows=[
+  {lesson_id:'chemistry-solutions-molarity::v2',attempts:3,correct:2},
+  {lesson_id:'english-elective-reading-inference::v3',attempts:2,correct:1}
+ ];
+ const chemistry=academicInventory(['Chemistry'],LESSONS,rows)[0];
+ const solutions=chemistry.chapters.find(x=>x.title==='Solutions');
+ assert.equal(solutions.practice.attempts,3);
+ assert.equal(solutions.practice.correct,2);
+ assert.equal(solutions.qualified,false);
+ assert.equal(chemistry.qualifiedChapters,0);
+ const english=academicInventory(['English Elective'],LESSONS,rows)[0];
+ const reading=english.skillPractice.find(p=>p.lessonId==='english-elective-reading-inference');
+ assert.equal(reading.attempts,2);assert.equal(reading.correct,1);
+ assert.equal(reading.certified,false);
+ assert.equal(english.examReadiness,'HOLD');
+});

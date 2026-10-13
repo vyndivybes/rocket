@@ -1,6 +1,6 @@
 import {renderAdminOverview} from './admin-overview.js';
 const root=document.querySelector('#app');
-let currentUser=null, tasks=[], topics=[], references=[], profile=null, lessons=[], practice={total:0,correct:0,byLesson:[]},activeLessonId=null,tab='overview';
+let currentUser=null, tasks=[], topics=[], references=[], profile=null, lessons=[], practice={total:0,correct:0,byLesson:[]},activeLessonId=null,activeQuestionId='base',tab='overview';
 const escapeHtml=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const $=(id)=>document.getElementById(id);
 async function api(path,options={}){
@@ -49,7 +49,26 @@ function libraryView(){
 function lessonView(){
  const x=lessons.find(l=>l.id===activeLessonId);
  if(!x)return `<div class="card"><p>Lesson not found.</p><button class="btn secondary" data-go="library">Back to lessons</button></div>`;
- return `<div class="grid"><section class="card wide"><button class="btn small secondary" data-go="library">← All lessons</button><div style="margin-top:15px"><span class="chip">${escapeHtml(x.subject)}</span><h2 style="margin-top:12px">${escapeHtml(x.title)}</h2><p>${escapeHtml(x.concept)}</p><h2>Worked example</h2><p class="worked-example">${escapeHtml(x.example)}</p><p class="notice">${escapeHtml(x.source)}</p></div></section><section class="card wide"><h2>Quick practice</h2><p>${escapeHtml(x.question)}</p><form id="practice-form">${x.options.map((option,i)=>`<label class="practice-option"><input type="radio" name="choice" value="${i}" required> ${escapeHtml(option)}</label>`).join('')}<button class="btn" type="submit">Check my answer</button></form><div id="practice-feedback" role="status" aria-live="polite" style="margin-top:15px"></div></section></div>`;
+ const available=x.questions?.length?x.questions:[{id:'base',prompt:x.question,options:x.options}];
+ const q=available.find(item=>item.id===activeQuestionId)||available[0];
+ const rev=practice.lessonRevision?.find(item=>item.lessonId===x.id);
+ const label=rev?`${rev.distinctQuestionsAttempted} of ${rev.questionCount} distinct questions tried · ${rev.attempts} total attempts. ${rev.revision==='review_and_practise'?'Review explanations and try another question.':rev.revision==='independent_review_required'?'All bank questions attempted; ask a teacher for independently assessed questions.':'Try a different question.'} These exercises do not certify mastery.`:'Each exercise is a short foundation check, not chapter certification.';
+ return `<div class="grid">
+ <section class="card wide"><button class="btn small secondary" data-go="library">← All lessons</button>
+ <div style="margin-top:15px"><span class="chip">${escapeHtml(x.subject)}</span>
+ <h2 style="margin-top:12px">${escapeHtml(x.title)}</h2><p>${escapeHtml(x.concept)}</p>
+ <h2>Worked example</h2><p class="worked-example">${escapeHtml(x.example)}</p>
+ <p class="notice">${escapeHtml(x.source)}</p></div></section>
+ <section class="card wide"><h2>Practice questions</h2>
+ <label class="field">Choose a question<select id="question-select" aria-label="Practice question">
+ ${available.map((item,i)=>`<option value="${escapeHtml(item.id)}" ${q.id===item.id?'selected':''}>Question ${i+1} of ${available.length}</option>`).join('')}
+ </select></label><p class="notice" id="lesson-revision">${escapeHtml(label)}</p>
+ ${rev?.nextQuestionId?`<button class="btn small secondary" type="button" id="next-question">Open recommended question</button>`:''}
+ <p>${escapeHtml(q.prompt)}</p>
+ <form id="practice-form">${q.options.map((option,i)=>`<label class="practice-option"><input type="radio" name="choice" value="${i}" required> ${escapeHtml(option)}</label>`).join('')}
+ <button class="btn" type="submit">Check my answer</button></form>
+ <div id="practice-feedback" role="status" aria-live="polite" style="margin-top:15px"></div>
+ <p class="notice">Feedback is provided after submitting. Answers remain on the server.</p></section></div>`;
 }
 function homeView(){
  const assigned=tasks.length,done=tasks.filter(x=>x.done).length;
@@ -68,9 +87,14 @@ function content(){if(currentUser.role==='admin')return `<div><div class="row be
 }
 function taskList(){return tasks.length?tasks.map(t=>`<div class="task"><div><strong class="${t.done?'done':''}">${escapeHtml(t.title)}</strong><span class="notice">${escapeHtml(t.subject)} ${t.due_date?'· Due '+escapeHtml(t.due_date):''}</span></div><button class="btn small secondary" data-task="${escapeHtml(t.id)}" data-done="${t.done?0:1}">${t.done?'Undo':'Complete'}</button></div>`).join(''):'<p class="muted">No commitments yet. Add one small task to begin.</p>'}
 function wire(){
-  document.querySelectorAll('[data-lesson]').forEach(el=>el.onclick=()=>{activeLessonId=el.dataset.lesson;tab='lesson';renderApp()});
+  document.querySelectorAll('[data-lesson]').forEach(el=>el.onclick=()=>{activeLessonId=el.dataset.lesson;activeQuestionId='base';tab='lesson';renderApp()});
   if($('profile-form'))$('profile-form').onsubmit=async e=>{e.preventDefault();const form=e.currentTarget;const fd=new FormData(form);const payload={board:fd.get('board'),stream:fd.get('stream'),subjects:fd.getAll('subjects'),dailyMinutes:Number(fd.get('dailyMinutes'))};try{await post('profile',payload);currentUser=await api('me');tab='overview';await loadView();showMessage('Study preferences saved.',true)}catch(err){showMessage(err.message)}};
-  if($('practice-form'))$('practice-form').onsubmit=async e=>{e.preventDefault();const choice=new FormData(e.currentTarget).get('choice');if(choice===null)return;const button=e.currentTarget.querySelector('button');button.disabled=true;try{const r=await post('practice',{lessonId:activeLessonId,choice:Number(choice)});const panel=$('practice-feedback');panel.className=r.correct?'ok':'danger';panel.textContent=(r.correct?'Correct. ':'Not quite. ')+r.explanation+' Correct answer: '+r.correctOption+'.';practice=(await api('practice')).progress;}catch(err){showMessage(err.message)}finally{button.disabled=false}};
+  if($('question-select'))$('question-select').onchange=e=>{activeQuestionId=e.target.value;renderApp()};
+  if($('next-question'))$('next-question').onclick=()=>{
+   const recommendation=practice.lessonRevision?.find(x=>x.lessonId===activeLessonId);
+   if(recommendation?.nextQuestionId){activeQuestionId=recommendation.nextQuestionId;renderApp()}
+  };
+  if($('practice-form'))$('practice-form').onsubmit=async e=>{e.preventDefault();const choice=new FormData(e.currentTarget).get('choice');if(choice===null)return;const button=e.currentTarget.querySelector('button');button.disabled=true;try{const r=await post('practice',{lessonId:activeLessonId,questionId:activeQuestionId,choice:Number(choice)});const panel=$('practice-feedback');panel.className=r.correct?'ok':'danger';panel.textContent=(r.correct?'Correct. ':'Not quite. ')+r.explanation+' Correct answer: '+r.correctOption+'.';practice=(await api('practice')).progress;}catch(err){showMessage(err.message)}finally{button.disabled=false}};
   document.querySelectorAll('[data-go]').forEach(e=>e.onclick=()=>{tab=e.dataset.go;renderApp()});document.querySelectorAll('[data-topic]').forEach(e=>e.onclick=()=>{tab='teacher';renderApp();$('question').value=`Help me understand ${e.dataset.topic}. Ask me a quick question and then explain.`;$('question').focus()});
   if($('ask-form'))$('ask-form').onsubmit=async e=>{e.preventDefault();const button=e.currentTarget.querySelector('button');button.disabled=true;const q=$('question').value;try{const r=await post('ask',{question:q});$('answer-wrap').hidden=false;$('answer').textContent=r.answer;$('answer-note').textContent=r.notice||'';}catch(err){showMessage(err.message)}finally{button.disabled=false}};
   if($('task-form'))$('task-form').onsubmit=async e=>{e.preventDefault();const data=Object.fromEntries(new FormData(e.currentTarget));try{await post('tasks',{title:data.title,subject:data.subject||'General',due_date:data.due_date||null});const r=await api('tasks');tasks=r.tasks;renderApp();showMessage('Task added',true)}catch(err){showMessage(err.message)}};

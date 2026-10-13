@@ -1,3 +1,4 @@
+import {revisionForLesson} from './question-bank.js';
 // CBSE 2026–27 Class XII subject coverage inventory. Do not equate topic existence with validated teaching content.
 export const SYLLABUS_SOURCE='https://cbseacademic.nic.in/curriculum_2027.html';
 export const SAMPLE_PAPERS='https://cbseacademic.nic.in/SQP_CLASSXII_2026-27.html';
@@ -64,6 +65,14 @@ export const SUBJECT_MAP={
  Mathematics:{code:'041',source:'https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Maths_SecP2_2026-27.pdf',pages:'7–9',titles:['Relations and Functions','Inverse Trigonometric Functions','Matrices','Determinants','Continuity and Differentiability','Applications of Derivatives','Integrals','Application of the Integrals','Differential Equations','Vectors','Three-dimensional Geometry','Linear Programming','Probability'],foundation:{5:['mathematics-derivative'],13:['mathematics-conditional-probability']}},
  Biology:{code:'044',source:'https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Biology_SecP2_2026-27.pdf',pages:'9–11',titles:['Sexual Reproduction in Flowering Plants','Human Reproduction','Reproductive Health','Principles of Inheritance and Variation','Molecular Basis of Inheritance','Evolution','Human Health and Diseases','Microbes in Human Welfare','Biotechnology - Principles and Processes','Biotechnology and its Applications','Organisms and Populations','Ecosystem','Biodiversity and its Conservation'],foundation:{5:['biology-transcription','biology-genetics'],6:['biology-evolution-selection']},formative:['Environmental Issues']}
 };
+function aggregateLessonAttempts(lessonId,progress){
+ const revision=revisionForLesson(lessonId,progress);
+ if(revision)return {attempts:revision.attempts,correct:revision.correct};
+ const row=Array.isArray(progress)?progress.find(p=>p?.lesson_id===lessonId):null;
+ const attempts=Number.isSafeInteger(row?.attempts)&&row.attempts>=0?row.attempts:0;
+ const correct=Number.isSafeInteger(row?.correct)&&row.correct>=0&&row.correct<=attempts?row.correct:0;
+ return {attempts,correct};
+}
 export function academicInventory(selected,lessonList=[],progress=[]){
  if(!Array.isArray(selected))return [];
  return [...new Set(selected)].map(subject=>{
@@ -71,16 +80,14 @@ export function academicInventory(selected,lessonList=[],progress=[]){
   if(!m)return {subject,mappingStatus:subject==='English'?'subject_code_required':'not_yet_verified',chapters:[],qualifiedChapters:0,totalChapters:null,coverageStatus:'INCOMPLETE',officialSource:SYLLABUS_SOURCE};
   const chapters=m.titles.map((title,i)=>{
    const lessons=(m.foundation[i+1]||[]).map(id=>lessonList.find(l=>l.id===id)).filter(Boolean);
-   const records=lessons.map(l=>progress.find(p=>p.lesson_id===l.id)).filter(Boolean);
+   const records=lessons.map(l=>aggregateLessonAttempts(l.id,progress));
    const attempts=records.reduce((s,p)=>s+p.attempts,0),correct=records.reduce((s,p)=>s+p.correct,0);
    return {id:subject.toLowerCase().replaceAll(' ','-')+'-'+(i+1),number:i+1,title,...(m.literatureTexts?{strand:m.literatureTexts[i].strand}:{}),status:lessons.length?'foundation_only':'no_qualified_lesson',foundationLessonIds:lessons.map(l=>l.id),practice:{attempts,correct,accuracy:attempts?correct/attempts:null},revision:attempts?(correct<attempts?'review_misconceptions':'try_fresh_questions'):'not_assessed',qualified:false};
   });
   const skillPractice=(m.skills||[]).map(id=>{
    const lesson=lessonList.find(l=>l.id===id);
    if(!lesson)return null;
-   const row=progress.find(p=>p.lesson_id===id);
-   const attempts=Number.isSafeInteger(row?.attempts)&&row.attempts>=0?row.attempts:0;
-   const correct=Number.isSafeInteger(row?.correct)&&row.correct>=0&&row.correct<=attempts?row.correct:0;
+   const {attempts,correct}=aggregateLessonAttempts(id,progress);
    return {lessonId:id,title:lesson.title,attempts,correct,accuracy:attempts?correct/attempts:null,
      revision:attempts===0?'not_assessed':correct<attempts?'review_worked_example':'try_new_unseen_question',
      certified:false};
