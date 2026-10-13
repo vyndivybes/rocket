@@ -1,6 +1,6 @@
 // Short, editorially drafted FOUNDATION lessons, not a board-certified syllabus.
 // Only the server receives answerIndex. Clients receive lessonView() without the key.
-export const SUBJECTS=['Physics','Chemistry','Mathematics','Biology','Accountancy','Economics','History','English'];
+export const SUBJECTS=['Physics','Chemistry','Mathematics','Biology','Accountancy','Economics','History','English','English Elective'];
 export const BOARDS=['unconfigured','CBSE','ISC','State','Other'];
 export const STREAMS=['Science','Commerce','Humanities','Mixed'];
 export const DAILY_MINUTES=[20,30,45,60];
@@ -129,6 +129,7 @@ export function validateProfile(body){
  if(!BOARDS.includes(body.board))return 'Choose a valid board';
  if(!STREAMS.includes(body.stream))return 'Choose a valid study stream';
  if(!Array.isArray(body.subjects)||body.subjects.length<1||body.subjects.length>8||new Set(body.subjects).size!==body.subjects.length||!body.subjects.every(x=>SUBJECTS.includes(x)))return 'Choose 1–8 valid subjects';
+ if(body.subjects.includes('English')&&body.subjects.includes('English Elective'))return 'Choose one English course';
  if(!DAILY_MINUTES.includes(body.dailyMinutes))return 'Choose a supported daily study target';
  return null;
 }
