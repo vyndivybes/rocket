@@ -12,7 +12,7 @@ import {onRequestPost as ask} from '../functions/api/ask.js';
 const BASE='https://saathi-preview.pages.dev',KEY='0123456789abcdef'.repeat(4);
 const req=(path,cookie='',data,origin=BASE)=>new Request(BASE+path,{method:data===undefined?'GET':'POST',headers:{Origin:origin,'Content-Type':'application/json',...(cookie?{Cookie:cookie}:{})},body:data===undefined?undefined:JSON.stringify(data)});
 async function setup(){
- const db=new DatabaseSync(':memory:');for(const m of ['0001_initial','0003_admin','0004_study','0005_mission']) db.exec(readFileSync(new URL('../migrations/'+m+'.sql',import.meta.url),'utf8'));
+ const db=new DatabaseSync(':memory:');for(const m of ['0001_initial','0003_admin','0004_study','0005_mission','0006_companion_name']) db.exec(readFileSync(new URL('../migrations/'+m+'.sql',import.meta.url),'utf8'));
  const prepare=(sql,a=[])=>({bind(...b){return prepare(sql,b)},async first(){return db.prepare(sql).get(...a)||null},async all(){return {results:db.prepare(sql).all(...a)}},async run(){return {meta:{changes:Number(db.prepare(sql).run(...a).changes)}}}});
  let calls=0;
  const env={DB:{prepare},AI:{async run(){calls++;return {response:'A thoughtful, brief answer with a next step.'}}}};
