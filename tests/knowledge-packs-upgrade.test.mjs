@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {KNOWLEDGE_PACKS,selectKnowledgeContext,publicKnowledgePacks} from '../functions/_lib/knowledge-packs.js';
 import {onRequestGet as getPacks} from '../functions/api/knowledge-packs.js';
+import {onRequestPost as ask} from '../functions/api/ask.js';
 import {DatabaseSync} from 'node:sqlite';
 import {readFileSync} from 'node:fs';
 import {randomUUID} from 'node:crypto';
@@ -12,9 +13,9 @@ const req=(path,cookie='',body)=>new Request(ORIGIN+path,{method:body?'POST':'GE
 async function setup(){
  const db=new DatabaseSync(':memory:');for(const m of ['0001_initial','0003_admin','0004_study','0005_mission','0006_companion_name'])db.exec(readFileSync(new URL('../migrations/'+m+'.sql',import.meta.url),'utf8'));
  const prepare=(sql,p=[])=>({bind(...v){return prepare(sql,v)},async first(){return db.prepare(sql).get(...p)||null},async all(){return {results:db.prepare(sql).all(...p)}},async run(){return {meta:{changes:Number(db.prepare(sql).run(...p).changes)}}}});
- const env={DB:{prepare}},salt='00112233445566778899aabbccddeeff',hash=await accessKeyHash(KEY,salt);const ins=db.prepare('INSERT INTO users(id,username,role,password_salt,password_hash,board,linked_student_id) VALUES(?,?,?,?,?,?,?)');const sid=randomUUID();ins.run(sid,'student','student',salt,hash,'unconfigured',null);ins.run(randomUUID(),'guardian','parent',salt,hash,'unconfigured',sid);
+ let captured=[];const env={DB:{prepare},AI:{async run(_model,input){captured=input.messages;return{response:'Use the lesson concept and check the worked example.'}}}},salt='00112233445566778899aabbccddeeff',hash=await accessKeyHash(KEY,salt);const ins=db.prepare('INSERT INTO users(id,username,role,password_salt,password_hash,board,linked_student_id) VALUES(?,?,?,?,?,?,?)');const sid=randomUUID();ins.run(sid,'student','student',salt,hash,'unconfigured',null);ins.run(randomUUID(),'guardian','parent',salt,hash,'unconfigured',sid);
  const cookie=async username=>{const r=await login({request:req('/api/login','',{username,password:KEY}),env});assert.equal(r.status,200);return r.headers.get('set-cookie').split(';')[0]};
- return{env,cookie};
+ return{env,cookie,get captured(){return captured}};
 }
 test('knowledge collection upgrades aviation, art, four science subjects, personal planning and wellbeing',()=>{
  const packs=KNOWLEDGE_PACKS;
@@ -46,4 +47,23 @@ test('learning packs endpoint requires learner login; parent cannot read student
  const student=await cookie('student');const r=await getPacks({request:req('/api/knowledge-packs',student),env});assert.equal(r.status,200);
  const data=await r.json();assert.equal(data.packs.length,8);
  assert.match(data.notice,/not a certified/i);
+});
+
+test('a named learning session returns a source link and grounded context for a relevant question',async()=>{
+ const x=await setup(),student=await x.cookie('student');
+ const r=await ask({request:req('/api/ask',student,{question:'Explain Faraday magnetic flux with one worked example',mode:'teacher'}),env:x.env});
+ assert.equal(r.status,200);
+ const data=await r.json();
+ assert.ok(data.knowledgeReference?.url?.startsWith('https://ncert.nic.in/'));
+ assert.ok(x.captured[0].content.includes('KNOWLEDGE PACK'));
+ assert.ok(x.captured[0].content.includes('editorial')||x.captured[0].content.includes('Editorial'));
+ const joke=await ask({request:req('/api/ask',student,{question:'Tell me one harmless joke about socks',mode:'companion'}),env:x.env});
+ assert.equal(joke.status,200);assert.equal((await joke.json()).knowledgeReference,null);
+});
+test('Mission Control exposes a browseable student knowledge library with safe external links',()=>{
+ const markup=readFileSync(new URL('../public/mission.js',import.meta.url),'utf8');
+ assert.ok(markup.includes("['knowledge','Knowledge packs']"));
+ assert.ok(markup.includes('data-knowledge-question'));
+ assert.ok(markup.includes('rel="noopener noreferrer"'));
+ assert.ok(markup.includes("api('knowledge-packs')"));
 });
