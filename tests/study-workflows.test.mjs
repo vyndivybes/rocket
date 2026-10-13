@@ -16,6 +16,8 @@ async function setup(){
  db.exec(readFileSync(new URL('../migrations/0001_initial.sql',import.meta.url),'utf8'));
  db.exec(readFileSync(new URL('../migrations/0003_admin.sql',import.meta.url),'utf8'));
  db.exec(readFileSync(new URL('../migrations/0004_study.sql',import.meta.url),'utf8'));
+ db.exec(readFileSync(new URL('../migrations/0006_companion_name.sql',import.meta.url),'utf8'));
+ db.exec(readFileSync(new URL('../migrations/0007_personal_memory.sql',import.meta.url),'utf8'));
  const prepare=(sql,args=[])=>({bind(...v){return prepare(sql,v)},async first(){return db.prepare(sql).get(...args)||null},async all(){return {results:db.prepare(sql).all(...args)}},async run(){return {meta:{changes:Number(db.prepare(sql).run(...args).changes)}}}});
  const env={DB:{prepare}};
  const salt='0123456789abcdef0123456789abcdef',hash=await accessKeyHash(KEY,salt),learner=randomUUID(),other=randomUUID();
