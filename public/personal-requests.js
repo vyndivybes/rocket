@@ -4,7 +4,7 @@ import {buildDailyBrief} from './daily-brief.js';
 // This never sends note bodies or task titles to Workers AI.
 export function answerPersonalRequest(utterance,context,now=new Date()){
  const query=typeof utterance==='string'?utterance.toLowerCase().trim().replace(/[.!?]+$/,''):'';
- const showPlan=/^(?:what(?:'s| is) (?:on )?my (?:plan|schedule|routine)(?: for today)?|what do i have (?:planned|to do) today|tell me (?:my|about my) (?:day|plan|schedule)|give me (?:my )?daily briefing)$/i.test(query);
+ const showPlan=/^(?:what(?:'s| is) (?:on )?my (?:plan|schedule|routine)(?: (?:for )?today)?|what do i have (?:planned|to do) today|tell me (?:my|about my) (?:day|plan|schedule)|give me (?:my )?daily briefing)$/i.test(query);
  const showNext=/^(?:what should i do next|what can i do next|what(?:'s| is) next(?: for me)?|what should i do now)$/i.test(query);
  if(!showPlan&&!showNext)return null;
  const brief=buildDailyBrief(context,now);
