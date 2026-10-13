@@ -9,7 +9,7 @@ import {buildSourceContext} from '../_lib/link-lesson.js';
 export async function onRequestPost({request,env}){
   if(!sameOrigin(request))return error('Origin denied',403);
   const user=await auth(request,env);if(!ensureRole(user,'student'))return error('Student only',403);
-  let b;try{b=await safeBody(request)}catch{return error('Invalid request')}
+  let b;try{b=await safeBody(request,16000)}catch{return error('Invalid request')}
   const problem=validateQuestion(b.question);if(problem)return error(problem);
   const mode=b.mode===undefined?'teacher':b.mode;
   if(!AI_MODES.includes(mode))return error('Invalid assistant mode');
