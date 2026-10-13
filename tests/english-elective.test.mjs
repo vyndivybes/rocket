@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {academicInventory, ENGLISH_ELECTIVE_SOURCE} from '../functions/_lib/syllabus-catalog.js';
-import {validateProfile} from '../functions/_lib/study.js';
+import {validateProfile,LESSONS} from '../functions/_lib/study.js';
 
 test('Class XII English Elective 001 is a selectable, explicitly coded subject', () => {
   assert.equal(validateProfile({board:'CBSE',stream:'Science',subjects:['Physics','English Elective'],dailyMinutes:30}),null);
@@ -30,7 +30,7 @@ test('Kaleidoscope Class XII literature inventory reflects current CBSE outline 
   assert.equal(s.examReadiness,'HOLD');
 });
 test('English Elective holds the school novel choice and records verified assessment weightage', () => {
-  const [s]=academicInventory(['English Elective']);
+  const [s]=academicInventory(['English Elective'],LESSONS);
   assert.deepEqual(s.fictionChoices,['A Tiger for Malgudi','The Financial Expert']);
   assert.equal(s.fictionChoiceStatus,'school_choice_required');
   assert.equal(s.assessmentSections.reduce((sum,section)=>sum+section.marks,0),100);
