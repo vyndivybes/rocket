@@ -30,6 +30,16 @@ Cloudflare Pages/Functions, Workers AI, dedicated D1 and GitHub. Preview uses `s
 - GitHub Actions run `38392090625`: **71/71 tests passed**. Cloudflare Pages staging deployment `6c84cca6-b171-41d5-83c7-18070cd42bc9` of commit `bc0db7ea698a37d4da5a871f92d0fb5af5f1b892`: SUCCESS. These are development gates, not permission to activate production.
 - Existing staging retains one synthetic learner, linked parent and admin; production still has zero accounts and production deployments remain disabled.
 
+## 13 October continuation — Accuracy acceptance follow-up
+
+- Corrected outdated `CBSE Academic curriculum` reference: for **2026–27** the official link is `https://cbseacademic.nic.in/curriculum_2027.html`. This must not be treated as the student’s assigned syllabus until the actual school board is confirmed.
+- Added post-inference text safety guard to block clear claims of nonexistent adult/emergency notifications, secret-keeping, AI exclusivity, or external reminder/booking actions; role/privacy rules remain in force.
+- Live Workers AI 32-item benchmark (4 batches × 8 questions) scored **23/32 (71.9%)**. All nine missed questions were answered correctly when re-asked individually with working (**9/9 follow-up**), demonstrating batch-output weakness rather than certifying independent correctness.
+- Teacher and aviation modes now prefer **one question at a time**, checked calculations and units; UI recommends the independently graded foundation quiz instead of trusting unsupported bulk answer keys.
+- GitHub CI `38394809149` passed **79/79** tests at commit `76ea270a082efb3ec74cb1a134c549cbd43c4ef0`.
+- Full limitations and methodology: `docs/ACADEMIC_SAFETY_EVALUATION_2026-10-13.md`.
+- **HOLD:** 30 fresh one-at-a-time independent reviewed answers, school-specific board/textbook mapping, robust child safety, personal-device acceptance, and full app-schema recovery acceptance remain open.
+
 ## Perform — verified
 - GitHub Actions run 38348185847: `npm run check`, **51 tests / 51 passed**, including login/roles, note privacy, student-only deletion, starter-week consent/duplicate prevention, schedule editing, calendar formatting, bounded AI modes and in-memory sketch-state.
 - Cloudflare Pages preview deployment `303f002d-9a00-44d4-a746-7b33c566258f`, commit `ac9c45d04e8b6120522d8a6a151329e38216e16d`: **deployment SUCCESS**, independent Cloudflare build logs show `npm run check` with **51/51 passed** and Functions Worker compiled.
