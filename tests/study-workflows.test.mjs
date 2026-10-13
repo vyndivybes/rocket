@@ -84,3 +84,38 @@ test('parent gets only linked learner aggregate practice totals',async()=>{
  const result=await response.json();assert.equal(response.status,200);assert.equal(result.practiceAttempts,1);
  assert.ok(!JSON.stringify(result).includes('Faraday'));
 });
+
+
+test('multiple questions store only student-owned per-item aggregate outcomes, not answer text or keys',async()=>{
+ const {env,db,cookie}=await setup(),student=await cookie('class12');
+ const {lessons}=await (await getLessons({request:makeReq('/api/lessons',student),env})).json();
+ const lesson=lessons.find(l=>l.id==='physics-current-electricity');
+ assert.equal(lesson.questions.length,4);
+ assert.ok(lesson.questions.every(q=>!Object.hasOwn(q,'answerIndex')&&!Object.hasOwn(q,'explanation')));
+ assert.ok(!Object.hasOwn(lesson,'explanation'));
+ const {QUESTION_BANKS}=await import('../functions/_lib/question-bank.js');
+ const choice=QUESTION_BANKS[lesson.id][0].answerIndex;
+ let response=await submitPractice({request:makeReq('/api/practice',student,{lessonId:lesson.id,questionId:'v2',choice}),env});
+ assert.equal(response.status,200);
+ let grade=await response.json();
+ assert.equal(grade.correct,true);assert.equal(grade.questionId,'v2');
+ const row=db.prepare('SELECT lesson_id,attempts,correct FROM practice_progress').get();
+ assert.deepEqual(row,{lesson_id:lesson.id+'::v2',attempts:1,correct:1});
+ const summary=(await (await getPractice({request:makeReq('/api/practice',student),env})).json()).progress;
+ assert.equal(summary.total,1);
+ const r=summary.lessonRevision.find(x=>x.lessonId===lesson.id);
+ assert.equal(r.distinctQuestionsAttempted,1);
+ assert.equal(r.nextQuestionId,'base');
+ assert.equal(r.masteryCertified,false);
+ const other=(await (await getPractice({request:makeReq('/api/practice',await cookie('otherstudent')),env})).json()).progress;
+ assert.equal(other.total,0);
+ const bad=await submitPractice({request:makeReq('/api/practice',student,{lessonId:lesson.id,questionId:'v2.unknown',choice}),env});
+ assert.equal(bad.status,400);
+ assert.equal(db.prepare('SELECT count(*) AS n FROM practice_progress').get().n,1);
+});
+test('student with saved subject choice cannot submit grades for a different subject',async()=>{
+ const {env,cookie}=await setup(),student=await cookie('class12');
+ await postProfile({request:makeReq('/api/profile',student,{board:'CBSE',stream:'Science',subjects:['Physics'],dailyMinutes:30}),env});
+ assert.equal((await submitPractice({request:makeReq('/api/practice',student,{lessonId:'chemistry-solutions-molarity',questionId:'v2',choice:1}),env})).status,403);
+ assert.equal((await submitPractice({request:makeReq('/api/practice',student,{lessonId:'physics-current-electricity',questionId:'v2',choice:1}),env})).status,200);
+});
