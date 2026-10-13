@@ -49,10 +49,10 @@ test('published examinations and applicable practical/internal assessments are e
 
 test('foundation exercise pointers are real but do not count as qualified teaching',()=>{
   const rows=academicInventory(SUBJECTS,LESSONS);
-  assert.deepEqual(rows.map(x=>x.foundationChapterCount),[2,2,2,3,0]);
-  assert.deepEqual(rows.map(x=>x.unmappedChapterCount),[12,8,11,10,16]);
+  assert.deepEqual(rows.map(x=>x.foundationChapterCount),[2,2,2,2,0]);
+  assert.deepEqual(rows.map(x=>x.unmappedChapterCount),[12,8,11,11,16]);
   assert.equal(rows.reduce((n,x)=>n+x.totalChapters,0),66);
-  assert.equal(rows.reduce((n,x)=>n+x.unmappedChapterCount,0),57);
+  assert.equal(rows.reduce((n,x)=>n+x.unmappedChapterCount,0),58);
   assert.ok(rows.every(x=>x.chapters.every(c=>c.qualified===false)));
   assert.ok(rows.every(x=>x.chapters.flatMap(c=>c.foundationLessonIds).every(id=>LESSONS.some(l=>l.id===id))));
   assert.equal(academicInventory(['English'],LESSONS)[0].mappingStatus,'subject_code_required');
