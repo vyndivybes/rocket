@@ -22,7 +22,8 @@ export async function onRequestPost({request,env,data}){
   if(!res.meta?.changes)continue;
   attempted++;
   try{
-   await sender({endpoint:r.endpoint,keys:{p256dh:r.p256dh,auth:r.auth}}, {title:'Saathi reminder',body:'You have an activity in your private study schedule.',data:{url:'/mission.html'}}, {publicKey:env.VAPID_PUBLIC_KEY,privateKey:env.VAPID_PRIVATE_KEY,subject:env.VAPID_SUBJECT});
+   const delivered=await sender({endpoint:r.endpoint,keys:{p256dh:r.p256dh,auth:r.auth}}, {title:'Saathi reminder',body:'You have an activity in your private study schedule.',data:{url:'/mission.html'}}, {publicKey:env.VAPID_PUBLIC_KEY,privateKey:env.VAPID_PRIVATE_KEY,subject:env.VAPID_SUBJECT});
+   if(delivered===false){await env.DB.prepare("DELETE FROM push_devices WHERE id=?").bind(r.device_id).run();failed++;continue;}
    await env.DB.prepare("UPDATE push_deliveries SET state='ACCEPTED' WHERE id=?").bind(id).run();accepted++;
   }catch{
    failed++;
