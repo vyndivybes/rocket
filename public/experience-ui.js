@@ -22,7 +22,7 @@ export function renderMyDay({tasks=[],practice={},lessons=[],prefs}={}){
  <section class="card day-intro wide"><div class="row between"><span class="chip">My day</span>
  <button type="button" class="btn outline small" data-go="myspace">Make this space mine</button></div>
  <h2 class="day-title">What would you like to do today?</h2>
- <p>You can learn, create, explore or take a break. Saathi stays quiet until you need help.</p>
+ <p>You can learn, create, explore or take a break. ${prefs?.quietMode===false&&prefs?.remindersEnabled===true?'You have opted in to reminders; device permissions and quiet hours still control delivery.':'Saathi stays quiet unless you explicitly enable reminders.'}</p>
  <div class="today-focus"><strong>One possible next step</strong>
  <p>${next?`Your next planned task: ${esc(next.title)}.`:'No tasks are waiting. Choose what interests you.'}</p>
  <button class="btn" data-go="planner">${next?'View my plan':'Plan something'}</button></div>
@@ -40,6 +40,7 @@ export function renderMySpace(prefs,ideas=[],status='ready'){
  <section class="card wide"><h2>My Saathi, my pace</h2>
  <p class="muted">Customise your workspace and Saathi's explanations. You can change these choices later. Your preferences are private.</p>
  ${unavailable?'<p class="danger">Private settings storage is not ready. Changes cannot be saved yet.</p>':''}
+ <p class="notice"><a href="/mission.html">Open Mission Control to choose your AI companion name</a>, explore the art studio and discover aviation.</p>
  <form id="experience-form">
  <div class="settings-grid">
  <label class="field">Colour theme<select name="theme">
