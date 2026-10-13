@@ -7,8 +7,8 @@ test('browser handles plain study text locally and only selected video frames',(
  assert.equal(detectMediaFile('school.srt',15000),'text');
  assert.equal(detectMediaFile('sketch.jpg',5000000),'image');
  assert.equal(detectMediaFile('lesson.mp4',10000000),'video-frame-only');
- assert.equal(detectMediaFile('paper.pdf',5000),'unsupported');
- assert.equal(detectMediaFile('chapter.docx',20000),'unsupported');
+ assert.equal(detectMediaFile('paper.pdf',5000),'document');
+ assert.equal(detectMediaFile('chapter.docx',20000),'document');
  assert.equal(detectMediaFile('x.exe',500),null);
  assert.equal(detectMediaFile('big.mp4',19000000),null);
 });
