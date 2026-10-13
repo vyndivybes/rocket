@@ -13,7 +13,7 @@ const ORIGIN='https://saathi-preview.pages.dev',KEY='0123456789abcdef'.repeat(4)
 const req=(p,c='',data,origin=ORIGIN)=>new Request(ORIGIN+p,{method:data===undefined?'GET':'POST',headers:{Origin:origin,'Content-Type':'application/json',...(c?{Cookie:c}:{})},body:data===undefined?undefined:JSON.stringify(data)});
 async function setup(){
  const db=new DatabaseSync(':memory:');
- for(const version of ['0001_initial','0003_admin','0004_study','0005_mission','0006_companion_name'])db.exec(readFileSync(new URL('../migrations/'+version+'.sql',import.meta.url),'utf8'));
+ for(const version of ['0001_initial','0003_admin','0004_study','0005_mission','0006_companion_name','0007_personal_memory'])db.exec(readFileSync(new URL('../migrations/'+version+'.sql',import.meta.url),'utf8'));
  const prepare=(s,a=[])=>({bind(...v){return prepare(s,v)},async first(){return db.prepare(s).get(...a)||null},async all(){return {results:db.prepare(s).all(...a)}},async run(){return {meta:{changes:Number(db.prepare(s).run(...a).changes)}}}});
  let modelMessages=[];
  const env={DB:{prepare},AI:{async run(_model,input){modelMessages=input.messages;return {response:'Hello. I am an AI assistant.'}}}};
