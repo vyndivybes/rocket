@@ -20,3 +20,11 @@ test('assistant must not claim it has created a reminder or performed an externa
   const r=qualifyAiAnswer(a);assert.equal(r.replaced,true);assert.match(r.answer,/cannot (set|send|book)/i);
  }
 });
+
+test('assistant must never claim it saved or permanently remembered a fact from ordinary chat',()=>{
+ for(const a of ['I have saved that to memory.','I added this to my memory.','I will always remember that.']){
+  const result=qualifyAiAnswer(a);
+  assert.equal(result.replaced,true,a);
+  assert.match(result.answer,/Save|memory/i);
+ }
+});
