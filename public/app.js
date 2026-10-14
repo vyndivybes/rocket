@@ -25,6 +25,10 @@ async function loadView(){
   experience=setting.status==='fulfilled'?setting.value.preferences:null;
   ideas=proposals.status==='fulfilled'?proposals.value.ideas:[];
   if(!profile)tab='setup';
+  else {
+   const requested=new URLSearchParams(location.search).get('lesson');
+   if(requested&&lessons.some(x=>x.id===requested)){activeLessonId=requested;activeQuestionId='base';tab='lesson';}
+  }
  }
  renderApp();
 }
@@ -64,7 +68,7 @@ function setupView(){
 }
 function libraryView(){
  if(!lessons.length)return `<div class="card"><h2>No lessons selected</h2><p>Choose subjects under My subjects, then open your first lesson.</p><button class="btn" data-go="setup">Choose subjects</button></div>`;
- return `<div class="grid"><section class="card wide"><h2>Start with one concept</h2><p class="muted">Read a worked example, answer a short practice question, and see why it is correct. No AI requests are needed for these lessons.</p><div class="row"><span class="chip">${practice.total} attempts</span><span class="chip">${practice.correct} correct</span></div><p class="notice">These foundation topics do not replace your prescribed Class 12 textbooks.</p></section>${lessons.map(x=>`<section class="card"><span class="chip">${escapeHtml(x.subject)} · ~${Number(x.duration)||10} minutes</span><h2 style="margin-top:13px">${escapeHtml(x.title)}</h2><p class="muted">${escapeHtml(x.concept)}</p><button type="button" class="btn secondary" data-lesson="${escapeHtml(x.id)}">Open lesson</button></section>`).join('')}</div>`;
+ return `<div class="grid"><section class="card wide"><h2>Start with one concept</h2><p class="muted">Read a worked example, answer a short practice question, and see why it is correct. No AI requests are needed for these lessons.</p><div class="row"><span class="chip">${practice.total} attempts</span><span class="chip">${practice.correct} correct</span></div><p class="notice">Original foundation exercises and draft chapter lessons are available. Chapter drafts remain unreviewed and do not replace prescribed Class 12 textbooks.</p></section>${lessons.map(x=>`<section class="card"><span class="chip">${escapeHtml(x.subject)} · ~${Number(x.duration)||10} minutes</span><h2 style="margin-top:13px">${escapeHtml(x.title)}</h2><p class="muted">${escapeHtml(x.concept)}</p><button type="button" class="btn secondary" data-lesson="${escapeHtml(x.id)}">Open lesson</button></section>`).join('')}</div>`;
 }
 function lessonView(){
  const x=lessons.find(l=>l.id===activeLessonId);
@@ -73,10 +77,13 @@ function lessonView(){
  const q=available.find(item=>item.id===activeQuestionId)||available[0];
  const rev=practice.lessonRevision?.find(item=>item.lessonId===x.id);
  const label=rev?`${rev.distinctQuestionsAttempted} of ${rev.questionCount} distinct questions tried · ${rev.attempts} total attempts. ${rev.revision==='review_and_practise'?'Review explanations and try another question.':rev.revision==='independent_review_required'?'All bank questions attempted; ask a teacher for independently assessed questions.':'Try a different question.'} These exercises do not certify mastery.`:'Each exercise is a short foundation check, not chapter certification.';
+ const objectives=x.learningObjectives?.length?'<h3>Learning goals</h3><ul>'+x.learningObjectives.map(y=>'<li>'+escapeHtml(y)+'</li>').join('')+'</ul>':'';
+ const misconception=x.misconception?'<h3>Common misconception</h3><p class="notice">'+escapeHtml(x.misconception)+'</p>':'';
+ const draftNote=x.reviewStatus==='teacher_review_required'?'<p class="notice"><strong>Draft chapter lesson — teacher/content verification pending. Not full NCERT coverage or exam certification.</strong></p>':'';
  return `<div class="grid">
  <section class="card wide"><button class="btn small secondary" data-go="library">← All lessons</button>
  <div style="margin-top:15px"><span class="chip">${escapeHtml(x.subject)}</span>
- <h2 style="margin-top:12px">${escapeHtml(x.title)}</h2><p>${escapeHtml(x.concept)}</p>
+ <h2 style="margin-top:12px">${escapeHtml(x.title)}</h2>${draftNote}${objectives}<p>${escapeHtml(x.concept)}</p>${misconception}
  <h2>Worked example</h2><p class="worked-example">${escapeHtml(x.example)}</p>
  <p class="notice">${escapeHtml(x.source)}</p></div></section>
  <section class="card wide"><h2>Practice questions</h2>
