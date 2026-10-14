@@ -1,9 +1,9 @@
 import {LESSONS} from './study.js';
 export {selectRevisionFocus} from '../../public/revision-focus.js';
 
-// A Cloudflare Workers AI model with multi-step reasoning capability. This route alone
-// uses this model; other Saathi routes are unchanged. Daily AI requests stay capped.
-export const TUTOR_MODEL='@cf/qwen/qwen3-30b-a3b-fp8';
+// Validated Cloudflare-hosted instruction model: complete classroom-style sample
+// without thought-token truncation. Used only by teaching routes; daily quota remains.
+export const TUTOR_MODEL='@cf/meta/llama-3.3-70b-instruct-fp8-fast';
 const KEYS={
  teach:['step','lessonId','question','style'],
  feedback:['step','lessonId','question','practicePrompt','studentAnswer'],
