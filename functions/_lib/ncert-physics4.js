@@ -33,7 +33,8 @@ export const PHYSICS4_DRAFTS=Object.freeze([
       "For I=50 A and r=2.5 m, B=μ₀I/(2πr)=4.0×10⁻⁶ T; cross product of −y current with +x radial direction points +z."
     ],
     "answer": "B=4.00×10⁻⁶ T, vertically upward at the eastward point.",
-    "check": "The field circles the conductor; reversing north-to-south current would reverse the upward direction."
+    "check": "The field circles the conductor; reversing north-to-south current would reverse the upward direction.",
+    "diagram": "GEOGRAPHIC TOP VIEW (schematic)\n          N (+y)\n          ↑\n Current  ↓ S (−y)       • P (east +x)\n                         ⊙ B (+z/up)"
   },
   {
     "lessonId": "chapter-physics-4",
@@ -44,7 +45,8 @@ export const PHYSICS4_DRAFTS=Object.freeze([
       "Use B=μ₀I/(2πr) with 90 A and 1.5 m, giving 1.2×10⁻⁵ T. Cross product (−x)×(−z) points −y (south)."
     ],
     "answer": "B=1.20×10⁻⁵ T directed south at the point below the conductor.",
-    "check": "The direction is perpendicular to both westbound current and downward radial displacement, as Biot–Savart requires."
+    "check": "The direction is perpendicular to both westbound current and downward radial displacement, as Biot–Savart requires.",
+    "diagram": "CROSS-SECTION (schematic)\n Current: E → W (−x)\n Wire     ●\n          ↓ 1.5 m (−z)\n Point    P       B points south (−y)"
   },
   {
     "lessonId": "chapter-physics-4",
