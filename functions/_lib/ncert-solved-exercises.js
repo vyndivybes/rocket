@@ -154,11 +154,12 @@ const DRAFTS=[
     "questionId": "1.13",
     "problemFocus": "Charge signs in a field-deflection figure",
     "steps": [
-      "The upper plate is positive and the lower plate negative, hence the electric field points downward.",
-      "The upper-bending particle must be negative, the lower-bending particle positive, and the straight track neutral."
+      "The positive upper plate and negative lower plate generate a downward-directed electric field, so negative particles are accelerated upward against the field.",
+      "Both paths 1 and 2 bend upward and are negatively charged. Path 3 bends downward and is positively charged.",
+      "Under the textbook's common incident-speed comparison, particle 3 has the greatest electric-field deflection, identifying the highest charge-to-mass ratio."
     ],
-    "answer": "Track 1 negative, track 2 neutral, track 3 positive.",
-    "check": "Greatest deflection suggests track 1 has largest |q|/mass only under equal incident speed and exposure assumptions; diagram interpretation needs manual checking."
+    "answer": "Particles 1 and 2 are negative; particle 3 is positive. Particle 3 has the greatest charge-to-mass ratio.",
+    "check": "The force direction follows F=qE: negative charges bend toward the positive upper plate; positive charges bend toward the lower negative plate. Magnitude comparison assumes comparable entry speeds."
   },
   {
     "lessonId": "chapter-physics-1",
