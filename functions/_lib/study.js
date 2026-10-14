@@ -213,7 +213,8 @@ export function lessonView(lesson){
   ncertExerciseQuestionCount:source?.questionIds.length??null,
   ncertOfficialSourceUrl:source?.officialPdf??null,
   ncertSourceReprint:source?.reprint??null,
-  ncertExerciseIndexStatus:source?'SOURCE_INDEX_RECONCILED':'NOT_INDEXED',
+  ncertSourceEditionVerified:source?source.reprintVerified!==false:null,
+  ncertExerciseIndexStatus:source?.reprintVerified===false?'SOURCE_EDITION_HOLD':source?'SOURCE_INDEX_RECONCILED':'NOT_INDEXED',
   ncertExerciseSolutions:workedSolutionsForChapter(lesson.id)};
 }
 export function validateProfile(body){
