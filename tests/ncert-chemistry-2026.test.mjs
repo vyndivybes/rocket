@@ -42,8 +42,8 @@ test('all new authored Chemistry worked answers match verified parent exercise i
   assert.equal(x.selfCheckRubric.length,3);
  }
  const p=questionBankProgress();
- assert.equal(p.indexedUnits,10);
- assert.equal(p.indexedPrintedQuestions,239);
+ assert.equal(p.indexedUnits,13);
+ assert.equal(p.indexedPrintedQuestions,345);
  assert.equal(p.qualifiedSolutions,0);
  assert.equal(p.status,'HOLD');
  const records=NCERT_EXERCISE_LEDGER.filter(x=>x.subject==='Chemistry'&&x.editionVerified);
