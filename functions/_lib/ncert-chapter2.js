@@ -21,9 +21,9 @@ export const CH2_WORKED_DRAFTS=Object.freeze([
     "problemFocus": "Potential at regular hexagon centre",
     "steps": [
       "For a regular hexagon, the distance from any vertex to its centre equals the side length 0.10m.",
-      "The potential adds scalarly as six times kq/r, with q=5 microcoulombs and r=.10m."
+      "The potential adds scalarly as six times kq/r, with q=5 millicoulombs (5 mC = 5×10⁻³ C) and r=0.10 m; V=6×(8.99×10⁹)×(5×10⁻³)/(0.10)."
     ],
-    "answer": "V≈2.70×10⁶ V at the centre",
+    "answer": "V≈2.70×10⁹ V at the centre",
     "check": "The vector electric field vanishes by symmetry, but all positive potentials add."
   },
   {
