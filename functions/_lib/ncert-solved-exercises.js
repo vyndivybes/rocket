@@ -86,7 +86,7 @@ const DRAFTS=[
   {
     "lessonId": "chapter-physics-1",
     "questionId": "1.7",
-    "problemFocus": "Field-line geometry",
+    "problemFocus": "Electric-field line geometry",
     "steps": [
       "An electrostatic field line follows the direction of the local electric field at every point where that field exists.",
       "Crossing would imply two field directions at a single point; an unexplained break in charge-free space would imply a false source or sink."
