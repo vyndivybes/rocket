@@ -42,12 +42,12 @@ test('all new authored Chemistry worked answers match verified parent exercise i
   assert.equal(x.selfCheckRubric.length,3);
  }
  const p=questionBankProgress();
- assert.equal(p.indexedUnits,10);
- assert.equal(p.indexedPrintedQuestions,239);
+ assert.equal(p.indexedUnits,13);
+ assert.equal(p.indexedPrintedQuestions,345);
  assert.equal(p.qualifiedSolutions,0);
  assert.equal(p.status,'HOLD');
  const records=NCERT_EXERCISE_LEDGER.filter(x=>x.subject==='Chemistry'&&x.editionVerified);
- assert.equal(records.length,3);
+ assert.equal(records.length,4);
  assert.equal(records.reduce((n,x)=>n+x.verifiedQuestionCount,0),0);
 });
 test('Chemistry unit conversions and stoichiometry are independently recalculated',()=>{

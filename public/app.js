@@ -83,7 +83,7 @@ function lessonView(){
  const draftNote=x.reviewStatus==='teacher_review_required'?'<p class="notice"><strong>Draft chapter lesson — teacher/content verification pending. Not full NCERT coverage or exam certification.</strong></p>':'';
  const verifiedIndex=x.ncertExerciseQuestionCount!==null?
   '<section class="card wide"><h2>NCERT indexed exercise solutions</h2>'+
-  '<p class="notice">Printed question numbers were checked against the 2026–27 NCERT chapter reprint. Original worked drafts: '+(x.ncertExerciseSolutions?.length||0)+' of '+x.ncertExerciseQuestionCount+'. They are not independently certified and do not replace reading the actual question in your textbook.</p>'+
+  '<p class="notice">'+(x.ncertSourceEditionVerified===false?'SOURCE EDITION HOLD: current PDF page footer differs from extracted reprint metadata. Exercise numbers are provisional for the 2026–27 edition. ':'Printed exercise numbering follows the cited NCERT source. ')+'Original worked drafts: '+(x.ncertExerciseSolutions?.length||0)+' of '+x.ncertExerciseQuestionCount+'. These are not independently certified and do not replace the actual textbook questions.</p>'+
   '<p><a target="_blank" rel="noopener noreferrer" href="'+escapeHtml(x.ncertOfficialSourceUrl)+'">Open the official NCERT '+escapeHtml(x.ncertSourceReprint)+' chapter PDF and locate its question number</a></p>'+
 
   (x.ncertExerciseSolutions||[]).map(item=>'<details style="margin:9px 0"><summary><strong>'+escapeHtml(item.questionId)+'</strong> · '+escapeHtml(item.problemFocus)+' · draft answer</summary>'+

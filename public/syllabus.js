@@ -4,7 +4,7 @@ function renderUnit(ch){
  const label=ch.strand?ch.strand+' · '+ch.title:ch.title;
  const note=ch.moduleId?'Original chapter teaching draft available; teacher review required':ch.status==='foundation_only'?'Related foundation exercise only; unit not completed':'No qualified teaching content';
  const p=ch.practice||{attempts:0,correct:0};
- const exerciseNote=ch.exerciseQuestionCount===null?'NCERT exercise question census pending; no verified complete solution bank':('2026-27 NCERT print references indexed: '+Number(ch.exerciseQuestionCount||0)+' · Original worked drafts: '+Number(ch.exerciseWorkedDraftCount||0)+' · Independently qualified solutions: '+Number(ch.exerciseVerifiedQuestionCount||0));
+ const exerciseNote=ch.exerciseQuestionCount===null?'NCERT exercise question census pending; no verified complete solution bank':((ch.exerciseInventoryStatus==='SOURCE_EDITION_HOLD'?'SOURCE EDITION HOLD — provisional print references: ':'2026-27 NCERT print references indexed: ')+Number(ch.exerciseQuestionCount||0)+' · Original worked drafts: '+Number(ch.exerciseWorkedDraftCount||0)+' · Independently qualified solutions: '+Number(ch.exerciseVerifiedQuestionCount||0));
  return '<li style="padding:7px 0">'+esc(label)+' — '+esc(note)+'<p>'+esc(exerciseNote)+'</p>'+
    '<p>Foundation attempts: '+Number(p.attempts||0)+' · Correct: '+Number(p.correct||0)+' · '+esc((ch.revision||'not_assessed').replaceAll('_',' '))+'</p>'+
    (ch.moduleId?'<a href="/?lesson='+encodeURIComponent(ch.moduleId)+'">Open chapter draft</a> · ':'')+
@@ -51,6 +51,7 @@ async function load(){
   const data=await response.json();
   status.textContent=data.boardConfirmed?'CBSE 2026–27 learner-selected. School confirmation and qualification remain on HOLD.':'Board is not learner-selected as CBSE. No CBSE syllabus applicability is inferred.';
   if(data.boardConfirmed&&data.exerciseCensus?.sourceReconciliationResolutions?.length){status.textContent+=' NCERT Chemistry 1 has 41 source-verified numbered exercises in the 2026–27 reprint; all 66-unit exercise and answer certification remain incomplete.';}
+  if(data.boardConfirmed&&data.exerciseCensus?.sourceEditionHolds?.length){status.textContent+=' Source edition discrepancy remains open for '+data.exerciseCensus.sourceEditionHolds.length+' indexed chapter(s); question counts there are provisional.';}
   subjects.innerHTML=(data.subjects||[]).map(renderSubject).join('');
  }catch(err){status.textContent=err.message;}
 }

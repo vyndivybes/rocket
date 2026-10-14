@@ -24,8 +24,8 @@ function bookTitle(module){
 export const NCERT_EXERCISE_LEDGER=Object.freeze(CHAPTER_MODULES.map(module=>Object.freeze({
  lessonId:module.id,subject:module.subject,title:module.title,
  bookTitle:bookTitle(module),officialCatalogueUrl:CATALOGUE,
- academicYear:'2026-27',editionVerified:Boolean(SOURCE_VERIFIED_EXERCISES[module.id]),
- questionInventoryStatus:SOURCE_VERIFIED_EXERCISES[module.id]?'SOURCE_INDEX_RECONCILED':'EDITION_NOT_RECONCILED',
+ academicYear:'2026-27',editionVerified:Boolean(SOURCE_VERIFIED_EXERCISES[module.id])&&SOURCE_VERIFIED_EXERCISES[module.id]?.reprintVerified!==false,
+ questionInventoryStatus:SOURCE_VERIFIED_EXERCISES[module.id]?.reprintVerified===false?'SOURCE_EDITION_HOLD':SOURCE_VERIFIED_EXERCISES[module.id]?'SOURCE_INDEX_RECONCILED':'EDITION_NOT_RECONCILED',
  questionCount:SOURCE_VERIFIED_EXERCISES[module.id]?.questionIds.length??null,
  workedDraftCount:ORIGINAL_WORKED_SOLUTIONS.filter(x=>x.lessonId===module.id).length,
  verifiedQuestionCount:0,answerReviewStatus:'NOT_VERIFIED',
@@ -50,15 +50,20 @@ export function auditedExerciseCoverage({editionVerified,expectedQuestionIds,ite
 export function exerciseCoverageSummary(){
  const unindexedUnits=NCERT_EXERCISE_LEDGER.filter(x=>x.questionCount===null).map(x=>({lessonId:x.lessonId,subject:x.subject,title:x.title,workType:x.workType,status:'EDITION_NOT_RECONCILED'}));
  const sourceReconciliationHolds=[];
+ const sourceEditionHolds=NCERT_EXERCISE_LEDGER.filter(x=>x.questionInventoryStatus==='SOURCE_EDITION_HOLD').map(x=>({
+  lessonId:x.lessonId,status:'SOURCE_EDITION_HOLD',questionCount:x.questionCount,
+  sourceUrl:SOURCE_VERIFIED_EXERCISES[x.lessonId]?.officialPdf??null,
+  evidence:SOURCE_VERIFIED_EXERCISES[x.lessonId]?.reprintEvidence??'Unverified print edition'
+ }));
  const sourceReconciliationResolutions=[{
   lessonId:'chapter-chemistry-1',sourceUrl:'https://www.ncert.nic.in/textbook/pdf/lech101.pdf',
   academicYear:'2026-27',authoritativeParentCount:41,
   status:'SOURCE_RECONCILED',note:'Official 2026-27 Solutions reprint end-exercises 1.1 to 1.41. Older 33-entry index superseded.'
  }];
- return {unitCount:NCERT_EXERCISE_LEDGER.length,...questionBankProgress(),unindexedUnits,sourceReconciliationHolds,sourceReconciliationResolutions,
+ return {unitCount:NCERT_EXERCISE_LEDGER.length,...questionBankProgress(),unindexedUnits,sourceReconciliationHolds,sourceReconciliationResolutions,sourceEditionHolds,
   unverifiedEditionCount:NCERT_EXERCISE_LEDGER.filter(x=>!x.editionVerified).length,
   verifiedQuestionCount:0,questionCount:null,verifiedQuestionPercent:null,
-  coverageStatus:'HOLD',explanation:'Ten chapters currently contain 239 source-indexed parent questions. Official NCERT 2026-27 Chemistry Chapter 1 PDF reconciles its 41 numbered end-exercises; the earlier 33-count conflict is closed. These are original uncertified drafts, and the overall 66-unit printed question and subpart census is still unknown.'};
+  coverageStatus:'HOLD',explanation:'Thirteen chapters now have 345 indexed parent-question references and 272 original worked drafts. Chemistry Chapter 1 has 41 source-reconciled end exercises. Physics Chapter 4 is edition-HOLD because rendered and extracted PDF footers disagree; Chemistry Chapter 4 and Mathematics Chapter 3 have 73 unanswered parent references between them. Fifty-three other curriculum units remain unindexed, and all answer drafts are uncertified.'};
 }
 const REF_PATTERN=/^[a-zA-Z0-9][a-zA-Z0-9 .,:()\/\-]{0,59}$/;
 export function validateExerciseRequest(input){
