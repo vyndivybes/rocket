@@ -18,9 +18,9 @@ test('official 2026-27 sources preserve four original indexes and now cover seve
  assert.equal(index['chapter-physics-2'].reprint,'2026-27');
  assert.equal(index['chapter-mathematics-2'].reprint,'2026-27');
  const p=questionBankProgress();
- assert.equal(p.indexedUnits,7);
- assert.equal(p.indexedPrintedQuestions,180);
- assert.equal(p.authoredSolutions,169);
+ assert.equal(p.indexedUnits,10);
+ assert.equal(p.indexedPrintedQuestions,239);
+ assert.equal(p.authoredSolutions,239);
  assert.equal(p.qualifiedSolutions,0);
  assert.equal(p.status,'HOLD');
  const curriculum=exerciseCoverageSummary();
@@ -78,9 +78,9 @@ test('maths chapter 2 principal-value responses respect NCERT branches and corre
 
 test('exact missing-work audit lists unsolved indexed refs, not a fake all-NCERT percentage',()=>{
  const p=questionBankProgress();
- assert.equal(p.unindexedUnitCount,59);
- assert.equal(p.unansweredIndexedCount,11);
- assert.equal(p.indexedQuestionDraftCount,169);
+ assert.equal(p.unindexedUnitCount,56);
+ assert.equal(p.unansweredIndexedCount,0);
+ assert.equal(p.indexedQuestionDraftCount,239);
  const m1=p.missingByIndexedChapter.find(x=>x.lessonId==='chapter-mathematics-1');
  const m2=p.missingByIndexedChapter.find(x=>x.lessonId==='chapter-mathematics-2');
  const phy1=p.missingByIndexedChapter.find(x=>x.lessonId==='chapter-physics-1');

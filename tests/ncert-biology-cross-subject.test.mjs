@@ -46,24 +46,24 @@ test('Biology solutions require CBSE plus subject selection and stay unpublished
 
 test('programme audit exposes all unresolved printed ids without claiming that 180 is total syllabus',()=>{
  const p=questionBankProgress();
- assert.equal(p.indexedUnits,7);
- assert.equal(p.indexedPrintedQuestions,180);
- assert.equal(p.unindexedUnitCount,59);
- assert.equal(p.authoredSolutions,169);
- assert.equal(p.unansweredIndexedCount,11);
+ assert.equal(p.indexedUnits,10);
+ assert.equal(p.indexedPrintedQuestions,239);
+ assert.equal(p.unindexedUnitCount,56);
+ assert.equal(p.authoredSolutions,239);
+ assert.equal(p.unansweredIndexedCount,0);
  assert.equal(p.qualifiedSolutions,0);
  assert.equal(p.totalPrintedQuestionsAcrossCurriculum,null);
  assert.equal(p.status,'HOLD');
- assert.equal(p.missingByIndexedChapter.length,7);
+ assert.equal(p.missingByIndexedChapter.length,10);
 });
 
 test('auditable course gap register lists every unresolved chapter and its subject with no invented denominator',()=>{
  const s=exerciseCoverageSummary();
- assert.equal(s.unindexedUnits.length,59);
- assert.equal(s.unindexedUnits.filter(x=>['Physics','Chemistry','Mathematics','Biology'].includes(x.subject)).length,43);
+ assert.equal(s.unindexedUnits.length,56);
+ assert.equal(s.unindexedUnits.filter(x=>['Physics','Chemistry','Mathematics','Biology'].includes(x.subject)).length,40);
  assert.equal(s.unindexedUnits.filter(x=>x.subject==='English Elective').length,16);
  assert.ok(s.unindexedUnits.every(x=>x.status==='EDITION_NOT_RECONCILED'&&x.lessonId.startsWith('chapter-')&&x.title.length>3));
- assert.match(s.explanation,/Seven chapter indexes/);
+ assert.match(s.explanation,/Ten chapters currently contain/);
  assert.equal(s.questionCount,null);
  assert.equal(s.verifiedQuestionPercent,null);
  assert.equal(s.coverageStatus,'HOLD');
