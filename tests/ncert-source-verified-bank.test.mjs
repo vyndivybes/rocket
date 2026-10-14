@@ -88,3 +88,32 @@ test('Physics 1.13 matches the 2026-27 diagram: two negative tracks and greatest
  assert.match(item.answer,/3.*greatest/i);
  assert.doesNotMatch(item.answer,/2.*neutral/i);
 });
+
+test('source-based electrostatic calculations independently meet units and decimal tolerances',()=>{
+ const k=8.9875517923e9,eps=8.8541878128e-12;
+ const close=(actual,expected,tol=0.01)=>assert.ok(Math.abs(actual-expected)<=Math.abs(expected)*tol);
+ close(k*2e-7*3e-7/0.3**2,5.99e-3);
+ close(Math.sqrt(k*.4e-6*.8e-6/.2),.120);
+ close(2*k*3e-6/.1**2,5.39e6);
+ close(4e-9*5e4*Math.sin(Math.PI/6),1e-4);
+ close(8e3*eps,7.08e-8);
+ close(10e-6/(6*eps),1.88e5);
+ close(2e-6/eps,2.26e5);
+ close(-1e3*eps,-8.85e-9);
+ close(-1500*.2**2/k,-6.68e-9);
+ close(80e-6*4*Math.PI*1.2**2,1.45e-3);
+ close(9e4*2*Math.PI*eps*.02,1.00e-7);
+ close(17e-22/eps,1.92e-10);
+ const patterns={
+  '1.1':/5\.99×10⁻³/,'1.2':/0\.120/,'1.8':/5\.39×10⁶/,
+  '1.10':/1\.0×10⁻⁴/,'1.11':/1\.87×10¹²/,'1.12':/0\.243/,
+  '1.16':/7\.08×10⁻⁸/,'1.17':/1\.88×10⁵/,'1.18':/2\.26×10⁵/,
+  '1.19':/−8\.85×10⁻⁹/,'1.20':/−6\.68×10⁻⁹/,
+  '1.21':/1\.45×10⁻³/,'1.22':/1\.00×10⁻⁷/,'1.23':/1\.92×10⁻¹⁰/
+ };
+ for(const [id,pattern] of Object.entries(patterns)){
+  const a=ORIGINAL_WORKED_SOLUTIONS.find(x=>x.lessonId==='chapter-physics-1'&&x.questionId===id);
+  assert.ok(a);
+  assert.match(a.answer,pattern,id+' computation mismatch');
+ }
+});
