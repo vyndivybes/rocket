@@ -1,3 +1,4 @@
+import {selectRevisionFocus} from './revision-focus.js';
 // Pure, testable HTML views. Only preapproved IDs are used in navigation.
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const controls=[
@@ -12,6 +13,7 @@ export function renderMyDay({tasks=[],practice={},lessons=[],prefs}={}){
  const chosen=Array.isArray(prefs?.visibleCards)?prefs.visibleCards:controls.map(x=>x.id);
  const pending=tasks.filter(t=>!t.done),done=tasks.filter(t=>t.done).length;
  const next=pending[0];
+ const revision=selectRevisionFocus(practice,lessons);
  const cards=chosen.map(id=>controls.find(c=>c.id===id)).filter(Boolean).map(c=>`
   <section class="card activity-card"><span class="eyebrow">${esc(c.tag)}</span><h2>${esc(c.title)}</h2>
   <p class="muted">${esc(c.intro)}</p>
@@ -28,6 +30,7 @@ export function renderMyDay({tasks=[],practice={},lessons=[],prefs}={}){
  <button class="btn" data-go="planner">${next?'View my plan':'Plan something'}</button></div>
  <p class="notice">Plan: ${done} of ${tasks.length} items completed · Learning: ${Number(practice.correct)||0} correct practice responses. These are counts, not grades or pressure to achieve a streak.</p>
  </section><div class="activity-grid">${cards}</div>
+ ${revision?'<section class="card wide"><span class="chip">My next revision</span><h2>Review '+esc(revision.title)+'</h2><p class="muted">Suggested based on checked practice, not an exam grade or proof of mastery. Revisit the explanation, try another question and see what changes.</p><button class="btn secondary" data-lesson="'+esc(revision.lessonId)+'">Review '+esc(revision.title)+'</button></section>':''}
  <section class="card wide quick-ask"><h2>Ask Saathi</h2><p class="muted">A quick question, a hint or a new way to understand a topic — only when you ask.</p>
  <button class="btn" data-go="teacher">Ask a question</button>
  <span class="notice">Responses are AI-generated and may need checking with a teacher.</span></section>
