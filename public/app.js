@@ -84,6 +84,8 @@ function lessonView(){
  const verifiedIndex=x.ncertExerciseQuestionCount!==null?
   '<section class="card wide"><h2>NCERT indexed exercise solutions</h2>'+
   '<p class="notice">Printed question numbers were checked against the 2026–27 NCERT chapter reprint. Original worked drafts: '+(x.ncertExerciseSolutions?.length||0)+' of '+x.ncertExerciseQuestionCount+'. They are not independently certified and do not replace reading the actual question in your textbook.</p>'+
+  '<p><a target="_blank" rel="noopener noreferrer" href="'+escapeHtml(x.ncertOfficialSourceUrl)+'">Open the official NCERT '+escapeHtml(x.ncertSourceReprint)+' chapter PDF and locate its question number</a></p>'+
+
   (x.ncertExerciseSolutions||[]).map(item=>'<details style="margin:9px 0"><summary><strong>'+escapeHtml(item.questionId)+'</strong> · '+escapeHtml(item.problemFocus)+' · draft answer</summary>'+
     '<ol>'+item.steps.map(step=>'<li>'+escapeHtml(step)+'</li>').join('')+'</ol>'+
     '<p><strong>Result:</strong> '+escapeHtml(item.answer)+'</p><p><strong>Check:</strong> '+escapeHtml(item.check)+'</p>'+
