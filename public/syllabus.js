@@ -50,6 +50,7 @@ async function load(){
   if(!response.ok)throw Error(response.status===409?'Confirm your board and subjects in My subjects.':'Unable to load academic records; no coverage inferred.');
   const data=await response.json();
   status.textContent=data.boardConfirmed?'CBSE 2026–27 learner-selected. School confirmation and qualification remain on HOLD.':'Board is not learner-selected as CBSE. No CBSE syllabus applicability is inferred.';
+  if(data.boardConfirmed&&data.exerciseCensus?.sourceReconciliationHolds?.length){status.textContent+=' Source reconciliation HOLD: Chemistry 1 secondary sources disagree on 33 versus 41 exercises. Check the official NCERT print edition before claiming complete coverage.';}
   subjects.innerHTML=(data.subjects||[]).map(renderSubject).join('');
  }catch(err){status.textContent=err.message;}
 }
