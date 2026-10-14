@@ -352,8 +352,21 @@ const DRAFTS=[
     "check": "For n=3 the permutations are 3×2×1=6, matching the factorial rule."
   }
 ];
+const SELF_CHECK_RUBRIC=Object.freeze({
+ Physics:Object.freeze([
+  'Identify the applicable physical principle, boundary conditions and any diagram assumptions.',
+  'Convert quantities into compatible SI units before substituting numerical values.',
+  'Show vector direction, algebraic steps, units and a reasonableness or limiting-case check.'
+ ]),
+ Mathematics:Object.freeze([
+  'State the precise domain, codomain, definitions or hypotheses.',
+  'Justify each algebraic or logical inference and show explicit counterexamples when needed.',
+  'Give the conclusion with an inverse, substitution or special-case check.'
+ ])
+});
 export const ORIGINAL_WORKED_SOLUTIONS=Object.freeze(DRAFTS.map(x=>Object.freeze({...x,
- reviewStatus:'ORIGINAL_EDITORIAL_DRAFT',certified:false,questionTextRepublished:false
+ reviewStatus:'ORIGINAL_EDITORIAL_DRAFT',certified:false,questionTextRepublished:false,
+ selfCheckRubric:SELF_CHECK_RUBRIC[x.lessonId.startsWith('chapter-physics-')?'Physics':'Mathematics']
 })));
 export function questionBankProgress(){
  return {mappedUnits:66,indexedUnits:2,indexedPrintedQuestions:58,
