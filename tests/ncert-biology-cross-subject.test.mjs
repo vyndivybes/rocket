@@ -47,10 +47,10 @@ test('Biology solutions require CBSE plus subject selection and stay unpublished
 test('programme audit exposes all unresolved printed ids without claiming that 180 is total syllabus',()=>{
  const p=questionBankProgress();
  assert.equal(p.indexedUnits,10);
- assert.equal(p.indexedPrintedQuestions,231);
+ assert.equal(p.indexedPrintedQuestions,239);
  assert.equal(p.unindexedUnitCount,56);
- assert.equal(p.authoredSolutions,220);
- assert.equal(p.unansweredIndexedCount,11);
+ assert.equal(p.authoredSolutions,239);
+ assert.equal(p.unansweredIndexedCount,0);
  assert.equal(p.qualifiedSolutions,0);
  assert.equal(p.totalPrintedQuestionsAcrossCurriculum,null);
  assert.equal(p.status,'HOLD');
