@@ -2,17 +2,18 @@ const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 
 function renderUnit(ch){
  const label=ch.strand?ch.strand+' · '+ch.title:ch.title;
- const note=ch.status==='foundation_only'?'Related foundation exercise only; unit not completed':'No qualified teaching content';
+ const note=ch.moduleId?'Original chapter teaching draft available; teacher review required':ch.status==='foundation_only'?'Related foundation exercise only; unit not completed':'No qualified teaching content';
  const p=ch.practice||{attempts:0,correct:0};
  return '<li style="padding:7px 0">'+esc(label)+' — '+esc(note)+
    '<p>Foundation attempts: '+Number(p.attempts||0)+' · Correct: '+Number(p.correct||0)+' · '+esc((ch.revision||'not_assessed').replaceAll('_',' '))+'</p>'+
+   (ch.moduleId?'<a href="/?lesson='+encodeURIComponent(ch.moduleId)+'">Open chapter draft</a> · ':'')+
    (ch.foundationLessonIds?.length?'<a href="/">Open foundation lessons</a>':'')+'</li>';
 }
 function renderSubject(s){
  const mapped=s.mappingStatus==='official_outline_verified';
  const state=mapped?'Official outline mapped; no qualified teaching content':s.mappingStatus==='subject_code_required'?'English course unspecified. Select English Elective (001) in My subjects if applicable.':'Official mapping pending';
  const literature=s.curriculumUnitType==='literary_texts';
- const main=s.chapters?.length?'<p>Qualified '+(literature?'literary texts':'complete chapters')+': 0 of '+s.totalChapters+'. A foundation lesson does not establish mastery.</p>'+
+ const main=s.chapters?.length?'<p>Available draft teaching units: '+Number(s.chapterModuleCount||0)+' of '+Number(s.totalChapters||0)+'. Qualified '+(literature?'literary texts':'complete chapters')+': '+Number(s.qualifiedChapters||0)+' of '+Number(s.totalChapters||0)+'. Drafts and quizzes do not establish mastery.</p>'+
     '<ol>'+s.chapters.map(renderUnit).join('')+'</ol>':'<p>No verified unit inventory yet. No percentage is claimed.</p>';
  const skillPractice=s.skillPractice?.length?
     '<h3>Foundational skill practice (not a literature completion)</h3><ul>'+s.skillPractice.map(p=>
