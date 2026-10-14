@@ -56,11 +56,11 @@ test('independent numeric checks of eight new physical chemistry exercises',()=>
  close((.75*2.5)/(2.47*.082057*300)*110.98,3.42);
  close(3*(.025/174.26/2)*.082057*298,.005262);
  const p=questionBankProgress();
- assert.equal(p.indexedUnits,10);
- assert.equal(p.indexedPrintedQuestions,239);
- assert.equal(p.authoredSolutions,239);
- assert.equal(p.unansweredIndexedCount,0);
- assert.equal(p.unindexedUnitCount,56);
+ assert.equal(p.indexedUnits,13);
+ assert.equal(p.indexedPrintedQuestions,345);
+ assert.equal(p.authoredSolutions,272);
+ assert.equal(p.unansweredIndexedCount,73);
+ assert.equal(p.unindexedUnitCount,53);
  assert.equal(p.qualifiedSolutions,0);
  assert.equal(p.totalPrintedQuestionsAcrossCurriculum,null);
 });
