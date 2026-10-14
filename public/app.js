@@ -81,6 +81,17 @@ function lessonView(){
  const misconception=x.misconception?'<h3>Common misconception</h3><p class="notice">'+escapeHtml(x.misconception)+'</p>':'';
  const guided=x.guidedSubtopics?.length?'<h3>Guided chapter learning path ('+x.guidedSubtopics.length+' topics)</h3><p class="notice">Read each explanation and try the application question independently. This is an expanded editorial draft; text-specific or laboratory requirements still need qualified review.</p><ol>'+x.guidedSubtopics.map((step,i)=>'<li style="padding:10px 0"><h4>'+escapeHtml((i+1)+'. '+step.heading)+'</h4><p>'+escapeHtml(step.explanation)+'</p><details><summary>Try a guided application</summary><p>'+escapeHtml(step.tryIt)+'</p></details></li>').join('')+'</ol>':'';
  const draftNote=x.reviewStatus==='teacher_review_required'?'<p class="notice"><strong>Draft chapter lesson — teacher/content verification pending. Not full NCERT coverage or exam certification.</strong></p>':'';
+ const exerciseCoach=x.curriculumStage==='chapter_draft'?`
+ <section class="card wide"><h2>NCERT exercise help</h2>
+ <p class="notice">Exercise help does not certify full NCERT textbook coverage. Open your own NCERT textbook and enter the printed reference and question. Saathi does not fetch or store the textbook text.</p>
+ <form id="ncert-exercise-form">
+ <label class="field">Printed exercise and question number<input name="exerciseRef" placeholder="Exercise 1.1 Q3" maxlength="60" required></label>
+ <label class="field">Question text from your textbook<textarea name="questionText" rows="5" minlength="40" maxlength="1800" required placeholder="Type the question, including relevant values and units."></textarea></label>
+ <label class="field">Help level<select name="level"><option value="hint">Hint and first step</option><option value="steps">Step-by-step solution</option></select></label>
+ <button type="submit" class="btn secondary">Explain this exercise</button></form>
+ <p id="ncert-exercise-feedback" role="status" aria-live="polite" style="white-space:pre-wrap"></p>
+ <p class="notice">AI answers can be wrong. Check the textbook or teacher. The question is not stored.</p>
+ </section>`:'';
  return `<div class="grid">
  <section class="card wide"><button class="btn small secondary" data-go="library">← All lessons</button>
  <div style="margin-top:15px"><span class="chip">${escapeHtml(x.subject)}</span>
@@ -96,7 +107,7 @@ function lessonView(){
  <form id="practice-form">${q.options.map((option,i)=>`<label class="practice-option"><input type="radio" name="choice" value="${i}" required> ${escapeHtml(option)}</label>`).join('')}
  <button class="btn" type="submit">Check my answer</button></form>
  <div id="practice-feedback" role="status" aria-live="polite" style="margin-top:15px"></div>
- <p class="notice">Feedback is provided after submitting. Answers remain on the server.</p></section></div>`;
+ <p class="notice">Feedback is provided after submitting. Answers remain on the server.</p></section>${exerciseCoach}</div>`;
 }
 function homeView(){
  return renderMyDay({tasks,practice,lessons,prefs:experience});
@@ -147,6 +158,16 @@ function wire(){
   if($('next-question'))$('next-question').onclick=()=>{
    const recommendation=practice.lessonRevision?.find(x=>x.lessonId===activeLessonId);
    if(recommendation?.nextQuestionId){activeQuestionId=recommendation.nextQuestionId;renderApp()}
+  };
+  if($('ncert-exercise-form'))$('ncert-exercise-form').onsubmit=async e=>{
+   e.preventDefault();const form=e.currentTarget,fd=new FormData(form),btn=form.querySelector('[type="submit"]');
+   btn.disabled=true;
+   const feedback=$('ncert-exercise-feedback');feedback.textContent='Checking this question…';
+   try{
+    const r=await post('ncert-exercise-coach',{lessonId:activeLessonId,exerciseRef:fd.get('exerciseRef'),questionText:fd.get('questionText'),level:fd.get('level')});
+    if(feedback.isConnected)feedback.textContent=r.answer+'\\n\\n'+(r.notice||'Unverified exercise guidance.');
+   }catch(err){if(feedback.isConnected)feedback.textContent=err.message}
+   finally{if(btn.isConnected)btn.disabled=false}
   };
   if($('practice-form'))$('practice-form').onsubmit=async e=>{e.preventDefault();const choice=new FormData(e.currentTarget).get('choice');if(choice===null)return;const button=e.currentTarget.querySelector('button');button.disabled=true;try{const r=await post('practice',{lessonId:activeLessonId,questionId:activeQuestionId,choice:Number(choice)});const panel=$('practice-feedback');panel.className=r.correct?'ok':'danger';panel.textContent=(r.correct?'Correct. ':'Not quite. ')+r.explanation+' Correct answer: '+r.correctOption+'.';practice=(await api('practice')).progress;}catch(err){showMessage(err.message)}finally{button.disabled=false}};
   document.querySelectorAll('[data-go]').forEach(e=>e.onclick=()=>{tab=e.dataset.go;renderApp()});document.querySelectorAll('[data-topic]').forEach(e=>e.onclick=()=>{tab='teacher';renderApp();$('question').value=`Help me understand ${e.dataset.topic}. Ask me a quick question and then explain.`;$('question').focus()});
