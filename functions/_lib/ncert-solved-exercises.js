@@ -1,3 +1,4 @@
+import {MORE_INDEXES,CH2_WORKED_DRAFTS} from './ncert-chapter2.js';
 // Original explanatory drafts only; no textbook questions are republished.
 // Checked identifiers refer to NCERT reprint 2026-27 chapter PDFs.
 export const SOURCE_VERIFIED_EXERCISES=Object.freeze({
@@ -14,7 +15,8 @@ export const SOURCE_VERIFIED_EXERCISES=Object.freeze({
    ...Array.from({length:12},(_,i)=>'1.2/'+(i+1)),
    ...Array.from({length:7},(_,i)=>'misc/'+(i+1))
   ])
- })
+ }),
+ ...MORE_INDEXES
 });
 const DRAFTS=[
   {
@@ -111,9 +113,9 @@ const DRAFTS=[
     "problemFocus": "Charge total and vector dipole moment",
     "steps": [
       "The source charges +2.5×10⁻⁷ C and −2.5×10⁻⁷ C cancel in the scalar total.",
-      "Their separation is 0.30 m, so p=qd=7.5×10⁻⁸ C·m directed from negative at y=+0.15 to positive at y=−0.15."
+      "Their separation is 0.30 m, so p=qd=7.5×10⁻⁸ C·m directed from negative at z=+0.15 m to positive at z=−0.15 m along the z-axis."
     ],
-    "answer": "Qnet=0; p=−7.5×10⁻⁸ ĵ C·m.",
+    "answer": "Qnet=0; p=−7.5×10⁻⁸ k̂ C·m (negative z-axis).",
     "check": "The dipole moment must point from negative charge toward positive charge."
   },
   {
@@ -351,7 +353,7 @@ const DRAFTS=[
     "answer": "Exactly n! surjective functions for an n-element set.",
     "check": "For n=3 the permutations are 3×2×1=6, matching the factorial rule."
   }
-];
+].concat(CH2_WORKED_DRAFTS);
 const SELF_CHECK_RUBRIC=Object.freeze({
  Physics:Object.freeze([
   'Identify the applicable physical principle, boundary conditions and any diagram assumptions.',
@@ -369,7 +371,8 @@ export const ORIGINAL_WORKED_SOLUTIONS=Object.freeze(DRAFTS.map(x=>Object.freeze
  selfCheckRubric:SELF_CHECK_RUBRIC[x.lessonId.startsWith('chapter-physics-')?'Physics':'Mathematics']
 })));
 export function questionBankProgress(){
- return {mappedUnits:66,indexedUnits:2,indexedPrintedQuestions:58,
+ return {mappedUnits:66,indexedUnits:Object.keys(SOURCE_VERIFIED_EXERCISES).length,
+  indexedPrintedQuestions:Object.values(SOURCE_VERIFIED_EXERCISES).reduce((n,x)=>n+x.questionIds.length,0),
   authoredSolutions:ORIGINAL_WORKED_SOLUTIONS.length,qualifiedSolutions:0,
   totalPrintedQuestionsAcrossCurriculum:null,status:'HOLD'};
 }
