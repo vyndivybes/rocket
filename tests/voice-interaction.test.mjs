@@ -66,3 +66,14 @@ test('Saathi acknowledgement distinguishes heard, working and actual answer avai
  assert.match(voiceAcknowledgement('ANSWER_READY',{answerReady:true}),/reply/i);
  assert.equal(voiceAcknowledgement('DONE'), '');
 });
+
+test('natural recognition end stops capture and rejects late transcripts',()=>{
+ const {Recognition,sessions}=fakeSpeech(),states=[],finals=[];
+ const capture=createVoiceCapture({RecognitionClass:Recognition,onState:s=>states.push(s),onFinal:t=>finals.push(t)});
+ capture.start();
+ sessions[0].onend();
+ assert.equal(capture.isListening(),false);
+ assert.equal(states.at(-1),'STOPPED');
+ sessions[0].onresult({results:[Object.assign([{transcript:'late question'}],{isFinal:true})]});
+ assert.deepEqual(finals,[]);
+});
