@@ -211,6 +211,8 @@ export function lessonView(lesson){
  const source=chapterSourceIndex(lesson.id);
  return {...publicFields,questions:publicQuestions(lesson),
   ncertExerciseQuestionCount:source?.questionIds.length??null,
+  ncertOfficialSourceUrl:source?.officialPdf??null,
+  ncertSourceReprint:source?.reprint??null,
   ncertExerciseIndexStatus:source?'SOURCE_INDEX_RECONCILED':'NOT_INDEXED',
   ncertExerciseSolutions:workedSolutionsForChapter(lesson.id)};
 }
