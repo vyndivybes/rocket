@@ -81,6 +81,14 @@ function lessonView(){
  const misconception=x.misconception?'<h3>Common misconception</h3><p class="notice">'+escapeHtml(x.misconception)+'</p>':'';
  const guided=x.guidedSubtopics?.length?'<h3>Guided chapter learning path ('+x.guidedSubtopics.length+' topics)</h3><p class="notice">Read each explanation and try the application question independently. This is an expanded editorial draft; text-specific or laboratory requirements still need qualified review.</p><ol>'+x.guidedSubtopics.map((step,i)=>'<li style="padding:10px 0"><h4>'+escapeHtml((i+1)+'. '+step.heading)+'</h4><p>'+escapeHtml(step.explanation)+'</p><details><summary>Try a guided application</summary><p>'+escapeHtml(step.tryIt)+'</p></details></li>').join('')+'</ol>':'';
  const draftNote=x.reviewStatus==='teacher_review_required'?'<p class="notice"><strong>Draft chapter lesson — teacher/content verification pending. Not full NCERT coverage or exam certification.</strong></p>':'';
+ const verifiedIndex=x.ncertExerciseQuestionCount!==null?
+  '<section class="card wide"><h2>NCERT indexed exercise solutions</h2>'+
+  '<p class="notice">Printed question numbers were checked against the 2026–27 NCERT chapter reprint. Original worked drafts: '+(x.ncertExerciseSolutions?.length||0)+' of '+x.ncertExerciseQuestionCount+'. They are not independently certified and do not replace reading the actual question in your textbook.</p>'+
+  (x.ncertExerciseSolutions||[]).map(item=>'<details style="margin:9px 0"><summary><strong>'+escapeHtml(item.questionId)+'</strong> · '+escapeHtml(item.problemFocus)+' · draft answer</summary>'+
+    '<ol>'+item.steps.map(step=>'<li>'+escapeHtml(step)+'</li>').join('')+'</ol>'+
+    '<p><strong>Result:</strong> '+escapeHtml(item.answer)+'</p><p><strong>Check:</strong> '+escapeHtml(item.check)+'</p>'+
+    '<p><strong>Formative marking checklist (not an official marking scheme):</strong></p><ul>'+item.selfCheckRubric.map(rule=>'<li>'+escapeHtml(rule)+'</li>').join('')+'</ul></details>').join('')+
+   '</section>':'';
  const exerciseCoach=x.curriculumStage==='chapter_draft'?`
  <section class="card wide"><h2>NCERT exercise help</h2>
  <p class="notice">Exercise help does not certify full NCERT textbook coverage. Open your own NCERT textbook and enter the printed reference and question. Saathi does not fetch or store the textbook text.</p>
@@ -107,7 +115,7 @@ function lessonView(){
  <form id="practice-form">${q.options.map((option,i)=>`<label class="practice-option"><input type="radio" name="choice" value="${i}" required> ${escapeHtml(option)}</label>`).join('')}
  <button class="btn" type="submit">Check my answer</button></form>
  <div id="practice-feedback" role="status" aria-live="polite" style="margin-top:15px"></div>
- <p class="notice">Feedback is provided after submitting. Answers remain on the server.</p></section>${exerciseCoach}</div>`;
+ <p class="notice">Feedback is provided after submitting. Answers remain on the server.</p></section>${verifiedIndex}${exerciseCoach}</div>`;
 }
 function homeView(){
  return renderMyDay({tasks,practice,lessons,prefs:experience});

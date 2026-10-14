@@ -22,8 +22,14 @@ test('exercise authority maps all 66 NCERT teaching units without inventing prin
   assert.equal(x.lessonId,CHAPTER_MODULES[i].id);
   assert.equal(x.title,CHAPTER_MODULES[i].title);
   assert.equal(x.verifiedQuestionCount,0);
-  assert.equal(x.questionCount,null);
-  assert.equal(x.questionInventoryStatus,'EDITION_NOT_RECONCILED');
+  if(['chapter-physics-1','chapter-mathematics-1'].includes(x.lessonId)){
+   assert.ok(x.editionVerified);
+   assert.equal(x.questionCount,x.lessonId==='chapter-physics-1'?23:35);
+   assert.equal(x.questionInventoryStatus,'SOURCE_INDEX_RECONCILED');
+  }else{
+   assert.equal(x.questionCount,null);
+   assert.equal(x.questionInventoryStatus,'EDITION_NOT_RECONCILED');
+  }
   assert.equal(x.coverageStatus,'HOLD');
   assert.equal(x.answerReviewStatus,'NOT_VERIFIED');
   assert.ok(x.officialCatalogueUrl.includes('ncert.nic.in'));

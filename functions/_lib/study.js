@@ -1,5 +1,6 @@
 import {publicQuestions,questionForGrade} from './question-bank.js';
 import {CHAPTER_MODULES} from './chapter-modules.js';
+import {chapterSourceIndex,workedSolutionsForChapter} from './ncert-solved-exercises.js';
 // Short, editorially drafted FOUNDATION lessons, not a board-certified syllabus.
 // Only the server receives answerIndex. Clients receive lessonView() without the key.
 export const SUBJECTS=['Physics','Chemistry','Mathematics','Biology','Accountancy','Economics','History','English','English Elective'];
@@ -207,7 +208,11 @@ export function studentLessons(board,selectedSubjects=null){
 export function lessonView(lesson){
  // Never expose the grading key or answer explanation before the attempt.
  const {answerIndex,explanation,...publicFields}=lesson;
- return {...publicFields,questions:publicQuestions(lesson)};
+ const source=chapterSourceIndex(lesson.id);
+ return {...publicFields,questions:publicQuestions(lesson),
+  ncertExerciseQuestionCount:source?.questionIds.length??null,
+  ncertExerciseIndexStatus:source?'SOURCE_INDEX_RECONCILED':'NOT_INDEXED',
+  ncertExerciseSolutions:workedSolutionsForChapter(lesson.id)};
 }
 export function validateProfile(body){
  if(!body||typeof body!=='object'||Array.isArray(body))return 'Invalid profile';

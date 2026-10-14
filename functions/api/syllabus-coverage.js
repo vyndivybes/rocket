@@ -21,7 +21,8 @@ export async function onRequestGet({request,env}){
   return {...ch,exerciseQuestionCount:record?.questionCount??null,
    exerciseVerifiedQuestionCount:record?.verifiedQuestionCount??0,
    exerciseCoverageStatus:record?.coverageStatus??'HOLD',
-   exerciseInventoryStatus:record?.questionInventoryStatus??'EDITION_NOT_RECONCILED'};
+   exerciseInventoryStatus:record?.questionInventoryStatus??'EDITION_NOT_RECONCILED',
+   exerciseWorkedDraftCount:record?.workedDraftCount??0};
  })
 })):[],exerciseCensus:exerciseCoverageSummary(),selectedSubjects:subjects,commissioning:commissioningStatus(),officialCurriculum:SYLLABUS_SOURCE,officialSamplePapers:SAMPLE_PAPERS,disclaimer:'Official outlines do not certify teaching coverage. Foundation accuracy is not chapter mastery or exam readiness. A legacy unspecified English profile requires Core/Elective choice; English Elective 001 can be selected explicitly. School confirmation remains pending.'});
 }

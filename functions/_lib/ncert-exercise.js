@@ -1,5 +1,6 @@
 import {CHAPTER_MODULES} from './chapter-modules.js';
 import {POLICY} from './core.js';
+import {SOURCE_VERIFIED_EXERCISES,ORIGINAL_WORKED_SOLUTIONS,questionBankProgress} from './ncert-solved-exercises.js';
 
 // A source catalogue, NOT a replacement for a copyrighted textbook or an
 // invented question-number census. Specific exercise and question IDs require
@@ -23,9 +24,11 @@ function bookTitle(module){
 export const NCERT_EXERCISE_LEDGER=Object.freeze(CHAPTER_MODULES.map(module=>Object.freeze({
  lessonId:module.id,subject:module.subject,title:module.title,
  bookTitle:bookTitle(module),officialCatalogueUrl:CATALOGUE,
- academicYear:'2026-27',editionVerified:false,
- questionInventoryStatus:'EDITION_NOT_RECONCILED',
- questionCount:null,verifiedQuestionCount:0,answerReviewStatus:'NOT_VERIFIED',
+ academicYear:'2026-27',editionVerified:Boolean(SOURCE_VERIFIED_EXERCISES[module.id]),
+ questionInventoryStatus:SOURCE_VERIFIED_EXERCISES[module.id]?'SOURCE_INDEX_RECONCILED':'EDITION_NOT_RECONCILED',
+ questionCount:SOURCE_VERIFIED_EXERCISES[module.id]?.questionIds.length??null,
+ workedDraftCount:ORIGINAL_WORKED_SOLUTIONS.filter(x=>x.lessonId===module.id).length,
+ verifiedQuestionCount:0,answerReviewStatus:'NOT_VERIFIED',
  coverageStatus:'HOLD',reproducedQuestionText:false,
  workType:module.subject==='English Elective'?'prescribed_literature_text':'printed_exercises'
 })));
@@ -45,10 +48,10 @@ export function auditedExerciseCoverage({editionVerified,expectedQuestionIds,ite
   percent:Math.round((verifiedCount/expected.size)*100)};
 }
 export function exerciseCoverageSummary(){
- return {unitCount:NCERT_EXERCISE_LEDGER.length,
+ return {unitCount:NCERT_EXERCISE_LEDGER.length,...questionBankProgress(),
   unverifiedEditionCount:NCERT_EXERCISE_LEDGER.filter(x=>!x.editionVerified).length,
   verifiedQuestionCount:0,questionCount:null,verifiedQuestionPercent:null,
-  coverageStatus:'HOLD',explanation:'NCERT edition, exercise and per-question source census have not been independently checked. No completed percentage can be claimed.'};
+  coverageStatus:'HOLD',explanation:'Only two NCERT 2026-27 printed chapter exercise indexes are reconciled; original solution drafts are not independently certified. The overall question census and completion percentage remain unknown.'};
 }
 const REF_PATTERN=/^[a-zA-Z0-9][a-zA-Z0-9 .,:()\/\-]{0,59}$/;
 export function validateExerciseRequest(input){
