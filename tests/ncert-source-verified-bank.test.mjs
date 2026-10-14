@@ -20,7 +20,7 @@ test('NCERT 2026-27 PDFs retain exact Physics and Mathematics chapter one exerci
  ...Array.from({length:12},(_,i)=>'1.2/'+(i+1)),
  ...Array.from({length:7},(_,i)=>'misc/'+(i+1))
  ]);
- assert.equal(Object.keys(SOURCE_VERIFIED_EXERCISES).length,10);
+ assert.equal(Object.keys(SOURCE_VERIFIED_EXERCISES).length,13);
  const ledgerP=NCERT_EXERCISE_LEDGER.find(x=>x.lessonId==='chapter-physics-1');
  const ledgerM=NCERT_EXERCISE_LEDGER.find(x=>x.lessonId==='chapter-mathematics-1');
  assert.equal(ledgerP.questionCount,23);
@@ -67,8 +67,8 @@ test('source-linked solutions are visible to permitted learners without claiming
 test('whole programme coverage stays held when only a subset of printed questions have authored solutions',()=>{
  const progress=questionBankProgress();
  assert.equal(progress.mappedUnits,66);
- assert.equal(progress.indexedUnits,10);
- assert.equal(progress.indexedPrintedQuestions,239);
+ assert.equal(progress.indexedUnits,13);
+ assert.equal(progress.indexedPrintedQuestions,345);
  assert.equal(progress.qualifiedSolutions,0);
  assert.equal(progress.status,'HOLD');
  const summary=exerciseCoverageSummary();
