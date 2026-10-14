@@ -43,7 +43,7 @@ test('all sourced original answers have nonempty reasoning, reverse checks, and 
  const p2=lessonView(LESSONS.find(x=>x.id==='chapter-physics-2'));
  const m2=lessonView(LESSONS.find(x=>x.id==='chapter-mathematics-2'));
  assert.equal(p2.ncertExerciseSolutions.length,11);
- assert.equal(m2.ncertExerciseSolutions.length,14);
+ assert.equal(m2.ncertExerciseSolutions.length,43);
  assert.equal(m2.ncertExerciseQuestionCount,43);
  assert.equal(studentLessons('ISC',['Physics']).some(x=>x.id===p2.id),false);
 });
