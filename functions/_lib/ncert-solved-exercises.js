@@ -1,3 +1,4 @@
+import {MORE_INDEXES,CH2_WORKED_DRAFTS} from './ncert-chapter2.js';
 // Original explanatory drafts only; no textbook questions are republished.
 // Checked identifiers refer to NCERT reprint 2026-27 chapter PDFs.
 export const SOURCE_VERIFIED_EXERCISES=Object.freeze({
@@ -14,7 +15,8 @@ export const SOURCE_VERIFIED_EXERCISES=Object.freeze({
    ...Array.from({length:12},(_,i)=>'1.2/'+(i+1)),
    ...Array.from({length:7},(_,i)=>'misc/'+(i+1))
   ])
- })
+ }),
+ ...MORE_INDEXES
 });
 const DRAFTS=[
   {
@@ -111,9 +113,9 @@ const DRAFTS=[
     "problemFocus": "Charge total and vector dipole moment",
     "steps": [
       "The source charges +2.5×10⁻⁷ C and −2.5×10⁻⁷ C cancel in the scalar total.",
-      "Their separation is 0.30 m, so p=qd=7.5×10⁻⁸ C·m directed from negative at y=+0.15 to positive at y=−0.15."
+      "Their separation is 0.30 m, so p=qd=7.5×10⁻⁸ C·m directed from negative at z=+0.15 m to positive at z=−0.15 m along the z-axis."
     ],
-    "answer": "Qnet=0; p=−7.5×10⁻⁸ ĵ C·m.",
+    "answer": "Qnet=0; p=−7.5×10⁻⁸ k̂ C·m (negative z-axis).",
     "check": "The dipole moment must point from negative charge toward positive charge."
   },
   {
@@ -351,7 +353,7 @@ const DRAFTS=[
     "answer": "Exactly n! surjective functions for an n-element set.",
     "check": "For n=3 the permutations are 3×2×1=6, matching the factorial rule."
   }
-];
+].concat(CH2_WORKED_DRAFTS);
 const SELF_CHECK_RUBRIC=Object.freeze({
  Physics:Object.freeze([
   'Identify the applicable physical principle, boundary conditions and any diagram assumptions.',
@@ -369,10 +371,22 @@ export const ORIGINAL_WORKED_SOLUTIONS=Object.freeze(DRAFTS.map(x=>Object.freeze
  selfCheckRubric:SELF_CHECK_RUBRIC[x.lessonId.startsWith('chapter-physics-')?'Physics':'Mathematics']
 })));
 export function questionBankProgress(){
- return {mappedUnits:66,indexedUnits:2,indexedPrintedQuestions:58,
-  authoredSolutions:ORIGINAL_WORKED_SOLUTIONS.length,qualifiedSolutions:0,
-  totalPrintedQuestionsAcrossCurriculum:null,status:'HOLD'};
+ const indexed=Object.entries(SOURCE_VERIFIED_EXERCISES);
+ const authored=new Set(ORIGINAL_WORKED_SOLUTIONS.map(x=>x.lessonId+'::'+x.questionId));
+ const missingByIndexedChapter=indexed.map(([lessonId,source])=>({
+  lessonId,sourceUrl:source.officialPdf,
+  indexedQuestionCount:source.questionIds.length,
+  missingQuestionIds:source.questionIds.filter(id=>!authored.has(lessonId+'::'+id))
+ }));
+ const indexedPrintedQuestions=indexed.reduce((n,[,source])=>n+source.questionIds.length,0);
+ const indexedDraftQuestionCount=ORIGINAL_WORKED_SOLUTIONS.length;
+ return {mappedUnits:66,indexedUnits:indexed.length,unindexedUnitCount:66-indexed.length,
+  indexedPrintedQuestions,indexedQuestionDraftCount:indexedDraftQuestionCount,
+  unansweredIndexedCount:missingByIndexedChapter.reduce((n,x)=>n+x.missingQuestionIds.length,0),
+  missingByIndexedChapter,authoredSolutions:indexedDraftQuestionCount,
+  qualifiedSolutions:0,totalPrintedQuestionsAcrossCurriculum:null,status:'HOLD'};
 }
+
 export function chapterSourceIndex(id){
  const x=SOURCE_VERIFIED_EXERCISES[id];
  return x?{...x,questionIds:[...x.questionIds],exerciseLabels:[...x.exerciseLabels]}:null;

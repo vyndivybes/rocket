@@ -20,7 +20,7 @@ test('NCERT reprint 2026-27 PDF reconciled two chapter exercise headings without
  ...Array.from({length:12},(_,i)=>'1.2/'+(i+1)),
  ...Array.from({length:7},(_,i)=>'misc/'+(i+1))
  ]);
- assert.equal(Object.keys(SOURCE_VERIFIED_EXERCISES).length,2);
+ assert.equal(Object.keys(SOURCE_VERIFIED_EXERCISES).length,4);
  const ledgerP=NCERT_EXERCISE_LEDGER.find(x=>x.lessonId==='chapter-physics-1');
  const ledgerM=NCERT_EXERCISE_LEDGER.find(x=>x.lessonId==='chapter-mathematics-1');
  assert.equal(ledgerP.questionCount,23);
@@ -59,7 +59,7 @@ test('source-linked solutions are visible to permitted learners without claiming
  const math=lessonView(LESSONS.find(x=>x.id==='chapter-mathematics-1'));
  assert.equal(math.ncertExerciseQuestionCount,35);
  assert.ok(math.ncertExerciseSolutions.length>=5);
- const other=lessonView(LESSONS.find(x=>x.id==='chapter-physics-2'));
+ const other=lessonView(LESSONS.find(x=>x.id==='chapter-physics-3'));
  assert.equal(other.ncertExerciseQuestionCount,null);
  assert.deepEqual(other.ncertExerciseSolutions,[]);
 });
@@ -67,14 +67,14 @@ test('source-linked solutions are visible to permitted learners without claiming
 test('whole programme coverage stays held when only a subset of printed questions have authored solutions',()=>{
  const progress=questionBankProgress();
  assert.equal(progress.mappedUnits,66);
- assert.equal(progress.indexedUnits,2);
- assert.equal(progress.indexedPrintedQuestions,58);
+ assert.equal(progress.indexedUnits,4);
+ assert.equal(progress.indexedPrintedQuestions,112);
  assert.equal(progress.qualifiedSolutions,0);
  assert.equal(progress.status,'HOLD');
  const summary=exerciseCoverageSummary();
  assert.equal(summary.verifiedQuestionCount,0);
  assert.equal(summary.coverageStatus,'HOLD');
- assert.equal(summary.questionCount,null,'overall census cannot be extrapolated from two chapters');
+ assert.equal(summary.questionCount,null,'overall census cannot be extrapolated from four chapters');
  const ui=readFileSync(new URL('../public/app.js',import.meta.url),'utf8');
  assert.match(ui,/NCERT indexed exercise solutions/);
  assert.match(ui,/escapeHtml\(item\.answer\)/);
