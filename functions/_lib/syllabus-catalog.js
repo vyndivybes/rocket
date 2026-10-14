@@ -80,10 +80,12 @@ export function academicInventory(selected,lessonList=[],progress=[]){
   const m=SUBJECT_MAP[subject];
   if(!m)return {subject,mappingStatus:subject==='English'?'subject_code_required':'not_yet_verified',chapters:[],qualifiedChapters:0,totalChapters:null,coverageStatus:'INCOMPLETE',officialSource:SYLLABUS_SOURCE};
   const chapters=m.titles.map((title,i)=>{
+   const draftId='chapter-'+subject.toLowerCase().replaceAll(' ','-')+'-'+(i+1);
+   const draft=lessonList.find(l=>l.id===draftId&&l.chapterTitle===title&&l.reviewStatus==='teacher_review_required');
    const lessons=(m.foundation[i+1]||[]).map(id=>lessonList.find(l=>l.id===id)).filter(Boolean);
    const records=lessons.map(l=>aggregateLessonAttempts(l.id,progress));
    const attempts=records.reduce((s,p)=>s+p.attempts,0),correct=records.reduce((s,p)=>s+p.correct,0);
-   return {id:subject.toLowerCase().replaceAll(' ','-')+'-'+(i+1),number:i+1,title,...(m.literatureTexts?{strand:m.literatureTexts[i].strand}:{}),status:lessons.length?'foundation_only':'no_qualified_lesson',foundationLessonIds:lessons.map(l=>l.id),practice:{attempts,correct,accuracy:attempts?correct/attempts:null},revision:attempts?(correct<attempts?'review_misconceptions':'try_fresh_questions'):'not_assessed',qualified:false};
+   return {id:subject.toLowerCase().replaceAll(' ','-')+'-'+(i+1),number:i+1,title,moduleId:draft?draft.id:null,moduleStatus:draft?'teacher_review_required':'not_available',...(m.literatureTexts?{strand:m.literatureTexts[i].strand}:{}),status:lessons.length?'foundation_only':'no_qualified_lesson',foundationLessonIds:lessons.map(l=>l.id),practice:{attempts,correct,accuracy:attempts?correct/attempts:null},revision:attempts?(correct<attempts?'review_misconceptions':'try_fresh_questions'):'not_assessed',qualified:false};
   });
   const skillPractice=(m.skills||[]).map(id=>{
    const lesson=lessonList.find(l=>l.id===id);
@@ -93,6 +95,6 @@ export function academicInventory(selected,lessonList=[],progress=[]){
      revision:attempts===0?'not_assessed':correct<attempts?'review_worked_example':'try_new_unseen_question',
      certified:false};
   }).filter(Boolean);
-  return {subject,code:m.code,board:'CBSE',academicYear:'2026-27',mappingStatus:'official_outline_verified',chapters,qualifiedChapters:0,totalChapters:chapters.length,foundationChapterCount:chapters.filter(ch=>ch.status==='foundation_only').length,unmappedChapterCount:chapters.filter(ch=>ch.status!=='foundation_only').length,coverageStatus:'INCOMPLETE',assessmentStructure:{...SUBJECT_ASSESSMENT[subject]},assessmentStatus:'teacher_review_required',officialSource:m.source,sourcePages:m.pages,formativeTopics:m.formative||[],examReadiness:'HOLD',curriculumUnitType:m.literatureTexts?'literary_texts':'chapters',...(m.literatureTexts?{fictionChoices:[...ENGLISH_ELECTIVE_FICTION],fictionChoiceStatus:'school_choice_required',assessmentSections:ENGLISH_ELECTIVE_ASSESSMENT.map(section=>({...section})),foundationSkillLessonIds:skillPractice.map(p=>p.lessonId),skillPractice,practicalStatus:'not_applicable_seminar_review_required'}:{practicalStatus:subject==='Mathematics'?'not_applicable_internal_assessment_required':'teacher_assessment_required'})};
+  return {subject,code:m.code,board:'CBSE',academicYear:'2026-27',mappingStatus:'official_outline_verified',chapters,qualifiedChapters:0,totalChapters:chapters.length,foundationChapterCount:chapters.filter(ch=>ch.status==='foundation_only').length,chapterModuleCount:chapters.filter(ch=>ch.moduleStatus==='teacher_review_required').length,unmappedChapterCount:chapters.filter(ch=>ch.status!=='foundation_only').length,coverageStatus:'INCOMPLETE',assessmentStructure:{...SUBJECT_ASSESSMENT[subject]},assessmentStatus:'teacher_review_required',officialSource:m.source,sourcePages:m.pages,formativeTopics:m.formative||[],examReadiness:'HOLD',curriculumUnitType:m.literatureTexts?'literary_texts':'chapters',...(m.literatureTexts?{fictionChoices:[...ENGLISH_ELECTIVE_FICTION],fictionChoiceStatus:'school_choice_required',assessmentSections:ENGLISH_ELECTIVE_ASSESSMENT.map(section=>({...section})),foundationSkillLessonIds:skillPractice.map(p=>p.lessonId),skillPractice,practicalStatus:'not_applicable_seminar_review_required'}:{practicalStatus:subject==='Mathematics'?'not_applicable_internal_assessment_required':'teacher_assessment_required'})};
  });
 }
