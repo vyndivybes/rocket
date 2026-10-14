@@ -186,28 +186,55 @@ function wire(){
   if($('guided-teach-form'))$('guided-teach-form').onsubmit=async e=>{
     e.preventDefault();
     const form=e.currentTarget,submit=form.querySelector('[type="submit"]'),data=new FormData(form);
-    const lessonId=data.get('lessonId'),question=String(data.get('question')||'').trim();
+    const lessonId=String(data.get('lessonId')||''),question=String(data.get('question')||'').trim();
+    const style=String(data.get('style')||'simple');
     guidedContext=null;submit.disabled=true;
     const stage=$('guided-stage');if(stage)stage.hidden=true;
     try{
-      const r=await post('guided-tutor',{step:'teach',lessonId,question});
+      const r=await post('guided-tutor',{step:'teach',lessonId,question,style});
       if(!form.isConnected)return;
       if($('guided-teaching-answer'))$('guided-teaching-answer').textContent=r.answer;
       if(r.kind){showMessage(r.notice||'Safety guidance shown.');return}
-      guidedContext={lessonId,question,practicePrompt:extractPracticePrompt(r.answer)};
+      const practicePrompt=extractPracticePrompt(r.answer);
+      guidedContext={lessonId,question,practicePrompt,lastAnswer:r.answer.slice(0,2500)};
       if($('guided-feedback-text'))$('guided-feedback-text').textContent='';
+      if($('guided-followup-output'))$('guided-followup-output').textContent='';
+      if($('guided-feedback-form'))$('guided-feedback-form').hidden=!practicePrompt;
+      if($('guided-no-practice'))$('guided-no-practice').hidden=!!practicePrompt;
       if(stage)stage.hidden=false;
-      showMessage(r.notice||'Now try the practice question on your own.',true);
+      showMessage(practicePrompt?'Explanation ready. Try its practice question, or ask about the step you find difficult.':'Explanation ready. No clear practice question was generated; ask for another example or use checked chapter practice.',true);
     }catch(err){showMessage(err.message)}finally{if(submit.isConnected)submit.disabled=false}
   };
+  document.querySelectorAll('[data-followup]').forEach(button=>button.onclick=async()=>{
+    if(!guidedContext){showMessage('Start a lesson explanation first.');return}
+    const context=guidedContext;
+    const followupKind=button.dataset.followup;
+    const focus=$('guided-followup-focus')?.value?.trim()||'';
+    const panel=$('guided-followup-output');
+    const buttons=[...document.querySelectorAll('[data-followup]')];
+    buttons.forEach(b=>b.disabled=true);
+    if(panel)panel.textContent='Saathi is preparing a focused explanation…';
+    try{
+      const r=await post('guided-tutor',{step:'followup',lessonId:context.lessonId,question:context.question,
+        previousExplanation:context.lastAnswer,followupKind,focus});
+      if(!panel?.isConnected||guidedContext!==context)return;
+      panel.textContent=r.answer;
+      if(r.kind){showMessage(r.notice||'Safety guidance shown.');return}
+      guidedContext.lastAnswer=r.answer.slice(0,2500);
+      showMessage(r.notice||'You can ask again about anything unclear.',true);
+    }catch(err){if(panel?.isConnected)panel.textContent=err.message}
+    finally{buttons.forEach(b=>{if(b.isConnected)b.disabled=false})}
+  });
   if($('guided-feedback-form'))$('guided-feedback-form').onsubmit=async e=>{
     e.preventDefault();
-    if(!guidedContext){showMessage('Start a guided explanation first.');return}
+    if(!guidedContext?.practicePrompt){showMessage('No practice question was generated. Use checked chapter practice instead.');return}
+    const context=guidedContext;
     const form=e.currentTarget,submit=form.querySelector('[type="submit"]'),answer=new FormData(form).get('studentAnswer');
     submit.disabled=true;
     try{
-      const r=await post('guided-tutor',{step:'feedback',...guidedContext,studentAnswer:String(answer||'')});
-      if($('guided-feedback-text'))$('guided-feedback-text').textContent=r.answer+'\\n\\n'+r.notice;
+      const r=await post('guided-tutor',{step:'feedback',lessonId:context.lessonId,
+        question:context.question,practicePrompt:context.practicePrompt,studentAnswer:String(answer||'')});
+      if($('guided-feedback-text')?.isConnected&&context===guidedContext)$('guided-feedback-text').textContent=r.answer+'\\n\\n'+r.notice;
     }catch(err){showMessage(err.message)}finally{if(submit.isConnected)submit.disabled=false}
   };
   if($('guided-practice'))$('guided-practice').onclick=()=>{
