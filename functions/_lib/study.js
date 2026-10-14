@@ -1,4 +1,5 @@
 import {publicQuestions,questionForGrade} from './question-bank.js';
+import {CHAPTER_MODULES} from './chapter-modules.js';
 // Short, editorially drafted FOUNDATION lessons, not a board-certified syllabus.
 // Only the server receives answerIndex. Clients receive lessonView() without the key.
 export const SUBJECTS=['Physics','Chemistry','Mathematics','Biology','Accountancy','Economics','History','English','English Elective'];
@@ -177,6 +178,7 @@ export const LESSONS=[
   explanation:'If a heritable variant contributes to greater reproductive success in a given environment, descendants carrying it may become a larger share of the population over generations. Change in a population is not deliberate change by one individual.',
   source:'Original Saathi practice linked to CBSE 2026–27 Biology 044, Evolution; conceptual foundation rather than a complete chapter.'},
 
+ ...CHAPTER_MODULES
 ];
 export function lessonView(lesson){
  // Never expose the grading key or answer explanation before the attempt.
