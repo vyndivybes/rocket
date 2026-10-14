@@ -13,7 +13,7 @@ function renderSubject(s){
  const mapped=s.mappingStatus==='official_outline_verified';
  const state=mapped?'Official outline mapped; no qualified teaching content':s.mappingStatus==='subject_code_required'?'English course unspecified. Select English Elective (001) in My subjects if applicable.':'Official mapping pending';
  const literature=s.curriculumUnitType==='literary_texts';
- const main=s.chapters?.length?'<p>Available draft teaching units: '+Number(s.chapterModuleCount||0)+' of '+Number(s.totalChapters||0)+'. Qualified '+(literature?'literary texts':'complete chapters')+': '+Number(s.qualifiedChapters||0)+' of '+Number(s.totalChapters||0)+'. Drafts and quizzes do not establish mastery.</p>'+
+ const main=s.chapters?.length?'<p>Available teaching drafts: '+Number(s.chapterModuleCount||0)+' of '+Number(s.totalChapters||0)+' · Original guided subtopics: '+Number(s.guidedSubtopicCount||0)+'. Qualified '+(literature?'literary texts':'complete chapters')+': '+Number(s.qualifiedChapters||0)+' of '+Number(s.totalChapters||0)+'. Editorial breadth is not independent textbook verification or mastery.</p>'+
     '<ol>'+s.chapters.map(renderUnit).join('')+'</ol>':'<p>No verified unit inventory yet. No percentage is claimed.</p>';
  const skillPractice=s.skillPractice?.length?
     '<h3>Foundational skill practice (not a literature completion)</h3><ul>'+s.skillPractice.map(p=>
@@ -34,8 +34,9 @@ function renderSubject(s){
     '<h3>Official assessment components</h3><ul>'+s.assessmentSections.map(x=>'<li>'+esc(x.name)+' — '+Number(x.marks)+' marks</li>').join('')+'</ul><p>These are examination requirements, not earned marks or readiness scores. The internal seminar needs teacher review.</p>':'';
  const foundation=s.foundationSkillLessonIds?.length?'<p>General writing foundation exercise available in Lessons &amp; practice; it does not count as a Kaleidoscope text.</p>':'';
  const formative=s.formativeTopics?.length?'<p><strong>Formative-only topics (not part of summative theory-paper marks):</strong> '+s.formativeTopics.map(esc).join(', ')+'. School-based discussion and formative assessment may still apply.</p>':'';
+ const supplemental=s.supplementaryCoursework?.length?'<h3>Extended programmes and assessed coursework — review required</h3>'+s.supplementaryCoursework.map(item=>'<details style="margin:12px 0"><summary><strong>'+esc(item.title)+'</strong> · '+esc(item.kind.replaceAll('_',' '))+'</summary><ol>'+item.subtopics.map(step=>'<li><strong>'+esc(step.heading)+'</strong><p>'+esc(step.explanation)+'</p><p><em>Guided activity:</em> '+esc(step.tryIt)+'</p></li>').join('')+'</ol></details>').join(''):'';
  return '<section class="card" style="margin:16px 0;padding:20px"><h2>'+esc(s.subject)+(s.code?' ('+esc(s.code)+')':'')+'</h2>'+
-   '<p><strong>Coverage:</strong> INCOMPLETE · '+esc(state)+'</p>'+examNote+main+skillPractice+fiction+sections+foundation+formative+
+   '<p><strong>Coverage:</strong> INCOMPLETE · '+esc(state)+'</p>'+examNote+main+skillPractice+fiction+sections+foundation+formative+supplemental+
    '<p>Exam readiness: HOLD. '+(literature?'Seminar and literature assessment require teacher review.':s.subject==='Mathematics'?'Internal assessment must be reviewed by the school; Mathematics has no laboratory practical examination.':'Practical assessment requires teacher verification; do not perform hazardous laboratory work unsupervised.')+'</p>'+
    '<p><a target="_blank" rel="noopener noreferrer" href="'+esc(s.officialSource)+'">Read official curriculum source</a></p></section>';
 }
