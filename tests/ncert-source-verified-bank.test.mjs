@@ -43,6 +43,8 @@ test('original worked explanations map only to authentic indexed references and 
   assert.equal(x.reviewStatus,'ORIGINAL_EDITORIAL_DRAFT',x.questionId);
   assert.equal(x.certified,false,x.questionId);
   assert.equal(x.questionTextRepublished,false,x.questionId);
+  assert.equal(x.selfCheckRubric.length,3,x.questionId+' marking checklist');
+  assert.ok(x.selfCheckRubric.every(rule=>rule.length>=55),x.questionId+' rubric clarity');
  }
 });
 
