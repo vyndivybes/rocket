@@ -381,7 +381,7 @@ export function questionBankProgress(){
  const indexedPrintedQuestions=indexed.reduce((n,[,source])=>n+source.questionIds.length,0);
  const indexedDraftQuestionCount=ORIGINAL_WORKED_SOLUTIONS.length;
  return {mappedUnits:66,indexedUnits:indexed.length,unindexedUnitCount:66-indexed.length,
-  indexedPrintedQuestions,indexedDraftQuestionCount,
+  indexedPrintedQuestions,indexedQuestionDraftCount:indexedDraftQuestionCount,
   unansweredIndexedCount:missingByIndexedChapter.reduce((n,x)=>n+x.missingQuestionIds.length,0),
   missingByIndexedChapter,authoredSolutions:indexedDraftQuestionCount,
   qualifiedSolutions:0,totalPrintedQuestionsAcrossCurriculum:null,status:'HOLD'};
