@@ -1,3 +1,5 @@
+import {MATRIX3_WORKED_DRAFTS} from './ncert-matrices3-drafts.js';
+import {CHEMISTRY4_WORKED_DRAFTS} from './ncert-chemistry4-drafts.js';
 import {PHYSICS4_INDEX,PHYSICS4_DRAFTS} from './ncert-physics4.js';
 import {ADDITIONAL_INDEXES} from './ncert-additional-indexes.js';
 import {CHEMISTRY1_WORKED_A} from './ncert-chemistry1-completion-a.js';
@@ -368,7 +370,7 @@ const DRAFTS=[
     "answer": "Exactly n! surjective functions for an n-element set.",
     "check": "For n=3 the permutations are 3×2×1=6, matching the factorial rule."
   }
-].concat(CH2_WORKED_DRAFTS,CHEMISTRY_WORKED_DRAFTS,BIOLOGY_WORKED_DRAFTS,MATH1_WORKED_DRAFTS,CHEMISTRY2_COMPLETION_DRAFTS,MATH2_WORKED_DRAFTS,NEW_2026_WORKED_DRAFTS,CHEMISTRY1_WORKED_A,CHEMISTRY1_WORKED_B,PHYSICS4_DRAFTS);
+].concat(CH2_WORKED_DRAFTS,CHEMISTRY_WORKED_DRAFTS,BIOLOGY_WORKED_DRAFTS,MATH1_WORKED_DRAFTS,CHEMISTRY2_COMPLETION_DRAFTS,MATH2_WORKED_DRAFTS,NEW_2026_WORKED_DRAFTS,CHEMISTRY1_WORKED_A,CHEMISTRY1_WORKED_B,PHYSICS4_DRAFTS,CHEMISTRY4_WORKED_DRAFTS,MATRIX3_WORKED_DRAFTS);
 const SELF_CHECK_RUBRIC=Object.freeze({
  Physics:Object.freeze([
   'Identify the applicable physical principle, boundary conditions and any diagram assumptions.',
