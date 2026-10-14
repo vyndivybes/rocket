@@ -76,9 +76,9 @@ test('new chapter links show the 169 original drafts without leaking server MCQ 
  assert.equal('answerIndex' in c,false);
  assert.ok(m.ncertExerciseSolutions.every(x=>x.certified===false));
  const p=questionBankProgress();
- assert.equal(p.indexedPrintedQuestions,239);
- assert.equal(p.authoredSolutions,239);
- assert.equal(p.unansweredIndexedCount,0);
+ assert.equal(p.indexedPrintedQuestions,345);
+ assert.equal(p.authoredSolutions,272);
+ assert.equal(p.unansweredIndexedCount,73);
  assert.equal(p.qualifiedSolutions,0);
  assert.equal(p.status,'HOLD');
  const c1=p.missingByIndexedChapter.find(x=>x.lessonId==='chapter-chemistry-1');
