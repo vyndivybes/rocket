@@ -86,7 +86,8 @@ function lessonView(){
   '<p class="notice">Printed question numbers were checked against the 2026–27 NCERT chapter reprint. Original worked drafts: '+(x.ncertExerciseSolutions?.length||0)+' of '+x.ncertExerciseQuestionCount+'. They are not independently certified and do not replace reading the actual question in your textbook.</p>'+
   (x.ncertExerciseSolutions||[]).map(item=>'<details style="margin:9px 0"><summary><strong>'+escapeHtml(item.questionId)+'</strong> · '+escapeHtml(item.problemFocus)+' · draft answer</summary>'+
     '<ol>'+item.steps.map(step=>'<li>'+escapeHtml(step)+'</li>').join('')+'</ol>'+
-    '<p><strong>Result:</strong> '+escapeHtml(item.answer)+'</p><p><strong>Check:</strong> '+escapeHtml(item.check)+'</p></details>').join('')+
+    '<p><strong>Result:</strong> '+escapeHtml(item.answer)+'</p><p><strong>Check:</strong> '+escapeHtml(item.check)+'</p>'+
+    '<p><strong>Formative marking checklist (not an official marking scheme):</strong></p><ul>'+item.selfCheckRubric.map(rule=>'<li>'+escapeHtml(rule)+'</li>').join('')+'</ul></details>').join('')+
    '</section>':'';
  const exerciseCoach=x.curriculumStage==='chapter_draft'?`
  <section class="card wide"><h2>NCERT exercise help</h2>
