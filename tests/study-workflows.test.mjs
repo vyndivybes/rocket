@@ -88,6 +88,8 @@ test('parent gets only linked learner aggregate practice totals',async()=>{
 
 test('multiple questions store only student-owned per-item aggregate outcomes, not answer text or keys',async()=>{
  const {env,db,cookie}=await setup(),student=await cookie('class12');
+ const enrollment=await postProfile({request:makeReq('/api/profile',student,{board:'CBSE',stream:'Science',subjects:['Physics'],dailyMinutes:30}),env});
+ assert.equal(enrollment.status,200);
  const {lessons}=await (await getLessons({request:makeReq('/api/lessons',student),env})).json();
  const lesson=lessons.find(l=>l.id==='physics-current-electricity');
  assert.equal(lesson.questions.length,4);
@@ -118,4 +120,26 @@ test('student with saved subject choice cannot submit grades for a different sub
  await postProfile({request:makeReq('/api/profile',student,{board:'CBSE',stream:'Science',subjects:['Physics'],dailyMinutes:30}),env});
  assert.equal((await submitPractice({request:makeReq('/api/practice',student,{lessonId:'chemistry-solutions-molarity',questionId:'v2',choice:1}),env})).status,403);
  assert.equal((await submitPractice({request:makeReq('/api/practice',student,{lessonId:'physics-current-electricity',questionId:'v2',choice:1}),env})).status,200);
+});
+
+
+test('actual lesson and grading routes enforce enrolled board and subject on chapter drafts',async()=>{
+ const {env,cookie}=await setup(),student=await cookie('class12');
+ const first=await (await getLessons({request:makeReq('/api/lessons',student),env})).json();
+ assert.equal(first.lessons.some(l=>l.id==='chapter-physics-1'),false);
+ assert.equal((await submitPractice({request:makeReq('/api/practice',student,{lessonId:'chapter-physics-1',choice:1}),env})).status,403);
+ let enrollment=await postProfile({request:makeReq('/api/profile',student,{board:'ISC',stream:'Science',subjects:['Physics'],dailyMinutes:30}),env});
+ assert.equal(enrollment.status,200);
+ const otherBoard=await (await getLessons({request:makeReq('/api/lessons',student),env})).json();
+ assert.equal(otherBoard.lessons.some(l=>l.id==='chapter-physics-1'),false);
+ assert.equal((await submitPractice({request:makeReq('/api/practice',student,{lessonId:'chapter-physics-1',choice:1}),env})).status,403);
+ enrollment=await postProfile({request:makeReq('/api/profile',student,{board:'CBSE',stream:'Science',subjects:['Physics'],dailyMinutes:30}),env});
+ assert.equal(enrollment.status,200);
+ const selected=await (await getLessons({request:makeReq('/api/lessons',student),env})).json();
+ assert.equal(selected.lessons.filter(l=>l.curriculumStage==='chapter_draft').length,14);
+ assert.equal(selected.lessons.some(l=>l.id==='chapter-biology-1'),false);
+ const {LESSONS}=await import('../functions/_lib/study.js');
+ const approved=LESSONS.find(l=>l.id==='chapter-physics-1');
+ assert.equal((await submitPractice({request:makeReq('/api/practice',student,{lessonId:approved.id,choice:approved.answerIndex}),env})).status,200);
+ assert.equal((await submitPractice({request:makeReq('/api/practice',student,{lessonId:'chapter-biology-1',choice:1}),env})).status,403);
 });
