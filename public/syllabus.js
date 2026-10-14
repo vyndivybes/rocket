@@ -4,7 +4,8 @@ function renderUnit(ch){
  const label=ch.strand?ch.strand+' · '+ch.title:ch.title;
  const note=ch.moduleId?'Original chapter teaching draft available; teacher review required':ch.status==='foundation_only'?'Related foundation exercise only; unit not completed':'No qualified teaching content';
  const p=ch.practice||{attempts:0,correct:0};
- return '<li style="padding:7px 0">'+esc(label)+' — '+esc(note)+
+ const exerciseNote=ch.exerciseQuestionCount===null?'NCERT exercise question census pending; no verified complete solution bank':('Verified exercise solutions: '+Number(ch.exerciseVerifiedQuestionCount||0)+' of '+Number(ch.exerciseQuestionCount||0));
+ return '<li style="padding:7px 0">'+esc(label)+' — '+esc(note)+'<p>'+esc(exerciseNote)+'</p>'+
    '<p>Foundation attempts: '+Number(p.attempts||0)+' · Correct: '+Number(p.correct||0)+' · '+esc((ch.revision||'not_assessed').replaceAll('_',' '))+'</p>'+
    (ch.moduleId?'<a href="/?lesson='+encodeURIComponent(ch.moduleId)+'">Open chapter draft</a> · ':'')+
    (ch.foundationLessonIds?.length?'<a href="/">Open foundation lessons</a>':'')+'</li>';
