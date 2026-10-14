@@ -22,10 +22,13 @@ test('exercise authority maps all 66 NCERT teaching units without inventing prin
   assert.equal(x.lessonId,CHAPTER_MODULES[i].id);
   assert.equal(x.title,CHAPTER_MODULES[i].title);
   assert.equal(x.verifiedQuestionCount,0);
-  if(['chapter-physics-1','chapter-mathematics-1','chapter-physics-2','chapter-mathematics-2','chapter-chemistry-1','chapter-chemistry-2','chapter-biology-7','chapter-physics-3','chapter-chemistry-3','chapter-biology-3'].includes(x.lessonId)){
-   assert.ok(x.editionVerified);
-   assert.equal(x.questionCount,({'chapter-physics-1':23,'chapter-mathematics-1':35,'chapter-physics-2':11,'chapter-mathematics-2':43,'chapter-chemistry-1':41,'chapter-chemistry-2':18,'chapter-biology-7':17,'chapter-physics-3':9,'chapter-chemistry-3':30,'chapter-biology-3':12})[x.lessonId]);
-   assert.equal(x.questionInventoryStatus,'SOURCE_INDEX_RECONCILED');
+  if(['chapter-physics-1','chapter-mathematics-1','chapter-physics-2','chapter-mathematics-2','chapter-chemistry-1','chapter-chemistry-2','chapter-biology-7','chapter-physics-3','chapter-chemistry-3','chapter-biology-3','chapter-physics-4','chapter-chemistry-4','chapter-mathematics-3'].includes(x.lessonId)){
+   if(x.lessonId==='chapter-physics-4'){
+    assert.equal(x.editionVerified,false);
+    assert.equal(x.questionInventoryStatus,'SOURCE_EDITION_HOLD');
+   }else assert.ok(x.editionVerified);
+   assert.equal(x.questionCount,({'chapter-physics-1':23,'chapter-mathematics-1':35,'chapter-physics-2':11,'chapter-mathematics-2':43,'chapter-chemistry-1':41,'chapter-chemistry-2':18,'chapter-biology-7':17,'chapter-physics-3':9,'chapter-chemistry-3':30,'chapter-biology-3':12,'chapter-physics-4':13,'chapter-chemistry-4':38,'chapter-mathematics-3':55})[x.lessonId]);
+   if(x.lessonId!=='chapter-physics-4')assert.equal(x.questionInventoryStatus,'SOURCE_INDEX_RECONCILED');
   }else{
    assert.equal(x.questionCount,null);
    assert.equal(x.questionInventoryStatus,'EDITION_NOT_RECONCILED');
