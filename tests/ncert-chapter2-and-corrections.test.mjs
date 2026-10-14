@@ -75,3 +75,19 @@ test('maths chapter 2 principal-value responses respect NCERT branches and corre
  const expected=['−π/6','π/6','π/6','−π/3','2π/3','−π/4','π/6','π/6','3π/4','−π/4','3π/4','2π/3','option B','−π/3'];
  for(let i=0;i<14;i++)assert.ok(items[i]?.answer.includes(expected[i]),'2.1/'+(i+1)+' expected '+expected[i]);
 });
+
+test('exact missing-work audit lists unsolved indexed refs, not a fake all-NCERT percentage',()=>{
+ const p=questionBankProgress();
+ assert.equal(p.unindexedUnitCount,62);
+ assert.equal(p.unansweredIndexedCount,57);
+ assert.equal(p.indexedQuestionDraftCount,55);
+ const m1=p.missingByIndexedChapter.find(x=>x.lessonId==='chapter-mathematics-1');
+ const m2=p.missingByIndexedChapter.find(x=>x.lessonId==='chapter-mathematics-2');
+ const phy1=p.missingByIndexedChapter.find(x=>x.lessonId==='chapter-physics-1');
+ const phy2=p.missingByIndexedChapter.find(x=>x.lessonId==='chapter-physics-2');
+ assert.equal(m1.missingQuestionIds.length,28);
+ assert.equal(m2.missingQuestionIds.length,29);
+ assert.equal(phy1.missingQuestionIds.length,0);
+ assert.equal(phy2.missingQuestionIds.length,0);
+ assert.equal(p.totalPrintedQuestionsAcrossCurriculum,null);
+});
