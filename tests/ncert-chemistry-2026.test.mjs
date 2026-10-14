@@ -14,12 +14,12 @@ test('correct unit conversion: Physics 2.2 official 2026-27 source specifies 5 m
  assert.ok(Math.abs(6*k*5e-3/.1 /2.70e9 -1)<0.01);
 });
 
-test('NCERT Chemistry Solutions 2026-27 indexes complete 33 parent numbered exercises',()=>{
+test('NCERT Chemistry Solutions 2026-27 indexes complete 41 source-verified parent numbered exercises',()=>{
  const x=SOURCE_VERIFIED_EXERCISES['chapter-chemistry-1'];
- assert.equal(x.officialPdf,'https://ncert.nic.in/textbook/pdf/lech101.pdf');
+ assert.equal(x.officialPdf,'https://www.ncert.nic.in/textbook/pdf/lech101.pdf');
  assert.equal(x.reprint,'2026-27');
- assert.equal(x.questionIds.length,33);
- assert.deepEqual(x.questionIds,Array.from({length:33},(_,i)=>'1.'+(i+1)));
+ assert.equal(x.questionIds.length,41);
+ assert.deepEqual(x.questionIds,Array.from({length:41},(_,i)=>'1.'+(i+1)));
 });
 
 test('NCERT Chemistry Electrochemistry 2026-27 indexes 18 parent numbered exercises',()=>{
@@ -43,11 +43,11 @@ test('all new authored Chemistry worked answers match verified parent exercise i
  }
  const p=questionBankProgress();
  assert.equal(p.indexedUnits,10);
- assert.equal(p.indexedPrintedQuestions,231);
+ assert.equal(p.indexedPrintedQuestions,239);
  assert.equal(p.qualifiedSolutions,0);
  assert.equal(p.status,'HOLD');
  const records=NCERT_EXERCISE_LEDGER.filter(x=>x.subject==='Chemistry'&&x.editionVerified);
- assert.equal(records.length,2);
+ assert.equal(records.length,3);
  assert.equal(records.reduce((n,x)=>n+x.verifiedQuestionCount,0),0);
 });
 test('Chemistry unit conversions and stoichiometry are independently recalculated',()=>{
