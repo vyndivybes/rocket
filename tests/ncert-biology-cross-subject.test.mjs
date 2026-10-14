@@ -49,8 +49,8 @@ test('programme audit exposes all unresolved printed ids without claiming that 1
  assert.equal(p.indexedUnits,7);
  assert.equal(p.indexedPrintedQuestions,180);
  assert.equal(p.unindexedUnitCount,59);
- assert.equal(p.authoredSolutions,140);
- assert.equal(p.unansweredIndexedCount,40);
+ assert.equal(p.authoredSolutions,169);
+ assert.equal(p.unansweredIndexedCount,11);
  assert.equal(p.qualifiedSolutions,0);
  assert.equal(p.totalPrintedQuestionsAcrossCurriculum,null);
  assert.equal(p.status,'HOLD');
