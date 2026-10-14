@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {SOURCE_VERIFIED_EXERCISES,ORIGINAL_WORKED_SOLUTIONS,questionBankProgress} from '../functions/_lib/ncert-solved-exercises.js';
+import {exerciseCoverageSummary} from '../functions/_lib/ncert-exercise.js';
 import {studentLessons,lessonView} from '../functions/_lib/study.js';
 
 test('2026-27 NCERT Biology Chapter 7 has 17 source-indexed exercise answer drafts',()=>{
@@ -54,4 +55,16 @@ test('programme audit exposes all unresolved printed ids without claiming that 1
  assert.equal(p.totalPrintedQuestionsAcrossCurriculum,null);
  assert.equal(p.status,'HOLD');
  assert.equal(p.missingByIndexedChapter.length,7);
+});
+
+test('auditable course gap register lists every unresolved chapter and its subject with no invented denominator',()=>{
+ const s=exerciseCoverageSummary();
+ assert.equal(s.unindexedUnits.length,59);
+ assert.equal(s.unindexedUnits.filter(x=>['Physics','Chemistry','Mathematics','Biology'].includes(x.subject)).length,43);
+ assert.equal(s.unindexedUnits.filter(x=>x.subject==='English Elective').length,16);
+ assert.ok(s.unindexedUnits.every(x=>x.status==='EDITION_NOT_RECONCILED'&&x.lessonId.startsWith('chapter-')&&x.title.length>3));
+ assert.match(s.explanation,/Seven NCERT/);
+ assert.equal(s.questionCount,null);
+ assert.equal(s.verifiedQuestionPercent,null);
+ assert.equal(s.coverageStatus,'HOLD');
 });
