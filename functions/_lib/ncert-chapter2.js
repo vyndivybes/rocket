@@ -9,11 +9,11 @@ export const CH2_WORKED_DRAFTS=Object.freeze([
     "questionId": "2.1",
     "problemFocus": "Zero potential of unlike charges",
     "steps": [
-      "Put positive charge at x=0 and negative at x=0.16 m, with potential zero where 5/",
-      "x"
+      "Place +5×10⁻⁸ C at x=0 and −3×10⁻⁸ C at x=0.16 m; zero net potential requires 5/|x|=3/|x−0.16|.",
+      "Between the charges, 5(0.16−x)=3x gives x=0.10 m; beyond the negative charge, 5(x−0.16)=3x gives x=0.40 m. The left-hand region yields no valid root."
     ],
-    "answer": "=3/",
-    "check": "x−0.16"
+    "answer": "x=0.10 m and x=0.40 m measured from the positive charge.",
+    "check": "At x=0.10 m, 5/0.10=3/0.06; at x=0.40 m, 5/0.40=3/0.24. Both pairs of potential magnitudes match."
   },
   {
     "lessonId": "chapter-physics-2",
