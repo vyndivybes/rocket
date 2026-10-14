@@ -79,3 +79,12 @@ test('whole programme coverage stays held when only a subset of printed question
  const sy=readFileSync(new URL('../public/syllabus.js',import.meta.url),'utf8');
  assert.match(sy,/Original worked drafts/);
 });
+
+test('Physics 1.13 matches the 2026-27 diagram: two negative tracks and greatest q/m of track 3',()=>{
+ const item=ORIGINAL_WORKED_SOLUTIONS.find(x=>x.lessonId==='chapter-physics-1'&&x.questionId==='1.13');
+ assert.ok(item);
+ assert.match(item.answer,/1 and 2.*negative/i);
+ assert.match(item.answer,/3.*positive/i);
+ assert.match(item.answer,/3.*greatest/i);
+ assert.doesNotMatch(item.answer,/2.*neutral/i);
+});
