@@ -60,15 +60,18 @@ test('physics 4 numerical examples are independently recomputed and carry correc
  close(1.5e-19*6.5e-4/(2*Math.PI*9.1e-31),1.705e7);
  close(30*6*Math.PI*.08**2*Math.sin(Math.PI/3),3.13);
 });
-test('student chapters expose source-linked Physics 4 answers and honest absence of Chemistry 4/Maths 3 draft bank',()=>{
+test('student chapters expose Physics4 and ten each original Chemistry4/Maths3 drafts with remaining gaps',()=>{
  const phys=lessonView(studentLessons('CBSE',['Physics']).find(x=>x.id==='chapter-physics-4'));
  const chem=lessonView(studentLessons('CBSE',['Chemistry']).find(x=>x.id==='chapter-chemistry-4'));
  const math=lessonView(studentLessons('CBSE',['Mathematics']).find(x=>x.id==='chapter-mathematics-3'));
  assert.equal(phys.ncertExerciseSolutions.length,13);
  assert.equal(chem.ncertExerciseQuestionCount,38);
  assert.equal(math.ncertExerciseQuestionCount,55);
- assert.deepEqual(chem.ncertExerciseSolutions,[]);
- assert.deepEqual(math.ncertExerciseSolutions,[]);
+ assert.equal(chem.ncertExerciseSolutions.length,10);
+ assert.equal(math.ncertExerciseSolutions.length,10);
+ assert.equal(phys.ncertSourceEditionVerified,false);
+ assert.equal(math.ncertSourceEditionVerified,true);
+ assert.equal(phys.ncertExerciseIndexStatus,'SOURCE_EDITION_HOLD');
  assert.equal(studentLessons('ISC',['Physics']).some(x=>x.id==='chapter-physics-4'),false);
  const l=NCERT_EXERCISE_LEDGER.find(x=>x.lessonId==='chapter-physics-4');
  assert.equal(l.editionVerified,false);
@@ -78,8 +81,8 @@ test('auditable coverage does not count source indexing as completed answers',()
  const p=questionBankProgress();
  assert.equal(p.indexedUnits,13);
  assert.equal(p.indexedPrintedQuestions,345);
- assert.equal(p.authoredSolutions,252);
- assert.equal(p.unansweredIndexedCount,93);
+ assert.equal(p.authoredSolutions,272);
+ assert.equal(p.unansweredIndexedCount,73);
  assert.equal(p.unindexedUnitCount,53);
  assert.equal(p.qualifiedSolutions,0);
  assert.equal(p.status,'HOLD');
@@ -87,4 +90,21 @@ test('auditable coverage does not count source indexing as completed answers',()
  const summary=exerciseCoverageSummary();
  assert.equal(summary.unindexedUnits.length,53);
  assert.equal(summary.coverageStatus,'HOLD');
+});
+
+test('Matrices Ex 3.1 and d/f-block first ten question references have distinct worked guidance',()=>{
+ for(const [lessonId,prefix] of [['chapter-mathematics-3','3.1/'],['chapter-chemistry-4','4.']]){
+  const found=ORIGINAL_WORKED_SOLUTIONS.filter(x=>x.lessonId===lessonId);
+  assert.equal(found.length,10);
+  for(let n=1;n<=10;n++)assert.ok(found.some(x=>x.questionId===prefix+n),lessonId+' question '+n);
+  for(const a of found){
+   assert.equal(a.certified,false);
+   assert.equal(a.selfCheckRubric.length,3);
+   assert.ok(a.steps.length>=2&&a.check.length>=35);
+  }
+ }
+ const q9=ORIGINAL_WORKED_SOLUTIONS.find(x=>x.lessonId==='chapter-mathematics-3'&&x.questionId==='3.1/9');
+ assert.match(q9.answer,/option B/i);
+ const q10=ORIGINAL_WORKED_SOLUTIONS.find(x=>x.lessonId==='chapter-mathematics-3'&&x.questionId==='3.1/10');
+ assert.match(q10.answer,/512/);
 });
