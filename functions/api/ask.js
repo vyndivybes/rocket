@@ -48,7 +48,7 @@ export async function onRequestPost({request,env}){
     }
     if(mode==='teacher')messages[0].content+=' For THIS tutoring answer address the actual learner question, not a generic syllabus overview. Use a simple intuitive explanation, ONE fully worked illustrative example with units/checks if needed, and ONE short learner practice question. Invite the learner to use Guided Study for targeted follow-ups if still confused. Do not assert that an unseen textbook figure or answer key was checked.';
     const result=await env.AI.run(mode==='teacher'?TUTOR_MODEL:AI_MODEL,{messages,max_tokens:mode==='teacher'?1100:480,...(mode==='teacher'?{temperature:0.35}:{})});
-    const rawAnswer=extractFinalTutorAnswer(result?.response);
+    const rawAnswer=mode==='teacher'?extractFinalTutorAnswer(result?.response):(typeof result?.response==='string'?result.response.trim():'');
     if(!rawAnswer)return error('AI returned no answer',502);
     const checked=qualifyAiAnswer(rawAnswer);
     return json({answer:checked.answer,kind:mode,source:foundation?'Curated foundation (not board-certified)':null,sourceEvidence:source?.evidence??null,sourceUrl:source?.sourceUrl??null,knowledgeReference:knowledge?{title:knowledge.source.title,publisher:knowledge.source.publisher,url:knowledge.source.url}:null,reviewFlagged:checked.replaced,notice:checked.replaced?'Potentially misleading AI answer replaced with a safer response; no alerts or external actions occurred.':'AI-generated explanation, not a verified textbook citation. Verify important facts with official sources.'});
