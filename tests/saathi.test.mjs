@@ -5,6 +5,7 @@ import {readFileSync} from 'node:fs';
 import {randomUUID} from 'node:crypto';
 import {validTask,safetyRoute,scopeStudent,validateQuestion,accessKeyHash,dayUTC,TOPICS,AI_MODEL,auth} from '../functions/_lib/core.js';
 import {onRequestPost as login} from '../functions/api/login.js';
+import {TUTOR_MODEL} from '../functions/_lib/guided-learning.js';
 import {onRequestGet as me} from '../functions/api/me.js';
 import {onRequestGet as tasksGet,onRequestPost as tasksPost} from '../functions/api/tasks.js';
 import {onRequestGet as parentSummary} from '../functions/api/parent-summary.js';
@@ -29,7 +30,7 @@ async function seeded(){
  stmt.run(second,'student2','student',salt,hash,'ISC',null);
  stmt.run(parent,'parent1','parent',salt,hash,'unconfigured',student);
  let inference=0;
- const env={DB:api,AI:{async run(model,input){inference++;assert.equal(model,AI_MODEL);assert.equal(input.messages[0].role,'system');return {response:'Try using Faraday\'s law, then solve a practice example.'}}}};
+ const env={DB:api,AI:{async run(model,input){inference++;assert.equal(model,TUTOR_MODEL);assert.equal(input.messages[0].role,'system');return {response:'Try using Faraday\'s law, then solve a practice example.'}}}};
  return {env,db,ids:{student,second,parent},get inference(){return inference}};
 }
 function req(path,{body,method='GET',cookie='',origin=BASE}={}){
