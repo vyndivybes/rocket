@@ -5,5 +5,5 @@ export async function onRequestGet({request,env}){
  const row=await env.DB.prepare('SELECT subjects_json FROM study_profiles WHERE student_id=?').bind(user.id).first();
  const subjects=row?JSON.parse(row.subjects_json):null;
  const lessons=LESSONS.filter(x=>!subjects||subjects.includes(x.subject)||(x.subject==='English'&&subjects.includes('English Elective'))).map(lessonView);
- return json({lessons,note:'These are optional foundation lessons, not a board-certified or complete syllabus. Use the prescribed school textbook for examination alignment.'});
+ return json({lessons,note:'Includes optional foundation lessons and 66 chapter-specific teaching drafts. Drafts are not teacher-reviewed, do not replace official textbooks or supervised practicals, and do not certify syllabus completion or exam readiness.'});
 }
