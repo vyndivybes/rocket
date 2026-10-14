@@ -1,7 +1,8 @@
 import {renderAdminOverview} from './admin-overview.js';
 import {renderMyDay,renderMySpace} from './experience-ui.js';
+import {renderGuidedTeaching,extractPracticePrompt} from './guided-ui.js';
 const root=document.querySelector('#app');
-let currentUser=null, tasks=[], topics=[], references=[], profile=null, lessons=[], practice={total:0,correct:0,byLesson:[]},activeLessonId=null,activeQuestionId='base',tab='overview',experience=null,ideas=[],experienceReady=false;
+let currentUser=null, tasks=[], topics=[], references=[], profile=null, lessons=[], practice={total:0,correct:0,byLesson:[]},activeLessonId=null,activeQuestionId='base',tab='overview',experience=null,ideas=[],experienceReady=false,guidedContext=null;
 const escapeHtml=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const $=(id)=>document.getElementById(id);
 async function api(path,options={}){
@@ -43,7 +44,7 @@ function renderApp(){
  }
  root.innerHTML=`<div class="layout">${sidebar()}<main class="main"><div class="top"><div><div class="eyebrow">${currentUser.role==='admin'?'Administration':currentUser.role==='parent'?'Guardian view':'Class 12 workspace'}</div><h1>${currentUser.role==='admin'?'Administration':({overview:'My day',myspace:'My Saathi',setup:'Set up your studies',lesson:'Guided chapter lesson',teacher:'Ask Saathi',planner:'Study planner',library:'Lessons & practice'})[tab]}</h1><p class="muted">${currentUser.role==='admin'?'Manage the application, not private student conversations.':currentUser.role==='parent'?'Only aggregate commitments — never private conversations.':'Small steps. Real progress. You decide the pace.'}</p></div><span class="chip">${escapeHtml(currentUser.board||'Not configured')}</span></div><div id="message" role="status" hidden></div><div id="content">${content()}</div><footer>Saathi v0.1 · Study helper, not a substitute for your teacher or trusted adults. Academic outputs need verification. · <a href="/privacy.html">Privacy & safety</a></footer></main></div>`;
   document.querySelectorAll('[data-tab]').forEach(btn=>btn.addEventListener('click',()=>{tab=btn.dataset.tab;renderApp()}));
-  $('logout').onclick=async()=>{await post('logout',{}).catch(()=>{});currentUser=null;experience=null;ideas=[];experienceReady=false;delete document.documentElement.dataset.saathiTheme;delete document.documentElement.dataset.saathiTextSize;tab='overview';renderLogin()};
+  $('logout').onclick=async()=>{await post('logout',{}).catch(()=>{});currentUser=null;experience=null;ideas=[];experienceReady=false;guidedContext=null;delete document.documentElement.dataset.saathiTheme;delete document.documentElement.dataset.saathiTextSize;tab='overview';renderLogin()};
   wire();
   if(currentUser.role==='admin')void refreshAdminSummary();
 }
@@ -129,7 +130,7 @@ function content(){if(currentUser.role==='admin')return `<div><div class="row be
   if(tab==='library')return libraryView();
   if(tab==='lesson')return lessonView();
   if(tab==='overview')return homeView();
-  if(tab==='teacher')return `<div class="grid"><section class="card wide"><span class="chip">Ask, understand, practise</span><h2 style="margin-top:15px">What are you working on?</h2><form id="ask-form"><label class="field">Your question<textarea id="question" maxlength="1600" required placeholder="Why does changing magnetic flux induce an emf?"></textarea></label><div class="row"><button class="btn" type="submit">Explain it</button><span class="notice">12 requests per day · No chat transcript stored</span></div></form><div id="answer-wrap" hidden><h2 style="margin-top:25px">Saathi's response</h2><div class="answer" id="answer"></div><p class="notice" id="answer-note"></p></div></section></div>`;
+  if(tab==='teacher')return `<div class="grid">${renderGuidedTeaching(lessons)}<section class="card wide"><span class="chip">Ask, understand, practise</span><h2 style="margin-top:15px">What are you working on?</h2><form id="ask-form"><label class="field">Your question<textarea id="question" maxlength="1600" required placeholder="Why does changing magnetic flux induce an emf?"></textarea></label><div class="row"><button class="btn" type="submit">Explain it</button><span class="notice">12 requests per day · No chat transcript stored</span></div></form><div id="answer-wrap" hidden><h2 style="margin-top:25px">Saathi's response</h2><div class="answer" id="answer"></div><p class="notice" id="answer-note"></p></div></section></div>`;
   if(tab==='planner')return `<div class="grid"><section class="card"><h2>Add a study commitment</h2><form id="task-form"><label class="field">Task<input name="title" maxlength="180" minlength="2" required placeholder="Revise electromagnetic induction"></label><label class="field">Subject<input name="subject" maxlength="50" placeholder="Physics"></label><label class="field">Due date<input type="date" name="due_date"></label><button type="submit" class="btn">Add task</button></form></section><section class="card"><h2>My study commitments</h2><div id="task-list">${taskList()}</div></section></div>`;
   if(tab==='library')return `<div class="grid"><section class="card wide"><h2>Start with a concept</h2><p class="muted">Illustrative Class 12 topics, not a certified curriculum. Ask your school for your board's current syllabus.</p><div class="topic-list">${topics.map(t=>`<button data-topic="${escapeHtml(t.topic)}" class="topic">${escapeHtml(t.subject)} · ${escapeHtml(t.topic)}</button>`).join('')}</div><h2 style="margin-top:28px">Authoritative starting points</h2><ul class="note-list">${references.map(s=>`<li><a href="${escapeHtml(s.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(s.label)}</a> — ${escapeHtml(s.type)}</li>`).join('')}</ul></section></div>`;
   return `<div class="grid"><section class="card"><span class="chip">Today's focus</span><h2 style="margin-top:13px">Learning, one concept at a time.</h2><p class="muted">Explore a question, test your understanding, and build confidence with practice.</p><button class="btn" data-go="teacher">Ask a study question</button></section><section class="card"><span class="chip">Study momentum</span><h2 style="margin-top:13px">Your commitments</h2><div class="metric">${tasks.filter(x=>x.done).length} <span style="font-size:17px;color:#78909b">/ ${tasks.length} complete</span></div><p class="muted">Your plan can change when life changes.</p><button class="btn secondary" data-go="planner">Open study planner</button></section><section class="card wide"><h2>Remember</h2><p>You are learning, not competing with a machine. Saathi is an AI helper. Take breaks, ask real teachers and talk with people you trust.</p><div class="topic-list">${topics.slice(0,4).map(t=>`<button class="topic" data-topic="${escapeHtml(t.topic)}">${escapeHtml(t.topic)}</button>`).join('')}</div></section></div>`;
@@ -182,6 +183,38 @@ function wire(){
   };
   if($('practice-form'))$('practice-form').onsubmit=async e=>{e.preventDefault();const choice=new FormData(e.currentTarget).get('choice');if(choice===null)return;const button=e.currentTarget.querySelector('button');button.disabled=true;try{const r=await post('practice',{lessonId:activeLessonId,questionId:activeQuestionId,choice:Number(choice)});const panel=$('practice-feedback');panel.className=r.correct?'ok':'danger';panel.textContent=(r.correct?'Correct. ':'Not quite. ')+r.explanation+' Correct answer: '+r.correctOption+'.';practice=(await api('practice')).progress;}catch(err){showMessage(err.message)}finally{button.disabled=false}};
   document.querySelectorAll('[data-go]').forEach(e=>e.onclick=()=>{tab=e.dataset.go;renderApp()});document.querySelectorAll('[data-topic]').forEach(e=>e.onclick=()=>{tab='teacher';renderApp();$('question').value=`Help me understand ${e.dataset.topic}. Ask me a quick question and then explain.`;$('question').focus()});
+  if($('guided-teach-form'))$('guided-teach-form').onsubmit=async e=>{
+    e.preventDefault();
+    const form=e.currentTarget,submit=form.querySelector('[type="submit"]'),data=new FormData(form);
+    const lessonId=data.get('lessonId'),question=String(data.get('question')||'').trim();
+    guidedContext=null;submit.disabled=true;
+    const stage=$('guided-stage');if(stage)stage.hidden=true;
+    try{
+      const r=await post('guided-tutor',{step:'teach',lessonId,question});
+      if(!form.isConnected)return;
+      if($('guided-teaching-answer'))$('guided-teaching-answer').textContent=r.answer;
+      if(r.kind){showMessage(r.notice||'Safety guidance shown.');return}
+      guidedContext={lessonId,question,practicePrompt:extractPracticePrompt(r.answer)};
+      if($('guided-feedback-text'))$('guided-feedback-text').textContent='';
+      if(stage)stage.hidden=false;
+      showMessage(r.notice||'Now try the practice question on your own.',true);
+    }catch(err){showMessage(err.message)}finally{if(submit.isConnected)submit.disabled=false}
+  };
+  if($('guided-feedback-form'))$('guided-feedback-form').onsubmit=async e=>{
+    e.preventDefault();
+    if(!guidedContext){showMessage('Start a guided explanation first.');return}
+    const form=e.currentTarget,submit=form.querySelector('[type="submit"]'),answer=new FormData(form).get('studentAnswer');
+    submit.disabled=true;
+    try{
+      const r=await post('guided-tutor',{step:'feedback',...guidedContext,studentAnswer:String(answer||'')});
+      if($('guided-feedback-text'))$('guided-feedback-text').textContent=r.answer+'\\n\\n'+r.notice;
+    }catch(err){showMessage(err.message)}finally{if(submit.isConnected)submit.disabled=false}
+  };
+  if($('guided-practice'))$('guided-practice').onclick=()=>{
+    if(!guidedContext)return;
+    activeLessonId=guidedContext.lessonId;activeQuestionId='base';tab='lesson';
+    guidedContext=null;renderApp();
+  };
   if($('ask-form'))$('ask-form').onsubmit=async e=>{e.preventDefault();const button=e.currentTarget.querySelector('button');button.disabled=true;const q=$('question').value;try{const r=await post('ask',{question:q});$('answer-wrap').hidden=false;$('answer').textContent=r.answer;$('answer-note').textContent=r.notice||'';}catch(err){showMessage(err.message)}finally{button.disabled=false}};
   if($('task-form'))$('task-form').onsubmit=async e=>{e.preventDefault();const data=Object.fromEntries(new FormData(e.currentTarget));try{await post('tasks',{title:data.title,subject:data.subject||'General',due_date:data.due_date||null});const r=await api('tasks');tasks=r.tasks;renderApp();showMessage('Task added',true)}catch(err){showMessage(err.message)}};
   document.querySelectorAll('[data-task]').forEach(btn=>btn.onclick=async()=>{try{await post('tasks',{action:'complete',id:btn.dataset.task,done:btn.dataset.done==='1'});tasks=(await api('tasks')).tasks;renderApp()}catch(err){showMessage(err.message)}});
