@@ -67,7 +67,7 @@ test('Electrochemistry Nernst result and graph-derived conductivity are re-evalu
  assert.match(entry('chapter-chemistry-2','2.17').answer,/\(i\) Yes.*\(v\) Yes/);
 });
 
-test('new chapter links show the 140 original drafts without leaking server MCQ answer key',()=>{
+test('new chapter links show the 169 original drafts without leaking server MCQ answer key',()=>{
  const m=lessonView(studentLessons('CBSE',['Mathematics']).find(x=>x.id==='chapter-mathematics-1'));
  const c=lessonView(studentLessons('CBSE',['Chemistry']).find(x=>x.id==='chapter-chemistry-2'));
  assert.equal(m.ncertExerciseSolutions.length,35);
@@ -77,12 +77,12 @@ test('new chapter links show the 140 original drafts without leaking server MCQ 
  assert.ok(m.ncertExerciseSolutions.every(x=>x.certified===false));
  const p=questionBankProgress();
  assert.equal(p.indexedPrintedQuestions,180);
- assert.equal(p.authoredSolutions,140);
- assert.equal(p.unansweredIndexedCount,40);
+ assert.equal(p.authoredSolutions,169);
+ assert.equal(p.unansweredIndexedCount,11);
  assert.equal(p.qualifiedSolutions,0);
  assert.equal(p.status,'HOLD');
  const c1=p.missingByIndexedChapter.find(x=>x.lessonId==='chapter-chemistry-1');
  const m2=p.missingByIndexedChapter.find(x=>x.lessonId==='chapter-mathematics-2');
  assert.equal(c1.missingQuestionIds.length,11);
- assert.equal(m2.missingQuestionIds.length,29);
+ assert.equal(m2.missingQuestionIds.length,0);
 });
