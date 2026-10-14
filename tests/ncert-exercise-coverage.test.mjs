@@ -68,6 +68,9 @@ test('exercise prompt supplies original problem as untrusted input and explicitl
  const messages=buildExerciseCoachMessages(b,CHAPTER_MODULES.find(x=>x.id===b.lessonId));
  assert.equal(messages.length,2);
  assert.match(messages[0].content,/not.*verified NCERT/i);
+ assert.match(messages[0].content,/do not complete a live exam/i);
+ assert.match(messages[0].content,/trusted human/i);
+ assert.match(messages[0].content,/No advertising or persuasion/i);
  assert.match(messages[0].content,/Do not invent.*page/i);
  assert.match(messages[0].content,/units|check/i);
  assert.match(messages[1].content,/untrusted exercise text/i);
