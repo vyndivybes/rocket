@@ -65,11 +65,11 @@ test('nontrivial tangent of half sum and two inverse-trig equations match substi
 });
 test('programme is 169 original drafts over 180 indexed entries with eleven unresolved Chemistry-1 parent questions',()=>{
  const p=questionBankProgress();
- assert.equal(p.indexedUnits,10);
- assert.equal(p.indexedPrintedQuestions,239);
- assert.equal(p.authoredSolutions,239);
- assert.equal(p.unansweredIndexedCount,0);
- assert.equal(p.unindexedUnitCount,56);
+ assert.equal(p.indexedUnits,13);
+ assert.equal(p.indexedPrintedQuestions,345);
+ assert.equal(p.authoredSolutions,272);
+ assert.equal(p.unansweredIndexedCount,73);
+ assert.equal(p.unindexedUnitCount,53);
  assert.equal(p.qualifiedSolutions,0);
  assert.equal(p.status,'HOLD');
  const chemistry=p.missingByIndexedChapter.find(x=>x.lessonId==='chapter-chemistry-1');
