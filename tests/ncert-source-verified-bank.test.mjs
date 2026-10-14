@@ -68,7 +68,7 @@ test('whole programme coverage stays held when only a subset of printed question
  const progress=questionBankProgress();
  assert.equal(progress.mappedUnits,66);
  assert.equal(progress.indexedUnits,10);
- assert.equal(progress.indexedPrintedQuestions,231);
+ assert.equal(progress.indexedPrintedQuestions,239);
  assert.equal(progress.qualifiedSolutions,0);
  assert.equal(progress.status,'HOLD');
  const summary=exerciseCoverageSummary();
