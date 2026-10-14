@@ -87,7 +87,8 @@ function lessonView(){
   (x.ncertExerciseSolutions||[]).map(item=>'<details style="margin:9px 0"><summary><strong>'+escapeHtml(item.questionId)+'</strong> · '+escapeHtml(item.problemFocus)+' · draft answer</summary>'+
     '<ol>'+item.steps.map(step=>'<li>'+escapeHtml(step)+'</li>').join('')+'</ol>'+
     '<p><strong>Result:</strong> '+escapeHtml(item.answer)+'</p><p><strong>Check:</strong> '+escapeHtml(item.check)+'</p>'+
-    '<p><strong>Formative marking checklist (not an official marking scheme):</strong></p><ul>'+item.selfCheckRubric.map(rule=>'<li>'+escapeHtml(rule)+'</li>').join('')+'</ul></details>').join('')+
+    '<p><strong>Formative marking checklist (not an official marking scheme):</strong></p><ul>'+item.selfCheckRubric.map(rule=>'<li>'+escapeHtml(rule)+'</li>').join('')+'</ul>'+
+    (item.diagram?'<p><strong>Original schematic:</strong></p><pre style="white-space:pre-wrap">'+escapeHtml(item.diagram)+'</pre>':'')+'</details>').join('')+
    '</section>':'';
  const exerciseCoach=x.curriculumStage==='chapter_draft'?`
  <section class="card wide"><h2>NCERT exercise help</h2>
