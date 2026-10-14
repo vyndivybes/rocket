@@ -59,7 +59,7 @@ test('source-linked solutions are visible to permitted learners without claiming
  const math=lessonView(LESSONS.find(x=>x.id==='chapter-mathematics-1'));
  assert.equal(math.ncertExerciseQuestionCount,35);
  assert.ok(math.ncertExerciseSolutions.length>=5);
- const other=lessonView(LESSONS.find(x=>x.id==='chapter-physics-4'));
+ const other=lessonView(LESSONS.find(x=>x.id==='chapter-physics-5'));
  assert.equal(other.ncertExerciseQuestionCount,null);
  assert.deepEqual(other.ncertExerciseSolutions,[]);
 });
