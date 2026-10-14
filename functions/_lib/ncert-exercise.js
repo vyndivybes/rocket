@@ -24,8 +24,8 @@ function bookTitle(module){
 export const NCERT_EXERCISE_LEDGER=Object.freeze(CHAPTER_MODULES.map(module=>Object.freeze({
  lessonId:module.id,subject:module.subject,title:module.title,
  bookTitle:bookTitle(module),officialCatalogueUrl:CATALOGUE,
- academicYear:'2026-27',editionVerified:Boolean(SOURCE_VERIFIED_EXERCISES[module.id]),
- questionInventoryStatus:SOURCE_VERIFIED_EXERCISES[module.id]?'SOURCE_INDEX_RECONCILED':'EDITION_NOT_RECONCILED',
+ academicYear:'2026-27',editionVerified:Boolean(SOURCE_VERIFIED_EXERCISES[module.id])&&SOURCE_VERIFIED_EXERCISES[module.id]?.reprintVerified!==false,
+ questionInventoryStatus:SOURCE_VERIFIED_EXERCISES[module.id]?.reprintVerified===false?'SOURCE_EDITION_HOLD':SOURCE_VERIFIED_EXERCISES[module.id]?'SOURCE_INDEX_RECONCILED':'EDITION_NOT_RECONCILED',
  questionCount:SOURCE_VERIFIED_EXERCISES[module.id]?.questionIds.length??null,
  workedDraftCount:ORIGINAL_WORKED_SOLUTIONS.filter(x=>x.lessonId===module.id).length,
  verifiedQuestionCount:0,answerReviewStatus:'NOT_VERIFIED',
