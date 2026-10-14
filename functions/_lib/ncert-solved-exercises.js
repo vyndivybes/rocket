@@ -1,5 +1,6 @@
 import {MORE_INDEXES,CH2_WORKED_DRAFTS} from './ncert-chapter2.js';
 import {CHEMISTRY_EXERCISE_INDEXES,CHEMISTRY_WORKED_DRAFTS} from './ncert-chemistry.js';
+import {BIOLOGY_EXERCISE_INDEXES,BIOLOGY_WORKED_DRAFTS} from './ncert-biology.js';
 // Original explanatory drafts only; no textbook questions are republished.
 // Checked identifiers refer to NCERT reprint 2026-27 chapter PDFs.
 export const SOURCE_VERIFIED_EXERCISES=Object.freeze({
@@ -18,7 +19,8 @@ export const SOURCE_VERIFIED_EXERCISES=Object.freeze({
   ])
  }),
  ...MORE_INDEXES,
- ...CHEMISTRY_EXERCISE_INDEXES
+ ...CHEMISTRY_EXERCISE_INDEXES,
+ ...BIOLOGY_EXERCISE_INDEXES
 });
 const DRAFTS=[
   {
@@ -355,7 +357,7 @@ const DRAFTS=[
     "answer": "Exactly n! surjective functions for an n-element set.",
     "check": "For n=3 the permutations are 3×2×1=6, matching the factorial rule."
   }
-].concat(CH2_WORKED_DRAFTS,CHEMISTRY_WORKED_DRAFTS);
+].concat(CH2_WORKED_DRAFTS,CHEMISTRY_WORKED_DRAFTS,BIOLOGY_WORKED_DRAFTS);
 const SELF_CHECK_RUBRIC=Object.freeze({
  Physics:Object.freeze([
   'Identify the applicable physical principle, boundary conditions and any diagram assumptions.',
@@ -371,11 +373,16 @@ const SELF_CHECK_RUBRIC=Object.freeze({
   'Identify species, mole ratios, oxidation states, sign conventions and the correct principle for this reaction or solution.',
   'Track molar masses, units, concentrations, balanced stoichiometry and significant figures in each computation.',
   'Check charge and mass conservation, limiting conditions and whether the final chemical result is physically reasonable.'
+ ]),
+ Biology:Object.freeze([
+  'Identify the biological mechanism and distinguish the organism, process, structure or health concept with correct terminology.',
+  'Support each causal step with the relevant biological evidence, labelled features or controlled comparison.',
+  'Check completeness, avoid unsupported generalisations and state limits or dependencies clearly.'
  ])
 });
 export const ORIGINAL_WORKED_SOLUTIONS=Object.freeze(DRAFTS.map(x=>Object.freeze({...x,
  reviewStatus:'ORIGINAL_EDITORIAL_DRAFT',certified:false,questionTextRepublished:false,
- selfCheckRubric:SELF_CHECK_RUBRIC[x.lessonId.startsWith('chapter-physics-')?'Physics':x.lessonId.startsWith('chapter-chemistry-')?'Chemistry':'Mathematics']
+ selfCheckRubric:SELF_CHECK_RUBRIC[x.lessonId.startsWith('chapter-physics-')?'Physics':x.lessonId.startsWith('chapter-chemistry-')?'Chemistry':x.lessonId.startsWith('chapter-biology-')?'Biology':'Mathematics']
 })));
 export function questionBankProgress(){
  const indexed=Object.entries(SOURCE_VERIFIED_EXERCISES);
