@@ -9,3 +9,34 @@
 .welcome-dialog li{margin-bottom:9px}
 .welcome-dialog .btn{margin-top:12px;min-height:48px;width:100%;font-size:17px}
 @media(max-width:560px){.welcome-dialog{max-height:90dvh}.welcome-backdrop{padding:10px;align-items:center}}
+
+
+/* Saathi voice: explicitly tapped microphone, observable phase, no always-on capture. */
+.saathi-voice-indicator {
+ display:flex;align-items:center;gap:12px;margin:12px 0;padding:12px 16px;
+ border:1px solid rgba(69,143,180,.28);background:rgba(69,143,180,.07);
+ border-radius:16px;font-weight:600;line-height:1.5;min-height:54px;
+}
+.saathi-voice-ring {
+ flex:0 0 22px;width:22px;height:22px;border-radius:50%;
+ background:#7896a4;box-shadow:0 0 0 5px rgba(120,150,164,.12);
+}
+.saathi-voice-indicator[data-phase="listening"] .saathi-voice-ring {
+ background:#20c3d4;box-shadow:0 0 0 6px rgba(32,195,212,.18);
+ animation:saathi-listening-breathe 1.15s ease-in-out infinite alternate;
+}
+.saathi-voice-indicator[data-phase="heard"] .saathi-voice-ring {
+ background:#8772cc;box-shadow:0 0 0 5px rgba(135,114,204,.18);
+}
+.saathi-voice-indicator[data-phase="working"] .saathi-voice-ring {
+ background:#d3a64f;box-shadow:0 0 0 5px rgba(211,166,79,.18);
+ animation:saathi-listening-breathe 1.8s ease-in-out infinite alternate;
+}
+.saathi-voice-indicator[data-phase="answered"] .saathi-voice-ring {
+ background:#35af83;box-shadow:0 0 0 5px rgba(53,175,131,.18);
+}
+.saathi-voice-indicator[data-phase="error"] .saathi-voice-ring {
+ background:#cc6a6a;box-shadow:0 0 0 5px rgba(204,106,106,.18);
+}
+@keyframes saathi-listening-breathe {to{transform:scale(1.18);filter:brightness(1.25)}}
+@media (prefers-reduced-motion:reduce){.saathi-voice-ring{animation:none!important;transition:none!important}}
