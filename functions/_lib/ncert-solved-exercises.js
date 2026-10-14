@@ -1,3 +1,5 @@
+import {CHEMISTRY1_WORKED_A} from './ncert-chemistry1-completion-a.js';
+import {CHEMISTRY1_WORKED_B} from './ncert-chemistry1-completion-b.js';
 import {NEW_2026_EXERCISE_INDEXES,NEW_2026_WORKED_DRAFTS} from './ncert-third-chapters.js';
 import {MATH2_WORKED_DRAFTS} from './ncert-math2-completion.js';
 import {CHEMISTRY2_COMPLETION_DRAFTS} from './ncert-chemistry2-completion.js';
@@ -362,7 +364,7 @@ const DRAFTS=[
     "answer": "Exactly n! surjective functions for an n-element set.",
     "check": "For n=3 the permutations are 3×2×1=6, matching the factorial rule."
   }
-].concat(CH2_WORKED_DRAFTS,CHEMISTRY_WORKED_DRAFTS,BIOLOGY_WORKED_DRAFTS,MATH1_WORKED_DRAFTS,CHEMISTRY2_COMPLETION_DRAFTS,MATH2_WORKED_DRAFTS,NEW_2026_WORKED_DRAFTS);
+].concat(CH2_WORKED_DRAFTS,CHEMISTRY_WORKED_DRAFTS,BIOLOGY_WORKED_DRAFTS,MATH1_WORKED_DRAFTS,CHEMISTRY2_COMPLETION_DRAFTS,MATH2_WORKED_DRAFTS,NEW_2026_WORKED_DRAFTS,CHEMISTRY1_WORKED_A,CHEMISTRY1_WORKED_B);
 const SELF_CHECK_RUBRIC=Object.freeze({
  Physics:Object.freeze([
   'Identify the applicable physical principle, boundary conditions and any diagram assumptions.',
