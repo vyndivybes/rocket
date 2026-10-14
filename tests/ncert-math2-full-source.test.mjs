@@ -66,15 +66,15 @@ test('nontrivial tangent of half sum and two inverse-trig equations match substi
 test('programme is 169 original drafts over 180 indexed entries with eleven unresolved Chemistry-1 parent questions',()=>{
  const p=questionBankProgress();
  assert.equal(p.indexedUnits,10);
- assert.equal(p.indexedPrintedQuestions,231);
- assert.equal(p.authoredSolutions,220);
- assert.equal(p.unansweredIndexedCount,11);
+ assert.equal(p.indexedPrintedQuestions,239);
+ assert.equal(p.authoredSolutions,239);
+ assert.equal(p.unansweredIndexedCount,0);
  assert.equal(p.unindexedUnitCount,56);
  assert.equal(p.qualifiedSolutions,0);
  assert.equal(p.status,'HOLD');
  const chemistry=p.missingByIndexedChapter.find(x=>x.lessonId==='chapter-chemistry-1');
- assert.equal(chemistry.missingQuestionIds.length,11);
- assert.deepEqual(chemistry.missingQuestionIds,['1.15','1.19','1.21','1.23','1.24','1.25','1.26','1.29','1.31','1.32','1.33']);
+ assert.equal(chemistry.missingQuestionIds.length,0);
+ assert.deepEqual(chemistry.missingQuestionIds,[]);
  const math2=p.missingByIndexedChapter.find(x=>x.lessonId==='chapter-mathematics-2');
  assert.deepEqual(math2.missingQuestionIds,[]);
  assert.equal(p.totalPrintedQuestionsAcrossCurriculum,null);
