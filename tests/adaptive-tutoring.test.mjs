@@ -67,3 +67,12 @@ test('the full tutor route uses low-cost stronger hosted model and does not stor
  assert.match(app,/extractPracticePrompt\(r\.answer\)/);
  assert.ok(app.includes('guidedContext?.practicePrompt'));
 });
+
+test('quick Ask Saathi also receives the improved teacher model without upgrading unrelated companion modes',()=>{
+ const ask=readFileSync(new URL('../functions/api/ask.js',import.meta.url),'utf8');
+ assert.match(ask,/TUTOR_MODEL/);
+ assert.match(ask,/mode==='teacher'\?TUTOR_MODEL:AI_MODEL/);
+ assert.match(ask,/mode==='teacher'\?1100:480/);
+ assert.match(ask,/extractFinalTutorAnswer/);
+ assert.match(ask,/acquireAiQuota/);
+});
