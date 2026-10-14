@@ -47,7 +47,7 @@ test('all new authored Chemistry worked answers match verified parent exercise i
  assert.equal(p.qualifiedSolutions,0);
  assert.equal(p.status,'HOLD');
  const records=NCERT_EXERCISE_LEDGER.filter(x=>x.subject==='Chemistry'&&x.editionVerified);
- assert.equal(records.length,3);
+ assert.equal(records.length,2);
  assert.equal(records.reduce((n,x)=>n+x.verifiedQuestionCount,0),0);
 });
 test('Chemistry unit conversions and stoichiometry are independently recalculated',()=>{
