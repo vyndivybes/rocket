@@ -71,7 +71,7 @@ export const CHEMISTRY_3_DRAFTS_B=Object.freeze([
     "questionId": "3.17",
     "problemFocus": "Microgram radioactive strontium decay using exact rendered printed units",
     "steps": [
-      "The rendered official NCERT 2026-27 problem starts with 1 μg of Sr-90, not 1 mg, and specifies a half-life of 28.1 years.",
+      "The rendered official NCERT 2026-27 problem starts with 1 μg of Sr-90, rather than the incorrect milligram transcription, and specifies a half-life of 28.1 years.",
       "Use m=1 μg times 2^(-elapsed years/28.1). At 10 years the factor is 0.7814; at 60 years it is 0.2276."
     ],
     "answer": "Remaining mass about 0.781 μg after 10 years and 0.228 μg after 60 years.",
