@@ -1,5 +1,5 @@
 import {json,error,auth,ensureRole,sameOrigin,safeBody} from '../_lib/core.js';
-import {gradePractice,LESSONS} from '../_lib/study.js';
+import {gradePractice,LESSONS,lessonAllowedForLearner} from '../_lib/study.js';
 import {revisionForLesson} from '../_lib/question-bank.js';
 export async function onRequestGet({request,env}){
  const user=await auth(request,env);if(!ensureRole(user,'student'))return error('Student only',403);
@@ -18,13 +18,13 @@ export async function onRequestPost({request,env}){
  let profile;
  try{profile=await env.DB.prepare('SELECT subjects_json FROM study_profiles WHERE student_id=?').bind(user.id).first();}
  catch{return error('Study preferences temporarily unavailable',503)}
+ let subjects=null;
  if(profile){
-  let subjects;
   try{subjects=JSON.parse(profile.subjects_json);}catch{return error('Invalid study preferences',409)}
   if(!Array.isArray(subjects))return error('Invalid study preferences',409);
-  if(!subjects.includes(grade.lesson.subject)&&!(grade.lesson.subject==='English'&&subjects.includes('English Elective')))
-   return error('This lesson is outside your selected subjects',403);
  }
+ if(!lessonAllowedForLearner(grade.lesson,user.board,subjects))
+  return error('This lesson requires an enrolled CBSE board and matching selected subject',403);
 
  // Only aggregate counts, never raw answers or student prompt text.
  await env.DB.prepare('INSERT INTO practice_progress(student_id,lesson_id,attempts,correct) VALUES(?,?,1,?) ON CONFLICT(student_id,lesson_id) DO UPDATE SET attempts=attempts+1,correct=correct+excluded.correct,updated_at=CURRENT_TIMESTAMP').bind(user.id,grade.progressKey,grade.correct?1:0).run();
