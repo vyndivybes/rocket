@@ -63,15 +63,15 @@ test('Physics 3 includes actual source-checked bridge image dependency, no inven
 test('newly checked sources expand authored count without inventing whole-66-unit total',()=>{
  const p=questionBankProgress();
  assert.equal(p.indexedUnits,10);
- assert.equal(p.indexedPrintedQuestions,231);
- assert.equal(p.authoredSolutions,220);
- assert.equal(p.unansweredIndexedCount,11);
+ assert.equal(p.indexedPrintedQuestions,239);
+ assert.equal(p.authoredSolutions,239);
+ assert.equal(p.unansweredIndexedCount,0);
  assert.equal(p.unindexedUnitCount,56);
  assert.equal(p.qualifiedSolutions,0);
  assert.equal(p.totalPrintedQuestionsAcrossCurriculum,null);
  assert.equal(p.status,'HOLD');
  const summary=exerciseCoverageSummary();
  assert.equal(summary.unindexedUnits.length,56);
- assert.equal(summary.sourceReconciliationHolds[0].lessonId,'chapter-chemistry-1');
+ assert.equal(summary.sourceReconciliationResolutions[0].lessonId,'chapter-chemistry-1');
  assert.equal(summary.coverageStatus,'HOLD');
 });
