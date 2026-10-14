@@ -2,10 +2,10 @@
 // questions or complete scans are embedded. No teacher-certified answer yet.
 export const CHEMISTRY_EXERCISE_INDEXES=Object.freeze({
  'chapter-chemistry-1':Object.freeze({
-  officialPdf:'https://ncert.nic.in/textbook/pdf/lech101.pdf',
+  officialPdf:'https://www.ncert.nic.in/textbook/pdf/lech101.pdf',
   reprint:'2026-27',
   exerciseLabels:['Exercises (end of Unit 1)'],
-  questionIds:Object.freeze(Array.from({length:33},(_,i)=>'1.'+(i+1)))
+  questionIds:Object.freeze(Array.from({length:41},(_,i)=>'1.'+(i+1)))
  }),
  'chapter-chemistry-2':Object.freeze({
   officialPdf:'https://ncert.nic.in/textbook/pdf/lech102.pdf',
