@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {validateGuidedInput,buildGuidedMessages,selectRevisionFocus} from '../functions/_lib/guided-learning.js';
 import {renderMyDay} from '../public/experience-ui.js';
+import {renderGuidedTeaching,extractPracticePrompt} from '../public/guided-ui.js';
 
 const lesson={id:'chapter-physics-1',subject:'Physics',title:'Electric Charges and Fields',
  concept:'Charges interact through an inverse square law.'};
@@ -62,4 +63,19 @@ test('new tutor endpoint and frontend retain role, profile, quota, privacy and l
  assert.match(app,/guided-feedback-form/);
  assert.match(app,/post\('guided-tutor'/);
  assert.match(app,/practice\).*progress|api\('practice'\)/);
+});
+
+test('learner practice prompt extracted without revealing tutor working as the practice answer',()=>{
+ const worked='Explanation\nAn electric charge creates a field.\nWorked example\nHere are the steps.\n## Try this\nIf you double the separation, how does the force change?';
+ assert.equal(extractPracticePrompt(worked),'If you double the separation, how does the force change?');
+ assert.match(extractPracticePrompt('No practice question generated'),/Explain the central idea/);
+});
+test('guided tutor chapter choices escape text, work on narrow screens and never display a stored score',()=>{
+ const html=renderGuidedTeaching([{id:'chapter-physics-1',subject:'Physics',title:'X<svg onload=alert(1)>'}]);
+ assert.match(html,/id="guided-teach-form"/);
+ assert.match(html,/id="guided-feedback-form"/);
+ assert.match(html,/id="guided-practice"/);
+ assert.match(html,/X&lt;svg/);
+ assert.doesNotMatch(html,/<svg onload=/);
+ assert.doesNotMatch(html,/saved transcript|certified exam mark/i);
 });
