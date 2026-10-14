@@ -49,10 +49,16 @@ export function auditedExerciseCoverage({editionVerified,expectedQuestionIds,ite
 }
 export function exerciseCoverageSummary(){
  const unindexedUnits=NCERT_EXERCISE_LEDGER.filter(x=>x.questionCount===null).map(x=>({lessonId:x.lessonId,subject:x.subject,title:x.title,workType:x.workType,status:'EDITION_NOT_RECONCILED'}));
- return {unitCount:NCERT_EXERCISE_LEDGER.length,...questionBankProgress(),unindexedUnits,
+ const sourceReconciliationHolds=[{
+  lessonId:'chapter-chemistry-1',
+  issue:'Conflicting 2026-27 secondary-source exercise counts: 33 indexed in the current Saathi bank, while other sources report 41. Primary official NCERT lech101.pdf could not be independently retrieved for final exercise-page verification.',
+  indexedParentIds:33,reportedAlternativeParentIds:41,
+  confirmedAuthoritativeCount:null,status:'SOURCE_CONFLICT_HOLD'
+ }];
+ return {unitCount:NCERT_EXERCISE_LEDGER.length,...questionBankProgress(),unindexedUnits,sourceReconciliationHolds,
   unverifiedEditionCount:NCERT_EXERCISE_LEDGER.filter(x=>!x.editionVerified).length,
   verifiedQuestionCount:0,questionCount:null,verifiedQuestionPercent:null,
-  coverageStatus:'HOLD',explanation:'Seven NCERT 2026-27 printed chapter exercise indexes are reconciled across Physics, Chemistry, Mathematics and Biology; original solution drafts are not independently certified. The overall question census and completion percentage remain unknown.'};
+  coverageStatus:'HOLD',explanation:'Seven chapter indexes currently contain numbered exercise records. Chemistry Chapter 1 has a conflicting exercise count across 2026-27 source listings (33 vs 41); its definitive printed exercise census is not qualified. Original drafts remain uncertified, and overall printed question totals are unknown.'};
 }
 const REF_PATTERN=/^[a-zA-Z0-9][a-zA-Z0-9 .,:()\/\-]{0,59}$/;
 export function validateExerciseRequest(input){
