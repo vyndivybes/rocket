@@ -27,7 +27,7 @@ export function renderMyDay({tasks=[],practice={},lessons=[],prefs}={}){
  <p>You can learn, create, explore or take a break. ${prefs?.quietMode===false&&prefs?.remindersEnabled===true?'You have opted in to reminders; device permissions and quiet hours still control delivery.':'Saathi stays quiet unless you explicitly enable reminders.'}</p>
  <div class="today-focus"><strong>One possible next step</strong>
  <p>${next?`Your next planned task: ${esc(next.title)}.`:'No tasks are waiting. Choose what interests you.'}</p>
- <button class="btn" data-go="planner">${next?'View my plan':'Plan something'}</button></div>
+ <button class="btn" data-go="planner">${next?'View my plan':'Plan something'}</button><p class="notice"><a href="/mission.html">Open my weekly study, sport and rest schedule</a></p></div>
  <p class="notice">Plan: ${done} of ${tasks.length} items completed · Learning: ${Number(practice.correct)||0} correct practice responses. These are counts, not grades or pressure to achieve a streak.</p>
  </section><div class="activity-grid">${cards}</div>
  ${revision?'<section class="card wide"><span class="chip">My next revision</span><h2>Review '+esc(revision.title)+'</h2><p class="muted">Suggested based on checked practice, not an exam grade or proof of mastery. Revisit the explanation, try another question and see what changes.</p><button class="btn secondary" data-lesson="'+esc(revision.lessonId)+'">Review '+esc(revision.title)+'</button></section>':''}
