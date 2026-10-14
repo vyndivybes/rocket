@@ -65,5 +65,5 @@ test('the full tutor route uses low-cost stronger hosted model and does not stor
  assert.match(app,/guidedContext\.lastAnswer/);
  assert.match(app,/post\('guided-tutor',\{step:'followup'/);
  assert.match(app,/extractPracticePrompt\(r\.answer\)/);
- assert.match(app,/guidedContext\.practicePrompt/);
+ assert.match(app,/guidedContext\\?\\.practicePrompt/);
 });
