@@ -371,11 +371,22 @@ export const ORIGINAL_WORKED_SOLUTIONS=Object.freeze(DRAFTS.map(x=>Object.freeze
  selfCheckRubric:SELF_CHECK_RUBRIC[x.lessonId.startsWith('chapter-physics-')?'Physics':'Mathematics']
 })));
 export function questionBankProgress(){
- return {mappedUnits:66,indexedUnits:Object.keys(SOURCE_VERIFIED_EXERCISES).length,
-  indexedPrintedQuestions:Object.values(SOURCE_VERIFIED_EXERCISES).reduce((n,x)=>n+x.questionIds.length,0),
-  authoredSolutions:ORIGINAL_WORKED_SOLUTIONS.length,qualifiedSolutions:0,
-  totalPrintedQuestionsAcrossCurriculum:null,status:'HOLD'};
+ const indexed=Object.entries(SOURCE_VERIFIED_EXERCISES);
+ const authored=new Set(ORIGINAL_WORKED_SOLUTIONS.map(x=>x.lessonId+'::'+x.questionId));
+ const missingByIndexedChapter=indexed.map(([lessonId,source])=>({
+  lessonId,sourceUrl:source.officialPdf,
+  indexedQuestionCount:source.questionIds.length,
+  missingQuestionIds:source.questionIds.filter(id=>!authored.has(lessonId+'::'+id))
+ }));
+ const indexedPrintedQuestions=indexed.reduce((n,[,source])=>n+source.questionIds.length,0);
+ const indexedDraftQuestionCount=ORIGINAL_WORKED_SOLUTIONS.length;
+ return {mappedUnits:66,indexedUnits:indexed.length,unindexedUnitCount:66-indexed.length,
+  indexedPrintedQuestions,indexedDraftQuestionCount,
+  unansweredIndexedCount:missingByIndexedChapter.reduce((n,x)=>n+x.missingQuestionIds.length,0),
+  missingByIndexedChapter,authoredSolutions:indexedDraftQuestionCount,
+  qualifiedSolutions:0,totalPrintedQuestionsAcrossCurriculum:null,status:'HOLD'};
 }
+
 export function chapterSourceIndex(id){
  const x=SOURCE_VERIFIED_EXERCISES[id];
  return x?{...x,questionIds:[...x.questionIds],exerciseLabels:[...x.exerciseLabels]}:null;
