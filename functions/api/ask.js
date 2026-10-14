@@ -7,6 +7,7 @@ import {DEFAULT_COMPANION_NAME} from '../_lib/companion-name.js';
 import {buildMemoryContext} from '../_lib/personal-memory.js';
 import {buildSourceContext} from '../_lib/link-lesson.js';
 import {readExperience,styleInstruction} from '../_lib/experience.js';
+import {TUTOR_MODEL,extractFinalTutorAnswer} from '../_lib/guided-learning.js';
 export async function onRequestPost({request,env}){
   if(!sameOrigin(request))return error('Origin denied',403);
   const user=await auth(request,env);if(!ensureRole(user,'student'))return error('Student only',403);
@@ -45,8 +46,9 @@ export async function onRequestPost({request,env}){
     if(knowledge){
       messages[0].content+=' KNOWLEDGE PACK: '+knowledge.packTitle+' > '+knowledge.title+'. Editorial explanation: '+knowledge.explanation+' Reference: '+knowledge.source.publisher+' — '+knowledge.source.url+'. This is an external educational source link, not proof your answer has been independently verified or a certified syllabus. Do not invent page quotations.';
     }
-    const result=await env.AI.run(AI_MODEL,{messages,max_tokens:480});
-    const rawAnswer=typeof result?.response==='string'?result.response.trim():'';
+    if(mode==='teacher')messages[0].content+=' For THIS tutoring answer address the actual learner question, not a generic syllabus overview. Use a simple intuitive explanation, ONE fully worked illustrative example with units/checks if needed, and ONE short learner practice question. Invite the learner to use Guided Study for targeted follow-ups if still confused. Do not assert that an unseen textbook figure or answer key was checked.';
+    const result=await env.AI.run(mode==='teacher'?TUTOR_MODEL:AI_MODEL,{messages,max_tokens:mode==='teacher'?1100:480,...(mode==='teacher'?{temperature:0.35}:{})});
+    const rawAnswer=extractFinalTutorAnswer(result?.response);
     if(!rawAnswer)return error('AI returned no answer',502);
     const checked=qualifyAiAnswer(rawAnswer);
     return json({answer:checked.answer,kind:mode,source:foundation?'Curated foundation (not board-certified)':null,sourceEvidence:source?.evidence??null,sourceUrl:source?.sourceUrl??null,knowledgeReference:knowledge?{title:knowledge.source.title,publisher:knowledge.source.publisher,url:knowledge.source.url}:null,reviewFlagged:checked.replaced,notice:checked.replaced?'Potentially misleading AI answer replaced with a safer response; no alerts or external actions occurred.':'AI-generated explanation, not a verified textbook citation. Verify important facts with official sources.'});
