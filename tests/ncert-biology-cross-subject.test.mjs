@@ -63,7 +63,7 @@ test('auditable course gap register lists every unresolved chapter and its subje
  assert.equal(s.unindexedUnits.filter(x=>['Physics','Chemistry','Mathematics','Biology'].includes(x.subject)).length,40);
  assert.equal(s.unindexedUnits.filter(x=>x.subject==='English Elective').length,16);
  assert.ok(s.unindexedUnits.every(x=>x.status==='EDITION_NOT_RECONCILED'&&x.lessonId.startsWith('chapter-')&&x.title.length>3));
- assert.match(s.explanation,/Ten chapter indexes/);
+ assert.match(s.explanation,/Ten chapters currently contain/);
  assert.equal(s.questionCount,null);
  assert.equal(s.verifiedQuestionPercent,null);
  assert.equal(s.coverageStatus,'HOLD');
