@@ -4,9 +4,9 @@ import {SOURCE_VERIFIED_EXERCISES, ORIGINAL_WORKED_SOLUTIONS, questionBankProgre
 import {NCERT_EXERCISE_LEDGER, exerciseCoverageSummary} from '../functions/_lib/ncert-exercise.js';
 import {LESSONS, lessonView, studentLessons} from '../functions/_lib/study.js';
 
-test('official 2026-27 sources have four precisely indexed chapter exercise sets',()=>{
+test('official 2026-27 sources preserve four original indexes and now cover seven chapters',()=>{
  const index=SOURCE_VERIFIED_EXERCISES;
- assert.deepEqual(Object.keys(index),['chapter-physics-1','chapter-mathematics-1','chapter-physics-2','chapter-mathematics-2']);
+ assert.deepEqual(Object.keys(index).slice(0,4),['chapter-physics-1','chapter-mathematics-1','chapter-physics-2','chapter-mathematics-2']);
  assert.equal(index['chapter-physics-2'].officialPdf,'https://ncert.nic.in/textbook/pdf/leph102.pdf');
  assert.equal(index['chapter-mathematics-2'].officialPdf,'https://ncert.nic.in/textbook/pdf/lemh102.pdf');
  assert.deepEqual(index['chapter-physics-2'].questionIds,Array.from({length:11},(_,i)=>'2.'+(i+1)));
@@ -18,9 +18,9 @@ test('official 2026-27 sources have four precisely indexed chapter exercise sets
  assert.equal(index['chapter-physics-2'].reprint,'2026-27');
  assert.equal(index['chapter-mathematics-2'].reprint,'2026-27');
  const p=questionBankProgress();
- assert.equal(p.indexedUnits,4);
- assert.equal(p.indexedPrintedQuestions,112);
- assert.equal(p.authoredSolutions,55);
+ assert.equal(p.indexedUnits,7);
+ assert.equal(p.indexedPrintedQuestions,180);
+ assert.equal(p.authoredSolutions,107);
  assert.equal(p.qualifiedSolutions,0);
  assert.equal(p.status,'HOLD');
  const curriculum=exerciseCoverageSummary();
@@ -58,7 +58,7 @@ test('physics 1.9 uses physical z-axis and dipole negative k not fabricated y-ax
 test('Physics chapter 2 constants and capacitor solutions agree numerically',()=>{
  const k=8.9875517923e9,eps=8.8541878128e-12;
  const near=(x,y,rel=0.015)=>assert.ok(Math.abs(x-y)<rel*Math.abs(y),x+' vs '+y);
- near(6*k*5e-6/0.1,2.70e6);
+ near(6*k*5e-3/0.1,2.70e9);
  near(k*1.6e-7/(0.12**2),9.99e4);
  near(k*1.6e-7/(0.18**2),4.44e4);
  near(eps*6e-3/(3e-3),1.77e-11);
@@ -78,9 +78,9 @@ test('maths chapter 2 principal-value responses respect NCERT branches and corre
 
 test('exact missing-work audit lists unsolved indexed refs, not a fake all-NCERT percentage',()=>{
  const p=questionBankProgress();
- assert.equal(p.unindexedUnitCount,62);
- assert.equal(p.unansweredIndexedCount,57);
- assert.equal(p.indexedQuestionDraftCount,55);
+ assert.equal(p.unindexedUnitCount,59);
+ assert.equal(p.unansweredIndexedCount,73);
+ assert.equal(p.indexedQuestionDraftCount,107);
  const m1=p.missingByIndexedChapter.find(x=>x.lessonId==='chapter-mathematics-1');
  const m2=p.missingByIndexedChapter.find(x=>x.lessonId==='chapter-mathematics-2');
  const phy1=p.missingByIndexedChapter.find(x=>x.lessonId==='chapter-physics-1');

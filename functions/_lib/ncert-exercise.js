@@ -48,10 +48,11 @@ export function auditedExerciseCoverage({editionVerified,expectedQuestionIds,ite
   percent:Math.round((verifiedCount/expected.size)*100)};
 }
 export function exerciseCoverageSummary(){
- return {unitCount:NCERT_EXERCISE_LEDGER.length,...questionBankProgress(),
+ const unindexedUnits=NCERT_EXERCISE_LEDGER.filter(x=>x.questionCount===null).map(x=>({lessonId:x.lessonId,subject:x.subject,title:x.title,workType:x.workType,status:'EDITION_NOT_RECONCILED'}));
+ return {unitCount:NCERT_EXERCISE_LEDGER.length,...questionBankProgress(),unindexedUnits,
   unverifiedEditionCount:NCERT_EXERCISE_LEDGER.filter(x=>!x.editionVerified).length,
   verifiedQuestionCount:0,questionCount:null,verifiedQuestionPercent:null,
-  coverageStatus:'HOLD',explanation:'Only two NCERT 2026-27 printed chapter exercise indexes are reconciled; original solution drafts are not independently certified. The overall question census and completion percentage remain unknown.'};
+  coverageStatus:'HOLD',explanation:'Seven NCERT 2026-27 printed chapter exercise indexes are reconciled across Physics, Chemistry, Mathematics and Biology; original solution drafts are not independently certified. The overall question census and completion percentage remain unknown.'};
 }
 const REF_PATTERN=/^[a-zA-Z0-9][a-zA-Z0-9 .,:()\/\-]{0,59}$/;
 export function validateExerciseRequest(input){

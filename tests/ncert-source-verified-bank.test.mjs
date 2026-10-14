@@ -5,7 +5,7 @@ import {SOURCE_VERIFIED_EXERCISES,ORIGINAL_WORKED_SOLUTIONS,questionBankProgress
 import {NCERT_EXERCISE_LEDGER,exerciseCoverageSummary} from '../functions/_lib/ncert-exercise.js';
 import {LESSONS,studentLessons,lessonView} from '../functions/_lib/study.js';
 
-test('NCERT reprint 2026-27 PDF reconciled two chapter exercise headings without invented counts',()=>{
+test('NCERT 2026-27 PDFs retain exact Physics and Mathematics chapter one exercise identifiers',()=>{
  const physics=SOURCE_VERIFIED_EXERCISES['chapter-physics-1'];
  const maths=SOURCE_VERIFIED_EXERCISES['chapter-mathematics-1'];
  assert.equal(physics.officialPdf,'https://ncert.nic.in/textbook/pdf/leph101.pdf');
@@ -20,7 +20,7 @@ test('NCERT reprint 2026-27 PDF reconciled two chapter exercise headings without
  ...Array.from({length:12},(_,i)=>'1.2/'+(i+1)),
  ...Array.from({length:7},(_,i)=>'misc/'+(i+1))
  ]);
- assert.equal(Object.keys(SOURCE_VERIFIED_EXERCISES).length,4);
+ assert.equal(Object.keys(SOURCE_VERIFIED_EXERCISES).length,7);
  const ledgerP=NCERT_EXERCISE_LEDGER.find(x=>x.lessonId==='chapter-physics-1');
  const ledgerM=NCERT_EXERCISE_LEDGER.find(x=>x.lessonId==='chapter-mathematics-1');
  assert.equal(ledgerP.questionCount,23);
@@ -67,8 +67,8 @@ test('source-linked solutions are visible to permitted learners without claiming
 test('whole programme coverage stays held when only a subset of printed questions have authored solutions',()=>{
  const progress=questionBankProgress();
  assert.equal(progress.mappedUnits,66);
- assert.equal(progress.indexedUnits,4);
- assert.equal(progress.indexedPrintedQuestions,112);
+ assert.equal(progress.indexedUnits,7);
+ assert.equal(progress.indexedPrintedQuestions,180);
  assert.equal(progress.qualifiedSolutions,0);
  assert.equal(progress.status,'HOLD');
  const summary=exerciseCoverageSummary();
