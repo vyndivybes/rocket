@@ -180,6 +180,30 @@ export const LESSONS=[
 
  ...CHAPTER_MODULES
 ];
+// Course authority boundary: a CBSE 2026-27 draft, syllabus-linked foundation,
+// or English Elective (001) is only available to an explicitly enrolled CBSE
+// learner. General foundational literacy/numeracy remains useful before setup.
+function validSubjects(selected){
+ if(selected===null)return true;
+ return Array.isArray(selected)&&selected.length>=1&&selected.length<=8&&
+  new Set(selected).size===selected.length&&
+  selected.every(subject=>typeof subject==='string'&&SUBJECTS.includes(subject))&&
+  !(selected.includes('English')&&selected.includes('English Elective'));
+}
+export function lessonAllowedForLearner(lesson,board,selectedSubjects=null){
+ if(!lesson||typeof lesson.subject!=='string'||!validSubjects(selectedSubjects))return false;
+ const restricted=lesson.curriculumStage==='chapter_draft'||
+  lesson.academicYear==='2026-27'||lesson.subject==='English Elective';
+ if(restricted&&(board!=='CBSE'||selectedSubjects===null))return false;
+ if(selectedSubjects===null)return true;
+ return selectedSubjects.includes(lesson.subject)||
+  (lesson.subject==='English'&&selectedSubjects.includes('English Elective'));
+}
+export function studentLessons(board,selectedSubjects=null){
+ if(!validSubjects(selectedSubjects))return [];
+ return LESSONS.filter(lesson=>lessonAllowedForLearner(lesson,board,selectedSubjects));
+}
+
 export function lessonView(lesson){
  // Never expose the grading key or answer explanation before the attempt.
  const {answerIndex,explanation,...publicFields}=lesson;
