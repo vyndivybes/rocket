@@ -49,7 +49,7 @@ test('all 18 NCERT Chemistry Electrochemistry 2026-27 parent references have dif
 test('Electrochemistry Nernst result and graph-derived conductivity are re-evaluated numerically',()=>{
  const close=(a,b,tol=0.02)=>assert.ok(Math.abs(a-b)<=tol*Math.abs(b),'actual='+a+' expected='+b);
  const F=96485,coef=.05916;
- close(0.34-(-0.74),0.34);
+ close(-0.40-(-0.74),0.34);
  close(-6*F*0.34/1000,-196.83);
  close(10**(6*.34/coef),3.04e34,0.04);
  close(2.71-coef/2*Math.log10(10),2.6804);
