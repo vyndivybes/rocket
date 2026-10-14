@@ -68,7 +68,7 @@ test('new tutor endpoint and frontend retain role, profile, quota, privacy and l
 test('learner practice prompt extracted without revealing tutor working as the practice answer',()=>{
  const worked='Explanation\nAn electric charge creates a field.\nWorked example\nHere are the steps.\n## Try this\nIf you double the separation, how does the force change?';
  assert.equal(extractPracticePrompt(worked),'If you double the separation, how does the force change?');
- assert.match(extractPracticePrompt('No practice question generated'),/Explain the central idea/);
+ assert.equal(extractPracticePrompt('No practice question generated'),null);
 });
 test('guided tutor chapter choices escape text, work on narrow screens and never display a stored score',()=>{
  const html=renderGuidedTeaching([{id:'chapter-physics-1',subject:'Physics',title:'X<svg onload=alert(1)>'}]);
