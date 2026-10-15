@@ -510,16 +510,26 @@ async function runLearnerBuild(prompt,revise=false,spoken=false,install=false){
  const prior=revise?state.selectedBuild:null;
  if(revise&&!prior)throw Error('Choose your project before revising it.');
  flash(revise?'Improving your project safely…':'Generating a private Saathi feature…');
- const result=await api('builder-lab',revise?{action:'revise',id:prior.id,revision:prior.revision,prompt}:{action:'generate',prompt});
+ let result=await api('builder-lab',revise?{action:'revise',id:prior.id,revision:prior.revision,prompt}:{action:'generate',prompt});
  await reloadLearnerBuilds();
  await selectLearnerBuild(result.id);
- const test=await runProbe(result.id);state.lastProbe={id:result.id,...test};
+ let test=await runProbe(result.id),repairIssue='';
+ state.lastProbe={id:result.id,...test};
+ if(!test.ok){
+  flash('Saathi detected a runtime issue and is attempting one automatic repair…');
+  try{
+   result=await api('builder-lab',{action:'repair',id:result.id,revision:result.revision,diagnostic:test.detail||'The sandbox project did not complete its loading smoke test.'});
+   await selectLearnerBuild(result.id);
+   test=await runProbe(result.id);
+   state.lastProbe={id:result.id,...test};
+  }catch(err){repairIssue=err.message}
+ }
  if(!test.ok){
   if(revise&&prior&&state.installedFeatures.some(x=>x.id===result.id)){
    await api('builder-lab',{action:'restore',id:result.id,revision:prior.revision,currentRevision:result.revision});
    await selectLearnerBuild(result.id);
   }
-  throw Error('The generated project was saved but failed its isolated runtime test: '+test.detail+'. It was not newly installed. Improve it in Builder Lab.');
+  throw Error('Runtime test and repair did not pass. '+(repairIssue||test.detail||'Feature unavailable')+'. No new feature was installed; the last installed version was restored when applicable.');
  }
  if(install)await api('installed-features',{action:'install',id:result.id});
  if(state.installedAvailable||install)await reloadInstalledFeatures();
