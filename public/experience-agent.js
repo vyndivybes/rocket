@@ -25,9 +25,11 @@ async function api(path,body){const res=await fetch('/api/'+path,{method:body?'P
 let welcomeData=null,weatherData=null,autoWelcomePending=false;
 function requestLocalWeather(){
  if(!navigator.geolocation)return Promise.resolve(null);
- return new Promise(resolve=>navigator.geolocation.getCurrentPosition(async p=>{
-  try{resolve(await api('live-weather',{latitude:p.coords.latitude,longitude:p.coords.longitude}))}catch{resolve(null)}
- },()=>resolve(null),{enableHighAccuracy:false,timeout:9500,maximumAge:600000}));
+ return new Promise(resolve=>{
+  try{navigator.geolocation.getCurrentPosition(async p=>{
+   try{resolve(await api('live-weather',{latitude:p.coords.latitude,longitude:p.coords.longitude}))}catch{resolve(null)}
+  },()=>resolve(null),{enableHighAccuracy:false,timeout:9500,maximumAge:600000})}catch{resolve(null)}
+ });
 }
 async function refreshWeatherAndBriefing({read=false}={}){
  if(!welcomeData)return;
