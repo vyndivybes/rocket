@@ -19,7 +19,7 @@ test('scene is a Three.js 3D WebGL scene with animated camera and interactive ai
 });
 test('one input automatically selects educational YouTube or tutor with user-operated voice',()=>{
  const source=read('public/experience-agent.js');
- for(const token of ['youtubeIntent','youtube-search',"api('ask'",'SpeechRecognition','SpeechSynthesisUtterance','/api/me','submit','textContent'])assert.ok(source.includes(token),token);
+ for(const token of ['youtubeIntent','youtube-search',"api('ask'",'SpeechRecognition','SpeechSynthesisUtterance',"api('me'",'submit','textContent'])assert.ok(source.includes(token),token);
  assert.doesNotMatch(source,/innerHTML\s*=\s*(?:data|result|response)\./);
 });
 test('3D dependency and YouTube player are explicitly allowed, never embed API secrets',()=>{
