@@ -1,0 +1,14 @@
+{
+  "manifest_version": 3,
+  "name": "Saathi Browser Helper",
+  "description": "Consent-driven webpage study extraction, highlighting and selected link navigation.",
+  "version": "0.1.0",
+  "permissions": [
+    "activeTab",
+    "scripting"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Saathi Browser Helper"
+  }
+}

@@ -1,0 +1,4 @@
+import test from 'node:test';import assert from 'node:assert/strict';
+import {parseResearchCommand,buildStudyDocument} from '../public/research-workflow.js';
+test('research requires explicit source and grounded question',()=>{assert.deepEqual(parseResearchCommand('Research https://www1.grc.nasa.gov/ about aircraft forces'),{url:'https://www1.grc.nasa.gov/',question:'aircraft forces'});assert.equal(parseResearchCommand('Research the entire internet'),null);assert.equal(parseResearchCommand('Research http://localhost/ about sky'),null)});
+test('study document exports as printable standalone HTML with no active source injection',()=>{const s=buildStudyDocument({title:'Physics',question:'What is <script>x</script>?',answer:'Pressure & force <b>test</b>',sourceUrl:'https://www1.grc.nasa.gov/'});assert.match(s,/<html/);assert.match(s,/Pressure &amp; force &lt;b&gt;test/);assert.doesNotMatch(s,/<script>/);assert.match(s,/Verify source facts/);});

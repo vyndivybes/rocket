@@ -1,0 +1,8 @@
+node_modules/
+.dev.vars
+.wrangler/
+*.sqlite
+*.db
+.secrets/
+provision-*.sql
+.DS_Store

@@ -1,0 +1,3 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {readFileSync} from 'node:fs';
+test('adaptive recommendation requires learner review before scheduling, never automatic insert',()=>{const p=readFileSync(new URL('../public/mission.js',import.meta.url),'utf8');assert.match(p,/data-plan-lesson/);assert.match(p,/recommended lesson/i);assert.match(p,/schedule-form/);assert.match(p,/Only save after reviewing/i);});
+test('adaptive priorities are visible in mission navigation',()=>{const p=readFileSync(new URL('../public/mission.js',import.meta.url),'utf8');assert.ok(p.includes("['adaptive','Study priorities']"));});

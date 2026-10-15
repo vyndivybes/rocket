@@ -1,0 +1,19 @@
+{
+  "id": "/mission.html",
+  "name": "Saathi — Mission Control",
+  "short_name": "Saathi",
+  "description": "Student companion, study helper, aviation inspiration and creative journal",
+  "start_url": "/mission.html",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0a1327",
+  "theme_color": "#0c152b",
+  "icons": [
+    {
+      "src": "/saathi-symbol.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
