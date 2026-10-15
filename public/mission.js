@@ -183,6 +183,36 @@ root.addEventListener('click',async e=>{
  if(dataset.pack){state.packId=dataset.pack==='all'?null:dataset.pack;state.tab='knowledge';render();return}
  if(dataset.knowledgeQuestion){const pack=state.knowledgePacks.find(p=>p.id===state.packId),module=pack?.modules.find(m=>m.id===dataset.knowledgeQuestion);if(module){state.mode=pack.id==='aviation'?'pilot':pack.id==='art'?'artist':pack.id==='study-skills'?'planner':'teacher';state.tab='companion';render();document.getElementById('question').value='Please explain '+module.title+' step by step using an example and one practice question.';}return}
  try{
+ if(dataset.buildView){
+  try{await selectLearnerBuild(dataset.buildView);render();document.getElementById('builder-lab')?.scrollIntoView({block:'start'});}catch(err){flash(err.message)}
+  return;
+ }
+ if(dataset.buildDelete){
+  const project=state.builds.find(p=>p.id===dataset.buildDelete);if(!project)return;
+  if(!confirm('Delete “'+project.title+'” and its saved versions? This cannot be undone.'))return;
+  try{
+   await api('builder-lab',{action:'delete',id:project.id,confirm:'DELETE MY PROJECT'});
+   if(state.selectedBuild?.id===project.id){state.selectedBuild=null;state.buildVersions=[];}
+   await reloadLearnerBuilds();render();flash('Project deleted.');
+  }catch(err){flash(err.message)}
+  return;
+ }
+ if(dataset.buildRestore){
+  const current=state.selectedBuild;if(!current)return;
+  const version=Number(dataset.buildRestore);
+  if(!confirm('Restore version '+version+' of your project as a new revision?'))return;
+  try{
+   await api('builder-lab',{action:'restore',id:current.id,revision:version,currentRevision:current.revision});
+   await selectLearnerBuild(current.id);await reloadLearnerBuilds();render();flash('Previous version restored in a new revision.');
+  }catch(err){flash(err.message)}return;
+ }
+ if(dataset.buildExport){
+  const project=state.selectedBuild;if(!project||project.id!==dataset.buildExport)return;
+  const data={title:project.title,revision:project.revision,html:project.html,css:project.css,js:project.js,notice:'Source export. Preview in Saathi uses an isolated sandbox. This file is not a deployed app.'};
+  const url=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));
+  const anchor=document.createElement('a');anchor.href=url;anchor.download='saathi-project-'+project.title.toLowerCase().replace(/[^a-z0-9-]+/g,'-').slice(0,35)+'.json';anchor.click();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);flash('Source JSON exported. It has not been installed or deployed.');return;
+ }
  if(dataset.forgeTry){
   const skill=state.skills.find(x=>x.id===dataset.forgeTry);if(!skill)return;
   try{await handleCompanionQuestion('Try '+skill.name+' skill with a short practice session')}catch(err){flash(err.message)}return;
@@ -493,6 +523,10 @@ root.addEventListener('submit',async e=>{
  if(form.id==='source-link-form'){state.linkQuestion='';const notice=await importStudyLink(String(fd.get('url')||'').trim());render();flash(notice);}
  if(form.id==='study-question-form'){state.linkText=String(fd.get('text')||'');state.linkQuestion=String(fd.get('question')||'');if(!state.linkSource)state.linkSource={kind:'manual',url:'',title:'Learner-pasted study passage'};const source={type:state.linkSource.kind==='manual'?'manual':state.linkSource.kind,url:state.linkSource.url||'',title:state.linkSource.title,text:state.linkText};const result=await api('ask',{mode:'teacher',question:state.linkQuestion,source});state.linkAnswer=result.answer;state.linkEvidence=result.sourceEvidence||[];render();flash('Answer based on the supplied source excerpts. Review the evidence and confirm accuracy.')}
  if(form.id==='memory-form'){const entry={action:fd.get('id')?'update':'create',category:fd.get('category'),text:fd.get('text'),useInChat:fd.get('useInChat')!==null};if(fd.get('id'))entry.id=fd.get('id');await api('personal-memory',entry);state.memories=(await api('personal-memory')).memories;render();flash(entry.useInChat?'Memory saved and enabled for AI recall.':'Memory saved privately without AI recall.');}
+ if(form.id==='builder-new-form'||form.id==='builder-revise-form'){
+  const prompt=String(fd.get('prompt')||'').trim();
+  await runLearnerBuild(prompt,form.id==='builder-revise-form');return;
+ }
  if(form.id==='forge-form'){
   const entry={name:String(fd.get('name')||''),purpose:String(fd.get('purpose')||''),mode:String(fd.get('mode')||''),blueprint:String(fd.get('blueprint')||'')};
   const id=String(fd.get('id')||'');
