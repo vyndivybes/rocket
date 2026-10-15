@@ -1,6 +1,7 @@
 import {auth,ensureRole,error} from '../_lib/core.js';
 import {parseGeneratedBuild} from '../_lib/builder-lab.js';
 import {buildSandboxDocument} from '../../public/builder-lab.js';
+import {makeProbeScript} from '../../public/skill-crucible.js';
 export async function onRequestGet({request,env}){
  const u=await auth(request,env);if(!ensureRole(u,'student'))return error('Student only',403);
  const id=new URL(request.url).searchParams.get('id');
@@ -9,7 +10,9 @@ export async function onRequestGet({request,env}){
  try{row=await env.DB.prepare('SELECT title,html,css,js FROM learner_builds WHERE student_id=? AND id=?').bind(u.id,id).first()}catch{return error('Builder storage unavailable',503)}
  if(!row)return error('Project not found',404);
  if(!parseGeneratedBuild(JSON.stringify(row)))return error('Project code cannot be safely previewed',422);
- return new Response(buildSandboxDocument(row),{
+ const probe=new URL(request.url).searchParams.get('probe');
+ const trustedProbe=probe&&/^[a-zA-Z0-9-]{6,65}$/.test(probe)?makeProbeScript(probe):'';
+ return new Response(buildSandboxDocument(row,{trustedProbe}),{
   status:200,
   headers:{
    'Content-Type':'text/html; charset=utf-8',

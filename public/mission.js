@@ -14,21 +14,25 @@ import {detectBuildRequest,buildSandboxDocument} from './builder-lab.js';
 import {detectSaathiUpgradeIntent} from './saathi-upgrades.js';
 import {createVoiceReadback} from './voice-readback.js';
 import {createVoiceCapture,voiceAcknowledgement} from './voice-interaction.js';
+import {createConversationLoop} from './conversation-loop.js';
+import {runProbe} from './skill-crucible.js';
 import {VOICE_LANGUAGES,normalizeSpeechLocale} from './voice-languages.js';
 import {captureVisualFrame} from './visual-capture.js';
 import {teamCommand} from './team-command.js';
 import {parseResearchCommand,buildStudyDocument} from './research-workflow.js';
+import {makeOfficeFile} from './office-export.js';
 import {detectMediaFile,frameTimeLabel} from './media-file.js';
 const root=document.getElementById('mission-root');
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const state={user:null,tab:'companion',mode:'companion',notes:[],schedule:[],tasks:[],knowledgePacks:[],packId:null,memories:[],linkSource:null,linkUrl:'',linkText:'',linkQuestion:'',linkAnswer:'',linkEvidence:[],answer:'',answerReference:null,mediaFile:null,mediaObjectUrl:null,mediaKind:null,mediaQuestion:'',mediaAnswer:'',mediaTimeLabel:null,visionEnabled:false,adaptivePlan:null,companionName:DEFAULT_COMPANION_NAME,nameConfigured:false,notifications:false,pushStatus:null,welcome:null,seen:new Set(),conversation:[],skills:[],forgeAvailable:false,builds:[],builderAvailable:false,selectedBuild:null,buildVersions:[],forgedSkills:[],voicePhase:'idle',voiceAutoSend:false,voiceLocale:'en-IN',introHidden:false,installedFeatures:[],installedAvailable:false,teamReport:null,researchReport:null};
+const state={user:null,tab:'companion',mode:'companion',notes:[],schedule:[],tasks:[],knowledgePacks:[],packId:null,memories:[],linkSource:null,linkUrl:'',linkText:'',linkQuestion:'',linkAnswer:'',linkEvidence:[],answer:'',answerReference:null,mediaFile:null,mediaObjectUrl:null,mediaKind:null,mediaQuestion:'',mediaAnswer:'',mediaTimeLabel:null,visionEnabled:false,adaptivePlan:null,companionName:DEFAULT_COMPANION_NAME,nameConfigured:false,notifications:false,pushStatus:null,welcome:null,seen:new Set(),conversation:[],skills:[],forgeAvailable:false,builds:[],builderAvailable:false,selectedBuild:null,buildVersions:[],forgedSkills:[],voicePhase:'idle',voiceAutoSend:false,voiceLocale:'en-IN',introHidden:false,installedFeatures:[],installedAvailable:false,lastProbe:null,teamReport:null,researchReport:null};
 const sketchState=createSketchState();
 let micSession=null,voiceReplyRequested=false,spokenReply=null;
+const conversationLoop=createConversationLoop({maxTurns:12});
 function voiceSpeaker(){
  if(!spokenReply)spokenReply=createVoiceReadback({
   synthesis:window.speechSynthesis,UtteranceClass:window.SpeechSynthesisUtterance,language:()=>normalizeSpeechLocale(state.voiceLocale),
-  onError:()=>{state.voicePhase='error';refreshVoiceDisplay();flash('Browser voice playback is unavailable; the written reply is still visible.')},
-  onState:phase=>{state.voicePhase=phase==='SPEAKING'?'speaking':phase==='QUEUED'?'thinking':phase==='ERROR'?'error':'idle';refreshVoiceDisplay()}
+  onError:()=>{conversationLoop.failed();state.voicePhase='error';refreshVoiceDisplay();flash('Browser voice playback is unavailable; the written reply is still visible.')},
+  onState:phase=>{if(phase==='FINISHED'&&conversationLoop.speechFinished()){queueMicrotask(()=>{if(conversationLoop.active()&&state.tab==='companion'){startVoiceTurn()}})}state.voicePhase=phase==='SPEAKING'?'speaking':phase==='QUEUED'?'thinking':phase==='ERROR'?'error':'idle';refreshVoiceDisplay()}
  });
  return spokenReply;
 }
@@ -72,12 +76,12 @@ function home(){
 function companion(){
  const history=state.conversation.slice(0,-1).slice(-12).map(entry=>'<div class="listitem"><div><strong>'+esc(entry.role==='student'?'You':state.companionName)+'</strong><p style="white-space:pre-wrap;overflow-wrap:anywhere">'+esc(entry.text)+'</p></div></div>').join('');
  const modes=[['companion','Companion'],['teacher','Patient teacher'],['planner','Organiser'],['pilot','Pilot mentor'],['artist','Art mentor']];
- return (!state.introHidden?renderWelcomeScene({schedule:state.schedule,tasks:state.tasks,assistant:state.companionName,phase:state.voicePhase,voiceAutoSend:state.voiceAutoSend}):'<button type="button" class="btn ghost" id="show-intro">▶ Open today’s briefing</button>')+installedFeaturesPanel()+'<section class="card"><h2>What is on your mind?</h2><div class="modebuttons">'+modes.map(x=>'<button type="button" data-mode="'+x[0]+'" class="'+(state.mode===x[0]?'active':'')+'">'+x[1]+'</button>').join('')+'</div><p class="muted">'+esc(state.companionName)+' is your AI assistant, not a human friend or professional adviser. It can teach and help you save a task, routine, private note or memory after you confirm. Background notifications depend on device readiness. For Maths, Physics, Chemistry or Biology, ask one question at a time and request worked steps. For checked answers, use <a href="/">Lessons &amp; practice</a> in your learning workspace.</p><div class="saathi-voice-indicator" id="saathi-voice-indicator" data-phase="ready" role="status" aria-live="polite"><span aria-hidden="true" class="saathi-voice-ring"></span>Tap Speak to start listening</div><label class="form-field">Voice language<select id="voice-locale" aria-label="Speech recognition and spoken reply language">'+VOICE_LANGUAGES.map(([v,label])=>'<option value="'+v+'" '+(v===state.voiceLocale?'selected':'')+'>'+label+'</option>').join('')+'</select></label><div role="log" aria-label="Recent conversation">'+history+'</div><form id="talk-form"><label class="form-field">Your question or idea<textarea id="question" required minlength="4" maxlength="1600" placeholder="Help me understand Newton’s laws using an aircraft"></textarea></label><label class="form-field">Attach a study image, PDF, Word, PowerPoint or text file<input id="companion-file" type="file" accept=".png,.jpg,.jpeg,.webp,.pdf,.docx,.pptx,.txt,text/plain,image/png,image/jpeg,image/webp,application/pdf"></label><div class="actions"><button class="btn" type="submit" id="ask-button">Ask '+esc(state.companionName)+'</button><button class="btn secondary" id="voice" type="button">🎙 Speak</button><button class="btn ghost" type="button" id="speak-answer" '+(state.answer?'':'disabled')+'>Read reply aloud</button><button class="btn secondary" type="button" id="explain-screen">Explain screen</button><button class="btn secondary" type="button" id="explain-camera">Explain camera frame</button></div></form><div class="actions"><button type="button" class="btn secondary" data-memory-draft="1">Save a memory from my question (review first)</button></div><p class="small">Microphone activates only when you press Speak. Partial transcripts are drafts and nothing is submitted until you select Ask; spoken questions can receive a spoken reply. Browser speech recognition may use a vendor service. AI messages are not saved in the app’s database but are sent to Cloudflare Workers AI for processing.</p>'+(state.answer?'<div class="ai-answer" id="answer">'+esc(state.answer)+'</div>'+(state.answerReference?'<p class="small">Related reference: <a href="'+esc(state.answerReference.url)+'" target="_blank" rel="noopener noreferrer">'+esc(state.answerReference.publisher)+' · '+esc(state.answerReference.title)+' ↗</a>. This does not certify the AI answer.</p>':''):'<p class="notice">Try: “What’s my plan today?”, “What should I do next?”, “Why do planes fly?” or “Create a skill called Flight Deck Trainer that quizzes me on cockpit instruments”.</p>')+'</section>'+specialistResults()+(state.researchReport?'<section class="card"><h2>Research brief</h2><p>'+esc(state.researchReport.title)+'</p><button class="btn secondary" id="export-research-brief" type="button">Export HTML document</button></section>':'')+forgePanel()+builderLabPanel();
+ return (!state.introHidden?renderWelcomeScene({schedule:state.schedule,tasks:state.tasks,assistant:state.companionName,phase:state.voicePhase,voiceAutoSend:state.voiceAutoSend}):'<button type="button" class="btn ghost" id="show-intro">▶ Open today’s briefing</button>')+installedFeaturesPanel()+'<section class="card"><h2>What is on your mind?</h2><div class="modebuttons">'+modes.map(x=>'<button type="button" data-mode="'+x[0]+'" class="'+(state.mode===x[0]?'active':'')+'">'+x[1]+'</button>').join('')+'</div><p class="muted">'+esc(state.companionName)+' is your AI assistant, not a human friend or professional adviser. It can teach and help you save a task, routine, private note or memory after you confirm. Background notifications depend on device readiness. For Maths, Physics, Chemistry or Biology, ask one question at a time and request worked steps. For checked answers, use <a href="/">Lessons &amp; practice</a> in your learning workspace.</p><div class="saathi-voice-indicator" id="saathi-voice-indicator" data-phase="ready" role="status" aria-live="polite"><span aria-hidden="true" class="saathi-voice-ring"></span>Tap Speak to start listening</div><label class="form-field">Voice language<select id="voice-locale" aria-label="Speech recognition and spoken reply language">'+VOICE_LANGUAGES.map(([v,label])=>'<option value="'+v+'" '+(v===state.voiceLocale?'selected':'')+'>'+label+'</option>').join('')+'</select></label><div role="log" aria-label="Recent conversation">'+history+'</div><form id="talk-form"><label class="form-field">Your question or idea<textarea id="question" required minlength="4" maxlength="1600" placeholder="Help me understand Newton’s laws using an aircraft"></textarea></label><label class="form-field">Attach a study image, PDF, Word, PowerPoint or text file<input id="companion-file" type="file" accept=".png,.jpg,.jpeg,.webp,.pdf,.docx,.pptx,.txt,text/plain,image/png,image/jpeg,image/webp,application/pdf"></label><div class="actions"><button class="btn" type="submit" id="ask-button">Ask '+esc(state.companionName)+'</button><button class="btn secondary" id="voice" type="button">🎙 Speak</button><button class="btn secondary" id="conversation-start" type="button">Start voice conversation</button><button class="btn ghost" id="conversation-stop" type="button">Stop conversation</button><button class="btn ghost" type="button" id="speak-answer" '+(state.answer?'':'disabled')+'>Read reply aloud</button><button class="btn secondary" type="button" id="explain-screen">Explain screen</button><button class="btn secondary" type="button" id="explain-camera">Explain camera frame</button></div></form><div class="actions"><button type="button" class="btn secondary" data-memory-draft="1">Save a memory from my question (review first)</button></div><p class="small">Microphone activates only when you press Speak. Partial transcripts are drafts and nothing is submitted until you select Ask; spoken questions can receive a spoken reply. Browser speech recognition may use a vendor service. AI messages are not saved in the app’s database but are sent to Cloudflare Workers AI for processing.</p>'+(state.answer?'<div class="ai-answer" id="answer">'+esc(state.answer)+'</div>'+(state.answerReference?'<p class="small">Related reference: <a href="'+esc(state.answerReference.url)+'" target="_blank" rel="noopener noreferrer">'+esc(state.answerReference.publisher)+' · '+esc(state.answerReference.title)+' ↗</a>. This does not certify the AI answer.</p>':''):'<p class="notice">Try: “What’s my plan today?”, “What should I do next?”, “Why do planes fly?” or “Create a skill called Flight Deck Trainer that quizzes me on cockpit instruments”.</p>')+'</section>'+specialistResults()+(state.researchReport?'<section class="card"><h2>Research brief</h2><p>'+esc(state.researchReport.title)+'</p><a href="'+esc(state.researchReport.sourceUrl)+'" target="_blank" rel="noopener noreferrer">Open original educational source</a><div class="actions"><button class="btn secondary" id="export-research-brief" type="button">Export HTML document</button>'+['docx','xlsx','pptx','pdf'].map(ext=>'<button class="btn secondary" type="button" data-export-office="'+ext+'" data-export-scope="research">'+ext.toUpperCase()+'</button>').join('')+'</div></section>':'')+forgePanel()+builderLabPanel();
 }
 
 function specialistResults(){
  const r=state.teamReport;if(!r?.specialists?.length)return '';
- return '<section class="card" id="saathi-team-results"><h2>Specialist team · '+esc(r.status)+'</h2><p class="small">'+esc(r.notice)+'</p>'+r.specialists.map(x=>'<details class="listitem" open><summary><strong>'+esc(x.name)+'</strong></summary><p style="white-space:pre-wrap">'+esc(x.answer)+'</p></details>').join('')+'<div class="actions"><button type="button" class="btn secondary" id="export-team-brief">Save team report as HTML</button></div></section>';
+ return '<section class="card" id="saathi-team-results"><h2>Specialist team · '+esc(r.status)+'</h2><p class="small">'+esc(r.notice)+'</p>'+r.specialists.map(x=>'<details class="listitem" open><summary><strong>'+esc(x.name)+'</strong></summary><p style="white-space:pre-wrap">'+esc(x.answer)+'</p></details>').join('')+'<div class="actions"><button type="button" class="btn secondary" id="export-team-brief">Save team report as HTML</button>'+['docx','xlsx','pptx','pdf'].map(ext=>'<button type="button" class="btn secondary" data-export-office="'+ext+'" data-export-scope="team">'+ext.toUpperCase()+'</button>').join('')+'</div></section>';
 }
 
 function forgePanel(){
@@ -100,7 +104,7 @@ function builderLabPanel(){
  const items=state.builds.map(p=>'<div class="listitem"><div><h3>'+esc(p.title)+'</h3><p class="small">'+esc(p.description)+'</p><p class="small">Version '+Number(p.revision)+' · Private experiment</p></div><div class="actions"><button class="btn secondary" data-build-view="'+esc(p.id)+'" type="button">Preview & improve</button><button class="btn warn" data-build-delete="'+esc(p.id)+'" type="button">Delete</button></div></div>').join('');
  const current=state.selectedBuild;
  const versions=state.buildVersions.filter(v=>Number(v.revision)<Number(current?.revision)).map(v=>'<button class="btn secondary" type="button" data-build-restore="'+Number(v.revision)+'">Restore version '+Number(v.revision)+'</button>').join('');
- const view=current?'<h3>Your prototype: '+esc(current.title)+'</h3><p class="small">This is untrusted generated code, isolated from Saathi. Version '+Number(current.revision)+'. It cannot use your accounts, internet or Saathi data.</p><iframe sandbox="allow-scripts" loading="lazy" title="Isolated learner project" style="display:block;width:100%;min-height:310px;border:1px solid #8a9bab;border-radius:12px;background:white" src="/api/builder-preview?id='+encodeURIComponent(current.id)+'"></iframe><form id="builder-revise-form"><label class="form-field">Improve this prototype<textarea name="prompt" required minlength="12" maxlength="600" placeholder="Add a score counter and clearer feedback."></textarea></label><div class="actions"><button type="submit" class="btn secondary">Build improved version</button><button type="button" class="btn ghost" data-build-export="'+esc(current.id)+'">Export source JSON</button><button type="button" class="btn secondary" data-upgrade-install="'+esc(current.id)+'">'+(state.installedFeatures.some(x=>x.id===current.id)?'Already in Saathi':'Install in Saathi')+'</button></div></form><details><summary>Inspect generated code</summary><pre style="white-space:pre-wrap;overflow-wrap:anywhere;max-height:340px;overflow:auto">'+esc(JSON.stringify({html:current.html,css:current.css,js:current.js},null,2))+'</pre></details>'+(versions?'<p class="small">Previous saved versions</p><div class="actions">'+versions+'</div>':''):'<p class="notice">Create an interactive experiment or select a saved project to preview it.</p>';
+ const view=current?'<h3>Your prototype: '+esc(current.title)+'</h3>'+(state.lastProbe?.id===current.id?'<p class="notice">Smoke test: '+(state.lastProbe.ok?'PASS':'FAIL')+' — '+esc(state.lastProbe.detail||'Loaded without reported JavaScript errors')+'</p>':'')+'<p class="small">This is untrusted generated code, isolated from Saathi. Version '+Number(current.revision)+'. It cannot use your accounts, internet or Saathi data.</p><iframe sandbox="allow-scripts" loading="lazy" title="Isolated learner project" style="display:block;width:100%;min-height:310px;border:1px solid #8a9bab;border-radius:12px;background:white" src="/api/builder-preview?id='+encodeURIComponent(current.id)+'"></iframe><form id="builder-revise-form"><label class="form-field">Improve this prototype<textarea name="prompt" required minlength="12" maxlength="600" placeholder="Add a score counter and clearer feedback."></textarea></label><div class="actions"><button type="submit" class="btn secondary">Build improved version</button><button type="button" class="btn secondary" data-build-test="'+esc(current.id)+'">Test this version</button><button type="button" class="btn ghost" data-build-export="'+esc(current.id)+'">Export source JSON</button><button type="button" class="btn secondary" data-upgrade-install="'+esc(current.id)+'">'+(state.installedFeatures.some(x=>x.id===current.id)?'Already in Saathi':'Install in Saathi')+'</button></div></form><details><summary>Inspect generated code</summary><pre style="white-space:pre-wrap;overflow-wrap:anywhere;max-height:340px;overflow:auto">'+esc(JSON.stringify({html:current.html,css:current.css,js:current.js},null,2))+'</pre></details>'+(versions?'<p class="small">Previous saved versions</p><div class="actions">'+versions+'</div>':''):'<p class="notice">Create an interactive experiment or select a saved project to preview it.</p>';
  return '<section class="card" id="builder-lab" style="margin-top:16px"><h2>Build & Upgrade Lab</h2><p class="muted">Use your AI to make interactive quizzes, creative tools, games and simulations. Preview them safely, then choose <strong>Install in Saathi</strong> to add them to your assistant screen. You can revise or remove them any time. Generated code never accesses your private accounts or changes the underlying application source.</p>'+
  (state.builderAvailable?'<form id="builder-new-form"><label class="form-field">What do you want to invent?<textarea name="prompt" required minlength="12" maxlength="600" placeholder="Build an interactive aircraft cockpit instrument quiz."></textarea></label><button class="btn" type="submit">Generate prototype</button></form><h3>My projects ('+state.builds.length+'/8)</h3>'+(items||'<p class="small">No creations yet. Your first project starts with an idea.</p>')+view:'<p class="notice">Builder storage is not yet available in this preview. Existing Skill Forge remains usable.</p>')+'</section>';
 }
@@ -187,15 +191,66 @@ function attachDrawing(){
  canvas.onpointerup=canvas.onpointercancel=()=>{if(down){down=false;ctx.beginPath();sketchState.remember(canvas.toDataURL('image/png'))}};
 }
 async function refresh(kind){const data=await api(kind);state[kind]=kind==='schedule'?data.items:data.notes;render()}
+function startVoiceTurn(){
+
+  if(micSession?.isListening()){micSession.stop();voiceStatus('ready','Microphone stopped. No question was sent.');return;}
+  const Recognition=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(typeof Recognition!=='function'){voiceStatus('error','Speech recognition is unavailable here. You can type instead.');return;}
+  voiceSpeaker().cancel();
+  voiceReplyRequested=false;
+  micSession=createVoiceCapture({
+   RecognitionClass:Recognition,
+   language:normalizeSpeechLocale(state.voiceLocale),
+   onDraft:text=>{
+    const draft=stripCompanionCall(text,state.nameConfigured?state.companionName:null);
+    const field=document.getElementById('question');
+    if(field)field.value=draft;
+    voiceStatus('listening','Listening: '+draft+' (draft only; not sent)');
+   },
+   onFinal:raw=>{
+    const phrase=stripCompanionCall(raw,state.nameConfigured?state.companionName:null);
+    if(conversationLoop.active())conversationLoop.submitted();
+    if(!phrase){voiceStatus('heard',"I'm here. What would you like to ask?");announce("I'm here. What would you like to ask?");return;}
+    const navigation=matchVoiceCommand(phrase);
+    if(navigation){
+     state.tab=navigation;render();
+     voiceStatus('answered','Opened '+navigation+' as requested.');
+     announce('Opened '+navigation+'.');
+     return;
+    }
+    const local=answerPersonalRequest(phrase,{schedule:state.schedule,tasks:state.tasks,memories:state.memories});
+    if(local){
+     state.answer=local.answer;state.tab='companion';render();
+     voiceStatus('answered','Answered from your private daily plan. No AI request sent.');
+     announce(local.answer);
+     return;
+    }
+    const field=document.getElementById('question');
+    if(field){field.value=phrase;field.focus();}
+    if(state.voiceAutoSend||conversationLoop.active()){
+     voiceReplyRequested=false;voiceStatus('thinking','I heard you. Preparing your reply.');
+     handleCompanionQuestion(phrase,true).catch(err=>{conversationLoop.failed();voiceStatus('error',err.message)});return;
+    }
+    voiceReplyRequested=true;
+    voiceStatus('heard','I heard your question. Review it and select Ask to send it.');
+    announce(voiceAcknowledgement('HEARD'));
+   },
+   onState:phase=>{if(phase==='LISTENING')voiceStatus('listening','Listening after your tap. Audio may be processed by the browser vendor.');if(phase==='STOPPED')voiceStatus('ready','Microphone stopped. Review the draft and select Ask to send it.');},
+   onError:code=>{conversationLoop.failed();voiceStatus('error',code==='MIC_PERMISSION_DENIED'
+    ?'Microphone permission was denied. Allow the mic in browser settings or type.'
+    :'Voice recognition is unavailable. Type your question instead.');}
+  });
+  micSession.start();return;
+}
 root.addEventListener('click',async e=>{
  const b=e.target.closest('button');if(!b)return;
  const dataset=b.dataset;
  if(b.id==='play-welcome'){micSession?.stop();const text=composeWelcomeReport({schedule:state.schedule,tasks:state.tasks},state.companionName).spoken;if(!announce(text))voiceStatus('error','Speech not available; the written agenda is still visible.');return}
- if(b.id==='stop-welcome'){voiceSpeaker().cancel();state.voicePhase='idle';refreshVoiceDisplay();flash('Voice stopped.');return}
+ if(b.id==='stop-welcome'){conversationLoop.stop();micSession?.stop();voiceSpeaker().cancel();state.voicePhase='idle';refreshVoiceDisplay();flash('Voice stopped.');return}
  if(b.id==='show-intro'){state.introHidden=false;render();return}
  if(dataset.welcomeHide){voiceSpeaker().cancel();state.introHidden=true;render();return}
  if(dataset.dismissWelcome){if(dataset.dismissWelcome!==state.welcome?.version)return;try{await api('welcome-once',{action:'dismiss',version:dataset.dismissWelcome});state.welcome={...state.welcome,show:false};render();flash('Enjoy exploring Saathi!')}catch(err){flash('Could not save your choice: '+err.message)}return}
- if(dataset.tab){voiceReplyRequested=false;micSession?.stop();state.tab=dataset.tab;render();return}
+ if(dataset.tab){conversationLoop.stop();voiceReplyRequested=false;micSession?.stop();state.tab=dataset.tab;render();return}
  if(dataset.mode){state.mode=dataset.mode;render();return}
  if(dataset.planLesson){
  const lesson=state.adaptivePlan?.recommendations?.find(x=>x.lessonId===dataset.planLesson);
@@ -217,7 +272,7 @@ root.addEventListener('click',async e=>{
  if(dataset.knowledgeQuestion){const pack=state.knowledgePacks.find(p=>p.id===state.packId),module=pack?.modules.find(m=>m.id===dataset.knowledgeQuestion);if(module){state.mode=pack.id==='aviation'?'pilot':pack.id==='art'?'artist':pack.id==='study-skills'?'planner':'teacher';state.tab='companion';render();document.getElementById('question').value='Please explain '+module.title+' step by step using an example and one practice question.';}return}
  try{
  if(dataset.upgradeInstall){
-  try{await api('installed-features',{action:'install',id:dataset.upgradeInstall});await reloadInstalledFeatures();render();flash('Feature installed into Saathi. You can improve or uninstall it any time.')}catch(err){flash(err.message)}return;
+  try{const tested=await runProbe(dataset.upgradeInstall);state.lastProbe={id:dataset.upgradeInstall,...tested};if(!tested.ok)throw Error('Smoke test did not pass: '+tested.detail+'; this project was not installed.');await api('installed-features',{action:'install',id:dataset.upgradeInstall});await reloadInstalledFeatures();render();flash('Feature installed into Saathi. You can improve or uninstall it any time.')}catch(err){flash(err.message)}return;
  }
  if(dataset.upgradeRemove){
   try{await api('installed-features',{action:'remove',id:dataset.upgradeRemove});await reloadInstalledFeatures();render();flash('Feature uninstalled; the saved prototype remains available.')}catch(err){flash(err.message)}return;
@@ -225,6 +280,7 @@ root.addEventListener('click',async e=>{
  if(dataset.upgradeImprove){
   try{await selectLearnerBuild(dataset.upgradeImprove);state.tab='companion';render();document.getElementById('builder-lab')?.scrollIntoView({block:'start'});flash('Describe what to improve below. Changes to installed features update automatically.')}catch(err){flash(err.message)}return;
  }
+ if(dataset.buildTest){try{const tested=await runProbe(dataset.buildTest);state.lastProbe={id:dataset.buildTest,...tested};render();flash(tested.ok?'Sandbox smoke test PASS: the project loaded without reported JavaScript errors.':'Sandbox smoke test FAIL: '+tested.detail)}catch(err){flash('Smoke test unavailable: '+err.message)}return;}
  if(dataset.buildView){
   try{await selectLearnerBuild(dataset.buildView);render();document.getElementById('builder-lab')?.scrollIntoView({block:'start'});}catch(err){flash(err.message)}
   return;
@@ -314,6 +370,11 @@ root.addEventListener('click',async e=>{
   }
   state.notifications=false;state.pushStatus=await api('push-device').catch(()=>null);render();flash('Background push subscription disabled on this device.');return
  }
+ if(dataset.exportOffice){
+  const report=dataset.exportScope==='research'?state.researchReport:state.teamReport?{title:'Saathi specialist team report',question:state.teamReport.question,answer:state.teamReport.specialists.map(x=>x.name+'\n'+x.answer).join('\n\n'),sourceUrl:'AI mentor discussion; not independent source evidence'}:null;
+  if(!report){flash('No report is ready to export.');return}
+  try{const f=makeOfficeFile(dataset.exportOffice,report);const url=URL.createObjectURL(new Blob([f.bytes],{type:f.mime}));const a=document.createElement('a');a.href=url;a.download='saathi-learning-report.'+f.extension;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);flash('Actual '+f.extension.toUpperCase()+' report generated locally and saved to your device.')}catch(err){flash('Could not generate report: '+err.message)}return;
+ }
  if(b.id==='export-research-brief'||b.id==='export-team-brief'){
   let doc;
   if(b.id==='export-research-brief'&&state.researchReport)doc=buildStudyDocument(state.researchReport);
@@ -326,55 +387,11 @@ root.addEventListener('click',async e=>{
   if(!confirm('Share ONE '+kind+' frame with Saathi AI for explanation? Check that it contains no passwords or private information. The recording stops after one frame.'))return;
   try{const image=await captureVisualFrame(kind);const q='Explain the learning or creative content visible in this '+kind+' image. Describe only what is actually shown and say if something is unclear.';const r=await api('analyze-image',{confirm:'ANALYZE IMAGE',image,question:q});companionReply(q,r.answer,{notice:'Only the selected '+kind+' frame was sent; capture ended. Vision is subject to preview model availability.'});}catch(err){flash('Visual explanation unavailable: '+err.message)}return;
  }
- if(b.id==='voice'){
-  if(micSession?.isListening()){micSession.stop();voiceStatus('ready','Microphone stopped. No question was sent.');return;}
-  const Recognition=window.SpeechRecognition||window.webkitSpeechRecognition;
-  if(typeof Recognition!=='function'){voiceStatus('error','Speech recognition is unavailable here. You can type instead.');return;}
-  voiceSpeaker().cancel();
-  voiceReplyRequested=false;
-  micSession=createVoiceCapture({
-   RecognitionClass:Recognition,
-   language:normalizeSpeechLocale(state.voiceLocale),
-   onDraft:text=>{
-    const draft=stripCompanionCall(text,state.nameConfigured?state.companionName:null);
-    const field=document.getElementById('question');
-    if(field)field.value=draft;
-    voiceStatus('listening','Listening: '+draft+' (draft only; not sent)');
-   },
-   onFinal:raw=>{
-    const phrase=stripCompanionCall(raw,state.nameConfigured?state.companionName:null);
-    if(!phrase){voiceStatus('heard',"I'm here. What would you like to ask?");announce("I'm here. What would you like to ask?");return;}
-    const navigation=matchVoiceCommand(phrase);
-    if(navigation){
-     state.tab=navigation;render();
-     voiceStatus('answered','Opened '+navigation+' as requested.');
-     announce('Opened '+navigation+'.');
-     return;
-    }
-    const local=answerPersonalRequest(phrase,{schedule:state.schedule,tasks:state.tasks,memories:state.memories});
-    if(local){
-     state.answer=local.answer;state.tab='companion';render();
-     voiceStatus('answered','Answered from your private daily plan. No AI request sent.');
-     announce(local.answer);
-     return;
-    }
-    const field=document.getElementById('question');
-    if(field){field.value=phrase;field.focus();}
-    if(state.voiceAutoSend){
-     voiceReplyRequested=false;voiceStatus('thinking','I heard you. Preparing your reply.');
-     handleCompanionQuestion(phrase,true).catch(err=>voiceStatus('error',err.message));return;
-    }
-    voiceReplyRequested=true;
-    voiceStatus('heard','I heard your question. Review it and select Ask to send it.');
-    announce(voiceAcknowledgement('HEARD'));
-   },
-   onState:phase=>{if(phase==='LISTENING')voiceStatus('listening','Listening after your tap. Audio may be processed by the browser vendor.');if(phase==='STOPPED')voiceStatus('ready','Microphone stopped. Review the draft and select Ask to send it.');},
-   onError:code=>voiceStatus('error',code==='MIC_PERMISSION_DENIED'
-    ?'Microphone permission was denied. Allow the mic in browser settings or type.'
-    :'Voice recognition is unavailable. Type your question instead.')
-  });
-  micSession.start();return;
+ if(b.id==='conversation-start'){
+  if(!conversationLoop.active()){conversationLoop.start();state.voiceAutoSend=true;startVoiceTurn();flash('Voice conversation started by you. It will pause after each answer and stop automatically after twelve turns. Use Stop conversation anytime.');}return;
  }
+ if(b.id==='conversation-stop'){conversationLoop.stop();micSession?.stop();voiceSpeaker().cancel();voiceStatus('ready','Conversation stopped. Microphone and speech paused.');return}
+ if(b.id==='voice'){startVoiceTurn();return;}
  if(b.id==='speak-answer'){voiceSpeaker().cancel();if(!announce(state.answer))voiceStatus('error','Spoken reply unavailable. The written answer is still visible.');return}
  if(b.id==='save-png'){const canvas=document.getElementById('sketch'),link=document.createElement('a');link.download='my-artwork.png';link.href=canvas.toDataURL('image/png');link.click();flash('Art saved to your device, not uploaded.');return}
  if(b.id==='clear-png'){if(confirm('Clear the sketch? Unsaved artwork will be lost.')){sketchState.clear();attachDrawing();flash('Canvas cleared.')}return}
@@ -493,9 +510,27 @@ async function runLearnerBuild(prompt,revise=false,spoken=false,install=false){
  const prior=revise?state.selectedBuild:null;
  if(revise&&!prior)throw Error('Choose your project before revising it.');
  flash(revise?'Improving your project safely…':'Generating a private Saathi feature…');
- const result=await api('builder-lab',revise?{action:'revise',id:prior.id,revision:prior.revision,prompt}:{action:'generate',prompt});
+ let result=await api('builder-lab',revise?{action:'revise',id:prior.id,revision:prior.revision,prompt}:{action:'generate',prompt});
  await reloadLearnerBuilds();
  await selectLearnerBuild(result.id);
+ let test=await runProbe(result.id),repairIssue='';
+ state.lastProbe={id:result.id,...test};
+ if(!test.ok){
+  flash('Saathi detected a runtime issue and is attempting one automatic repair…');
+  try{
+   result=await api('builder-lab',{action:'repair',id:result.id,revision:result.revision,diagnostic:test.detail||'The sandbox project did not complete its loading smoke test.'});
+   await selectLearnerBuild(result.id);
+   test=await runProbe(result.id);
+   state.lastProbe={id:result.id,...test};
+  }catch(err){repairIssue=err.message}
+ }
+ if(!test.ok){
+  if(revise&&prior&&state.installedFeatures.some(x=>x.id===result.id)){
+   await api('builder-lab',{action:'restore',id:result.id,revision:prior.revision,currentRevision:result.revision});
+   await selectLearnerBuild(result.id);
+  }
+  throw Error('Runtime test and repair did not pass. '+(repairIssue||test.detail||'Feature unavailable')+'. No new feature was installed; the last installed version was restored when applicable.');
+ }
  if(install)await api('installed-features',{action:'install',id:result.id});
  if(state.installedAvailable||install)await reloadInstalledFeatures();
  const message=install?'I created “'+state.selectedBuild.title+'” and installed it in your Saathi companion. Use My Saathi upgrades above to try it or choose Improve to evolve it.': 'Your '+(revise?'improved':'new')+' prototype “'+state.selectedBuild.title+'” was saved as version '+state.selectedBuild.revision+'. Open Build & Upgrade Lab to try it or install it into Saathi.';
