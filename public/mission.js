@@ -5,12 +5,13 @@ import {buildDailyBrief} from './daily-brief.js';
 import {detectStudyLinkQuestion} from './link-intent.js';
 import {stripCompanionCall,DEFAULT_COMPANION_NAME} from './companion-name.js';
 import {answerPersonalRequest} from './personal-requests.js';
+import {routeCompanionSkill} from './companion-skill-router.js';
 import {createVoiceReadback} from './voice-readback.js';
 import {createVoiceCapture,voiceAcknowledgement} from './voice-interaction.js';
 import {detectMediaFile,frameTimeLabel} from './media-file.js';
 const root=document.getElementById('mission-root');
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const state={user:null,tab:'home',mode:'companion',notes:[],schedule:[],tasks:[],knowledgePacks:[],packId:null,memories:[],linkSource:null,linkUrl:'',linkText:'',linkQuestion:'',linkAnswer:'',linkEvidence:[],answer:'',answerReference:null,mediaFile:null,mediaObjectUrl:null,mediaKind:null,mediaQuestion:'',mediaAnswer:'',mediaTimeLabel:null,visionEnabled:false,adaptivePlan:null,companionName:DEFAULT_COMPANION_NAME,nameConfigured:false,notifications:false,pushStatus:null,welcome:null,seen:new Set()};
+const state={user:null,tab:'companion',mode:'companion',notes:[],schedule:[],tasks:[],knowledgePacks:[],packId:null,memories:[],linkSource:null,linkUrl:'',linkText:'',linkQuestion:'',linkAnswer:'',linkEvidence:[],answer:'',answerReference:null,mediaFile:null,mediaObjectUrl:null,mediaKind:null,mediaQuestion:'',mediaAnswer:'',mediaTimeLabel:null,visionEnabled:false,adaptivePlan:null,companionName:DEFAULT_COMPANION_NAME,nameConfigured:false,notifications:false,pushStatus:null,welcome:null,seen:new Set(),conversation:[]};
 const sketchState=createSketchState();
 let micSession=null,voiceReplyRequested=false,spokenReply=null;
 function voiceSpeaker(){
@@ -52,8 +53,9 @@ function home(){
  return '<section class="hero"><div><span class="tag">A birthday gift · Your future starts here</span><h2 style="font-size:clamp(27px,3vw,43px);line-height:1.15;letter-spacing:-.04em;margin:22px 0">Future pilot.<br>Original artist.<br>Your own story.</h2><p class="sub">One question, one drawing, one game, one great day. Your AI companion is here to help you explore—not tell you who to be.</p><div class="actions">'+button('companion','Talk with '+esc(state.companionName))+button('pilot','Explore aviation')+'</div></div><div class="orb"><div class="orbit">S</div></div></section><div class="tiles"><section class="card"><h2>Flight deck</h2><p class="muted">Discover aircraft, physics, maths and aviation.</p>'+button('pilot','Start flying lessons')+'</section><section class="card"><h2>Creative studio</h2><p class="muted">Sketch, experiment with colour and express your modern-art ideas.</p>'+button('art','Open sketchbook')+'</section><section class="card"><h2>Balanced daily life</h2><p class="muted">'+state.schedule.length+' scheduled activities, including exercise, sport and rest.</p>'+button('schedule','My scheduler')+'</section><section class="card"><h2>Private notebook</h2><p class="muted">'+state.notes.length+' notes. Keep sketches, questions and ideas in writing.</p>'+button('notes','Open notes')+'</section><section class="card wide"><h2>Learn from any study material you can share</h2><p class="muted">Post a supported educational webpage or YouTube link. Saathi can read selected public text pages, or discuss captions you paste from a video. It will show the evidence available instead of inventing video content.</p>'+button('links','Open Study links')+'</section></div>'+overview;
 }
 function companion(){
+ const history=state.conversation.slice(0,-1).slice(-12).map(entry=>'<div class="listitem"><div><strong>'+esc(entry.role==='student'?'You':state.companionName)+'</strong><p style="white-space:pre-wrap;overflow-wrap:anywhere">'+esc(entry.text)+'</p></div></div>').join('');
  const modes=[['companion','Companion'],['teacher','Patient teacher'],['planner','Organiser'],['pilot','Pilot mentor'],['artist','Art mentor']];
- return '<section class="card"><h2>What is on your mind?</h2><div class="modebuttons">'+modes.map(x=>'<button type="button" data-mode="'+x[0]+'" class="'+(state.mode===x[0]?'active':'')+'">'+x[1]+'</button>').join('')+'</div><p class="muted">'+esc(state.companionName)+' is your AI assistant, not a human friend or professional adviser. It can suggest and explain, but cannot change your schedule or send alerts through conversation. For Maths, Physics, Chemistry or Biology, ask one question at a time and request worked steps. For checked answers, use <a href="/">Lessons &amp; practice</a> in your learning workspace.</p><div class="saathi-voice-indicator" id="saathi-voice-indicator" data-phase="ready" role="status" aria-live="polite"><span aria-hidden="true" class="saathi-voice-ring"></span>Tap Speak to start listening</div><form id="talk-form"><label class="form-field">Your question or idea<textarea id="question" required minlength="4" maxlength="1600" placeholder="Help me understand Newton’s laws using an aircraft"></textarea></label><div class="actions"><button class="btn" type="submit" id="ask-button">Ask '+esc(state.companionName)+'</button><button class="btn secondary" id="voice" type="button">🎙 Speak</button><button class="btn ghost" type="button" id="speak-answer" '+(state.answer?'':'disabled')+'>Read reply aloud</button></div></form><div class="actions"><button type="button" class="btn secondary" data-memory-draft="1">Save a memory from my question (review first)</button></div><p class="small">Microphone activates only when you press Speak. Partial transcripts are drafts and nothing is submitted until you select Ask; spoken questions can receive a spoken reply. Browser speech recognition may use a vendor service. AI messages are not saved in the app’s database but are sent to Cloudflare Workers AI for processing.</p>'+(state.answer?'<div class="ai-answer" id="answer">'+esc(state.answer)+'</div>'+(state.answerReference?'<p class="small">Related reference: <a href="'+esc(state.answerReference.url)+'" target="_blank" rel="noopener noreferrer">'+esc(state.answerReference.publisher)+' · '+esc(state.answerReference.title)+' ↗</a>. This does not certify the AI answer.</p>':''):'<p class="notice">Try: “What’s my plan today?”, “What should I do next?”, “Why do planes fly?” or “Give me an abstract painting idea”.</p>')+'</section>';
+ return '<section class="card"><h2>What is on your mind?</h2><div class="modebuttons">'+modes.map(x=>'<button type="button" data-mode="'+x[0]+'" class="'+(state.mode===x[0]?'active':'')+'">'+x[1]+'</button>').join('')+'</div><p class="muted">'+esc(state.companionName)+' is your AI assistant, not a human friend or professional adviser. It can teach and help you save a task, routine, private note or memory after you confirm. Background notifications depend on device readiness. For Maths, Physics, Chemistry or Biology, ask one question at a time and request worked steps. For checked answers, use <a href="/">Lessons &amp; practice</a> in your learning workspace.</p><div class="saathi-voice-indicator" id="saathi-voice-indicator" data-phase="ready" role="status" aria-live="polite"><span aria-hidden="true" class="saathi-voice-ring"></span>Tap Speak to start listening</div><div role="log" aria-label="Recent conversation">'+history+'</div><form id="talk-form"><label class="form-field">Your question or idea<textarea id="question" required minlength="4" maxlength="1600" placeholder="Help me understand Newton’s laws using an aircraft"></textarea></label><label class="form-field">Attach a study image, PDF, Word, PowerPoint or text file<input id="companion-file" type="file" accept=".png,.jpg,.jpeg,.webp,.pdf,.docx,.pptx,.txt,text/plain,image/png,image/jpeg,image/webp,application/pdf"></label><div class="actions"><button class="btn" type="submit" id="ask-button">Ask '+esc(state.companionName)+'</button><button class="btn secondary" id="voice" type="button">🎙 Speak</button><button class="btn ghost" type="button" id="speak-answer" '+(state.answer?'':'disabled')+'>Read reply aloud</button></div></form><div class="actions"><button type="button" class="btn secondary" data-memory-draft="1">Save a memory from my question (review first)</button></div><p class="small">Microphone activates only when you press Speak. Partial transcripts are drafts and nothing is submitted until you select Ask; spoken questions can receive a spoken reply. Browser speech recognition may use a vendor service. AI messages are not saved in the app’s database but are sent to Cloudflare Workers AI for processing.</p>'+(state.answer?'<div class="ai-answer" id="answer">'+esc(state.answer)+'</div>'+(state.answerReference?'<p class="small">Related reference: <a href="'+esc(state.answerReference.url)+'" target="_blank" rel="noopener noreferrer">'+esc(state.answerReference.publisher)+' · '+esc(state.answerReference.title)+' ↗</a>. This does not certify the AI answer.</p>':''):'<p class="notice">Try: “What’s my plan today?”, “What should I do next?”, “Why do planes fly?” or “Give me an abstract painting idea”.</p>')+'</section>';
 }
 function schedule(){
  const list=state.schedule.map(s=>'<div class="listitem"><div><h3>'+esc(s.title)+(s.enabled?'':' (paused)')+'</h3><div class="small">'+esc(s.kind)+' · '+esc(s.time)+' · '+Number(s.minutes)+' minutes · '+s.days.map(d=>dayNames[d]).join(', ')+'</div></div><div class="row"><button class="btn secondary" data-toggle="'+esc(s.id)+'">'+(s.enabled?'Pause':'Resume')+'</button><button class="btn secondary" data-edit-event="'+esc(s.id)+'">Edit</button><button class="btn warn" data-remove="'+esc(s.id)+'">Delete</button></div></div>').join('');
@@ -269,8 +271,41 @@ async function captureMediaImage(){
  if(uri.length>600000)throw Error('Image too large after resizing; select a simpler or smaller image.');
  return uri;
 }
+
+async function explainCompanionFile(file){
+ const kind=detectMediaFile(file.name,file.size);
+ if(!kind||kind==='unsupported')throw Error('Unsupported file. Choose a small PNG, JPEG, WebP, PDF, DOCX, PPTX or text file.');
+ if(kind==='video-frame-only'){companionReply('Explain attached video','Video files require choosing one visible frame in My uploads; Saathi cannot interpret the entire video automatically.');return}
+ const question=document.getElementById('question')?.value?.trim()||'Teach me the main ideas from this study material step by step.';
+ if(kind==='image'){
+  if(!confirm('Send this image to Cloudflare Workers AI for explanation? Saathi will not save the image.'))return;
+  const previousFile=state.mediaFile,previousKind=state.mediaKind;
+  state.mediaFile=file;state.mediaKind='image';
+  let picture;
+  try{picture=await captureMediaImage()}finally{state.mediaFile=previousFile;state.mediaKind=previousKind}
+  const result=await api('analyze-image',{image:picture,question,confirm:'ANALYZE IMAGE'});
+  companionReply('Explain attached image: '+question,result.answer,{notice:'Single-image analysis only. Verify diagrams and handwriting.'});return;
+ }
+ let text;
+ if(kind==='document'){
+  if(!confirm('Convert this document using Cloudflare and explain its extracted text? Diagrams and tables may be incomplete.'))return;
+  const bytes=new Uint8Array(await file.arrayBuffer());let raw='';
+  for(let i=0;i<bytes.length;i+=8192)raw+=String.fromCharCode(...bytes.subarray(i,i+8192));
+  const converted=await api('convert-document',{name:file.name,base64:btoa(raw),confirm:'CONVERT DOCUMENT'});
+  text=converted.text;
+ }else if(kind==='text'){text=(await file.text()).replace(/\u0000/g,'').slice(0,12000)}
+ if(typeof text!=='string'||text.trim().length<40)throw Error('Not enough readable study text was found in the file.');
+ const response=await api('ask',{question,mode:'teacher',source:{type:'manual',url:'',title:file.name,text}});
+ companionReply('Explain attached '+file.name+': '+question,response.answer,{reference:response.knowledgeReference,notice:'Explanation uses extracted text only. Verify equations, diagrams and source details.'});
+}
+
 root.addEventListener('change',async e=>{
- if(e.target?.id!=='media-file-input')return;
+ if(e.target?.id==='companion-file'){
+   const file=e.target.files?.[0];if(!file)return;
+   try{await explainCompanionFile(file)}catch(err){flash(err.message)}finally{e.target.value=''}
+   return;
+  }
+  if(e.target?.id!=='media-file-input')return;
  const file=e.target.files?.[0];if(!file)return;
  if(state.mediaObjectUrl){URL.revokeObjectURL(state.mediaObjectUrl);state.mediaObjectUrl=null}
  const kind=detectMediaFile(file.name,file.size);state.mediaFile=null;state.mediaKind=null;state.mediaAnswer='';
@@ -299,6 +334,57 @@ root.addEventListener('change',async e=>{
  render();flash(kind==='image'?'Image ready. Enter a question and approve analysis.':'Local video ready. Pause at the frame you want to discuss.');
 });
 
+
+function companionReply(question,reply,{spoken=false,reference=null,notice=''}={}){
+ state.answer=String(reply||'').slice(0,10000);
+ state.answerReference=reference;
+ state.conversation.push({role:'student',text:question},{role:'saathi',text:state.answer});
+ state.conversation=state.conversation.slice(-24); // In-session only; conversation is not saved
+ state.tab='companion';render();
+ flash(notice||'Reply ready. Check academic facts against your textbook.');
+ if(spoken){voiceStatus('answered','Reply ready. Review the answer.');announce(state.answer);}
+}
+async function handleCompanionQuestion(raw,spoken=false){
+ const question=stripCompanionCall(String(raw||'').trim(),state.nameConfigured?state.companionName:null);
+ if(question.length<4)throw Error('Please ask a longer question.');
+ const link=detectStudyLinkQuestion(question);
+ if(link){
+  const notice=await importStudyLink(link.url);
+  if(state.linkSource?.status!=='ready'||state.linkText.length<40){companionReply(question,notice,{spoken});return}
+  const source={type:state.linkSource.kind,url:state.linkSource.url||'',title:state.linkSource.title,text:state.linkText};
+  const response=await api('ask',{question:link.question,mode:'teacher',source});
+  companionReply(question,response.answer,{spoken,reference:response.knowledgeReference,notice:'Answer based on imported readable text only; verify the source.'});return;
+ }
+ const local=answerPersonalRequest(question,{schedule:state.schedule,tasks:state.tasks,memories:state.memories});
+ if(local){companionReply(question,local.answer,{spoken,notice:'Answered locally using private study data.'});return}
+ const skill=routeCompanionSkill(question);
+ if(skill?.kind==='read-tasks'){
+  const open=state.tasks.filter(t=>!t.done).slice(0,10);
+  companionReply(question,open.length?'Your open tasks: '+open.map(x=>x.title+(x.due_date?' (due '+x.due_date+')':'')).join('; ')+'.':'You have no unfinished tasks.',{spoken});return;
+ }
+ if(skill?.kind==='read-notes'){
+  companionReply(question,state.notes.length?'Your private note titles: '+state.notes.slice(0,10).map(n=>n.title).join('; ')+'.':'You have no saved notes.',{spoken});return;
+ }
+ if(skill?.kind==='read-schedule'){
+  const active=state.schedule.filter(x=>x.enabled).slice(0,10);
+  companionReply(question,active.length?'Your saved activities: '+active.map(x=>x.title+' at '+x.time).join('; ')+'.':'You have no active scheduled activities.',{spoken});return;
+ }
+ if(skill?.answer){companionReply(question,skill.answer,{spoken});return}
+ if(skill?.kind?.startsWith('create-')){
+  if(!confirm(skill.confirmation)){companionReply(question,'Nothing was saved. You can change the request whenever you like.',{spoken});return}
+  const path={'create-task':'tasks','create-schedule':'schedule','create-note':'notes','create-memory':'personal-memory'}[skill.kind];
+  if(!path)throw Error('The requested skill is not available.');
+  await api(path,skill.payload);
+  const data=await api(path);
+  if(path==='schedule')state.schedule=data.items;
+  else if(path==='personal-memory')state.memories=data.memories;
+  else state[path]=data[path];
+  companionReply(question,'Saved successfully. '+skill.notice,{spoken,notice:'Approved action saved to the learner account.'});return;
+ }
+ const answer=await api('ask',{question,mode:skill?.mode||state.mode});
+ companionReply(question,answer.answer,{spoken,reference:answer.knowledgeReference,notice:'Saathi replied in '+(skill?.mode||state.mode)+' mode. Check important facts.'});
+}
+
 root.addEventListener('submit',async e=>{
  e.preventDefault();const form=e.target,fd=new FormData(form);const btn=form.querySelector('[type=submit]');if(btn)btn.disabled=true;
  try{
@@ -315,7 +401,7 @@ root.addEventListener('submit',async e=>{
  if(form.id==='study-question-form'){state.linkText=String(fd.get('text')||'');state.linkQuestion=String(fd.get('question')||'');if(!state.linkSource)state.linkSource={kind:'manual',url:'',title:'Learner-pasted study passage'};const source={type:state.linkSource.kind==='manual'?'manual':state.linkSource.kind,url:state.linkSource.url||'',title:state.linkSource.title,text:state.linkText};const result=await api('ask',{mode:'teacher',question:state.linkQuestion,source});state.linkAnswer=result.answer;state.linkEvidence=result.sourceEvidence||[];render();flash('Answer based on the supplied source excerpts. Review the evidence and confirm accuracy.')}
  if(form.id==='memory-form'){const entry={action:fd.get('id')?'update':'create',category:fd.get('category'),text:fd.get('text'),useInChat:fd.get('useInChat')!==null};if(fd.get('id'))entry.id=fd.get('id');await api('personal-memory',entry);state.memories=(await api('personal-memory')).memories;render();flash(entry.useInChat?'Memory saved and enabled for AI recall.':'Memory saved privately without AI recall.');}
  if(form.id==='name-form'){const saved=await api('companion-preferences',{name:fd.get('name')});state.companionName=saved.name;state.nameConfigured=true;state.tab='home';render();flash('Your AI is now named '+saved.name+'. You can rename it whenever you like.')}
- if(form.id==='talk-form'){micSession?.stop();const requestedByVoice=voiceReplyRequested;voiceReplyRequested=false;if(requestedByVoice){voiceSpeaker().cancel();voiceStatus('working',voiceAcknowledgement('WORKING'));}const question=String(fd.get('question')||document.getElementById('question').value);const link=detectStudyLinkQuestion(question);if(link){state.tab='links';state.linkQuestion=link.question;const notice=await importStudyLink(link.url);render();flash(notice+' Continue with the study text.');}else{const phrase=stripCompanionCall(question,state.nameConfigured?state.companionName:null);const local=answerPersonalRequest(phrase,{schedule:state.schedule,tasks:state.tasks,memories:state.memories});if(local){state.answer=local.answer;render();flash('Daily briefing from your private schedule — no AI quota used.');if(requestedByVoice){voiceStatus('answered','Reply ready. Check the explanation.');announce(state.answer);}}else{const answer=await api('ask',{question,mode:state.mode});state.answer=answer.answer;state.answerReference=answer.knowledgeReference;render();flash(state.companionName+' replied. Check important facts against your school materials.');if(requestedByVoice){voiceStatus('answered','Reply ready. Check the explanation.');announce(state.answer);}}}}
+ if(form.id==='talk-form'){micSession?.stop();const requestedByVoice=voiceReplyRequested;voiceReplyRequested=false;if(requestedByVoice){voiceSpeaker().cancel();voiceStatus('working',voiceAcknowledgement('WORKING'));}const question=String(fd.get('question')||document.getElementById('question').value);await handleCompanionQuestion(question,requestedByVoice);}
  if(form.id==='note-form'){const item={title:fd.get('title'),body:fd.get('body')};if(fd.get('id')){item.action='update';item.id=fd.get('id')}await api('notes',item);await refresh('notes');flash('Note saved privately.')}
  if(form.id==='schedule-form'){const item={title:fd.get('title'),kind:fd.get('kind'),time:fd.get('time'),minutes:Number(fd.get('minutes')),days:fd.getAll('days').map(Number)};if(fd.get('id')){item.id=fd.get('id');item.action='update'}await api('schedule',item);await refresh('schedule');flash('Activity saved. Reminders only work when this page is open.') }
  }catch(err){flash(err.message)}finally{const button=form.querySelector('[type=submit]');if(button)button.disabled=false}
