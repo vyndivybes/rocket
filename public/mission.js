@@ -14,15 +14,19 @@ import {detectBuildRequest,buildSandboxDocument} from './builder-lab.js';
 import {detectSaathiUpgradeIntent} from './saathi-upgrades.js';
 import {createVoiceReadback} from './voice-readback.js';
 import {createVoiceCapture,voiceAcknowledgement} from './voice-interaction.js';
+import {VOICE_LANGUAGES,normalizeSpeechLocale} from './voice-languages.js';
+import {captureVisualFrame} from './visual-capture.js';
+import {teamCommand} from './team-command.js';
+import {parseResearchCommand,buildStudyDocument} from './research-workflow.js';
 import {detectMediaFile,frameTimeLabel} from './media-file.js';
 const root=document.getElementById('mission-root');
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const state={user:null,tab:'companion',mode:'companion',notes:[],schedule:[],tasks:[],knowledgePacks:[],packId:null,memories:[],linkSource:null,linkUrl:'',linkText:'',linkQuestion:'',linkAnswer:'',linkEvidence:[],answer:'',answerReference:null,mediaFile:null,mediaObjectUrl:null,mediaKind:null,mediaQuestion:'',mediaAnswer:'',mediaTimeLabel:null,visionEnabled:false,adaptivePlan:null,companionName:DEFAULT_COMPANION_NAME,nameConfigured:false,notifications:false,pushStatus:null,welcome:null,seen:new Set(),conversation:[],skills:[],forgeAvailable:false,builds:[],builderAvailable:false,selectedBuild:null,buildVersions:[],forgedSkills:[],voicePhase:'idle',voiceAutoSend:false,introHidden:false,installedFeatures:[],installedAvailable:false};
+const state={user:null,tab:'companion',mode:'companion',notes:[],schedule:[],tasks:[],knowledgePacks:[],packId:null,memories:[],linkSource:null,linkUrl:'',linkText:'',linkQuestion:'',linkAnswer:'',linkEvidence:[],answer:'',answerReference:null,mediaFile:null,mediaObjectUrl:null,mediaKind:null,mediaQuestion:'',mediaAnswer:'',mediaTimeLabel:null,visionEnabled:false,adaptivePlan:null,companionName:DEFAULT_COMPANION_NAME,nameConfigured:false,notifications:false,pushStatus:null,welcome:null,seen:new Set(),conversation:[],skills:[],forgeAvailable:false,builds:[],builderAvailable:false,selectedBuild:null,buildVersions:[],forgedSkills:[],voicePhase:'idle',voiceAutoSend:false,voiceLocale:'en-IN',introHidden:false,installedFeatures:[],installedAvailable:false,teamReport:null,researchReport:null};
 const sketchState=createSketchState();
 let micSession=null,voiceReplyRequested=false,spokenReply=null;
 function voiceSpeaker(){
  if(!spokenReply)spokenReply=createVoiceReadback({
-  synthesis:window.speechSynthesis,UtteranceClass:window.SpeechSynthesisUtterance,
+  synthesis:window.speechSynthesis,UtteranceClass:window.SpeechSynthesisUtterance,language:()=>normalizeSpeechLocale(state.voiceLocale),
   onError:()=>{state.voicePhase='error';refreshVoiceDisplay();flash('Browser voice playback is unavailable; the written reply is still visible.')},
   onState:phase=>{state.voicePhase=phase==='SPEAKING'?'speaking':phase==='QUEUED'?'thinking':phase==='ERROR'?'error':'idle';refreshVoiceDisplay()}
  });
@@ -68,7 +72,12 @@ function home(){
 function companion(){
  const history=state.conversation.slice(0,-1).slice(-12).map(entry=>'<div class="listitem"><div><strong>'+esc(entry.role==='student'?'You':state.companionName)+'</strong><p style="white-space:pre-wrap;overflow-wrap:anywhere">'+esc(entry.text)+'</p></div></div>').join('');
  const modes=[['companion','Companion'],['teacher','Patient teacher'],['planner','Organiser'],['pilot','Pilot mentor'],['artist','Art mentor']];
- return (!state.introHidden?renderWelcomeScene({schedule:state.schedule,tasks:state.tasks,assistant:state.companionName,phase:state.voicePhase,voiceAutoSend:state.voiceAutoSend}):'<button type="button" class="btn ghost" id="show-intro">▶ Open today’s briefing</button>')+installedFeaturesPanel()+'<section class="card"><h2>What is on your mind?</h2><div class="modebuttons">'+modes.map(x=>'<button type="button" data-mode="'+x[0]+'" class="'+(state.mode===x[0]?'active':'')+'">'+x[1]+'</button>').join('')+'</div><p class="muted">'+esc(state.companionName)+' is your AI assistant, not a human friend or professional adviser. It can teach and help you save a task, routine, private note or memory after you confirm. Background notifications depend on device readiness. For Maths, Physics, Chemistry or Biology, ask one question at a time and request worked steps. For checked answers, use <a href="/">Lessons &amp; practice</a> in your learning workspace.</p><div class="saathi-voice-indicator" id="saathi-voice-indicator" data-phase="ready" role="status" aria-live="polite"><span aria-hidden="true" class="saathi-voice-ring"></span>Tap Speak to start listening</div><div role="log" aria-label="Recent conversation">'+history+'</div><form id="talk-form"><label class="form-field">Your question or idea<textarea id="question" required minlength="4" maxlength="1600" placeholder="Help me understand Newton’s laws using an aircraft"></textarea></label><label class="form-field">Attach a study image, PDF, Word, PowerPoint or text file<input id="companion-file" type="file" accept=".png,.jpg,.jpeg,.webp,.pdf,.docx,.pptx,.txt,text/plain,image/png,image/jpeg,image/webp,application/pdf"></label><div class="actions"><button class="btn" type="submit" id="ask-button">Ask '+esc(state.companionName)+'</button><button class="btn secondary" id="voice" type="button">🎙 Speak</button><button class="btn ghost" type="button" id="speak-answer" '+(state.answer?'':'disabled')+'>Read reply aloud</button></div></form><div class="actions"><button type="button" class="btn secondary" data-memory-draft="1">Save a memory from my question (review first)</button></div><p class="small">Microphone activates only when you press Speak. Partial transcripts are drafts and nothing is submitted until you select Ask; spoken questions can receive a spoken reply. Browser speech recognition may use a vendor service. AI messages are not saved in the app’s database but are sent to Cloudflare Workers AI for processing.</p>'+(state.answer?'<div class="ai-answer" id="answer">'+esc(state.answer)+'</div>'+(state.answerReference?'<p class="small">Related reference: <a href="'+esc(state.answerReference.url)+'" target="_blank" rel="noopener noreferrer">'+esc(state.answerReference.publisher)+' · '+esc(state.answerReference.title)+' ↗</a>. This does not certify the AI answer.</p>':''):'<p class="notice">Try: “What’s my plan today?”, “What should I do next?”, “Why do planes fly?” or “Create a skill called Flight Deck Trainer that quizzes me on cockpit instruments”.</p>')+'</section>'+forgePanel()+builderLabPanel();
+ return (!state.introHidden?renderWelcomeScene({schedule:state.schedule,tasks:state.tasks,assistant:state.companionName,phase:state.voicePhase,voiceAutoSend:state.voiceAutoSend}):'<button type="button" class="btn ghost" id="show-intro">▶ Open today’s briefing</button>')+installedFeaturesPanel()+'<section class="card"><h2>What is on your mind?</h2><div class="modebuttons">'+modes.map(x=>'<button type="button" data-mode="'+x[0]+'" class="'+(state.mode===x[0]?'active':'')+'">'+x[1]+'</button>').join('')+'</div><p class="muted">'+esc(state.companionName)+' is your AI assistant, not a human friend or professional adviser. It can teach and help you save a task, routine, private note or memory after you confirm. Background notifications depend on device readiness. For Maths, Physics, Chemistry or Biology, ask one question at a time and request worked steps. For checked answers, use <a href="/">Lessons &amp; practice</a> in your learning workspace.</p><div class="saathi-voice-indicator" id="saathi-voice-indicator" data-phase="ready" role="status" aria-live="polite"><span aria-hidden="true" class="saathi-voice-ring"></span>Tap Speak to start listening</div><label class="form-field">Voice language<select id="voice-locale" aria-label="Speech recognition and spoken reply language">'+VOICE_LANGUAGES.map(([v,label])=>'<option value="'+v+'" '+(v===state.voiceLocale?'selected':'')+'>'+label+'</option>').join('')+'</select></label><div role="log" aria-label="Recent conversation">'+history+'</div><form id="talk-form"><label class="form-field">Your question or idea<textarea id="question" required minlength="4" maxlength="1600" placeholder="Help me understand Newton’s laws using an aircraft"></textarea></label><label class="form-field">Attach a study image, PDF, Word, PowerPoint or text file<input id="companion-file" type="file" accept=".png,.jpg,.jpeg,.webp,.pdf,.docx,.pptx,.txt,text/plain,image/png,image/jpeg,image/webp,application/pdf"></label><div class="actions"><button class="btn" type="submit" id="ask-button">Ask '+esc(state.companionName)+'</button><button class="btn secondary" id="voice" type="button">🎙 Speak</button><button class="btn ghost" type="button" id="speak-answer" '+(state.answer?'':'disabled')+'>Read reply aloud</button><button class="btn secondary" type="button" id="explain-screen">Explain screen</button><button class="btn secondary" type="button" id="explain-camera">Explain camera frame</button></div></form><div class="actions"><button type="button" class="btn secondary" data-memory-draft="1">Save a memory from my question (review first)</button></div><p class="small">Microphone activates only when you press Speak. Partial transcripts are drafts and nothing is submitted until you select Ask; spoken questions can receive a spoken reply. Browser speech recognition may use a vendor service. AI messages are not saved in the app’s database but are sent to Cloudflare Workers AI for processing.</p>'+(state.answer?'<div class="ai-answer" id="answer">'+esc(state.answer)+'</div>'+(state.answerReference?'<p class="small">Related reference: <a href="'+esc(state.answerReference.url)+'" target="_blank" rel="noopener noreferrer">'+esc(state.answerReference.publisher)+' · '+esc(state.answerReference.title)+' ↗</a>. This does not certify the AI answer.</p>':''):'<p class="notice">Try: “What’s my plan today?”, “What should I do next?”, “Why do planes fly?” or “Create a skill called Flight Deck Trainer that quizzes me on cockpit instruments”.</p>')+'</section>'+specialistResults()+(state.researchReport?'<section class="card"><h2>Research brief</h2><p>'+esc(state.researchReport.title)+'</p><button class="btn secondary" id="export-research-brief" type="button">Export HTML document</button></section>':'')+forgePanel()+builderLabPanel();
+}
+
+function specialistResults(){
+ const r=state.teamReport;if(!r?.specialists?.length)return '';
+ return '<section class="card" id="saathi-team-results"><h2>Specialist team · '+esc(r.status)+'</h2><p class="small">'+esc(r.notice)+'</p>'+r.specialists.map(x=>'<details class="listitem" open><summary><strong>'+esc(x.name)+'</strong></summary><p style="white-space:pre-wrap">'+esc(x.answer)+'</p></details>').join('')+'<div class="actions"><button type="button" class="btn secondary" id="export-team-brief">Save team report as HTML</button></div></section>';
 }
 
 function forgePanel(){
@@ -305,6 +314,18 @@ root.addEventListener('click',async e=>{
   }
   state.notifications=false;state.pushStatus=await api('push-device').catch(()=>null);render();flash('Background push subscription disabled on this device.');return
  }
+ if(b.id==='export-research-brief'||b.id==='export-team-brief'){
+  let doc;
+  if(b.id==='export-research-brief'&&state.researchReport)doc=buildStudyDocument(state.researchReport);
+  else if(b.id==='export-team-brief'&&state.teamReport)doc=buildStudyDocument({title:'Saathi specialist team learning report',question:state.teamReport.question,answer:state.teamReport.specialists.map(x=>x.name+'\n'+x.answer).join('\n\n'),sourceUrl:'Independent AI suggestions — no external source verified'});
+  if(!doc)return;
+  const url=URL.createObjectURL(new Blob([doc],{type:'text/html;charset=utf-8'})),a=document.createElement('a');a.href=url;a.download='saathi-study-brief.html';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);flash('Printable HTML report exported. Open in a browser or word processor; use Print to save PDF.');return;
+ }
+ if(b.id==='explain-screen'||b.id==='explain-camera'){
+  const kind=b.id==='explain-screen'?'screen':'camera';
+  if(!confirm('Share ONE '+kind+' frame with Saathi AI for explanation? Check that it contains no passwords or private information. The recording stops after one frame.'))return;
+  try{const image=await captureVisualFrame(kind);const q='Explain the learning or creative content visible in this '+kind+' image. Describe only what is actually shown and say if something is unclear.';const r=await api('analyze-image',{confirm:'ANALYZE IMAGE',image,question:q});companionReply(q,r.answer,{notice:'Only the selected '+kind+' frame was sent; capture ended. Vision is subject to preview model availability.'});}catch(err){flash('Visual explanation unavailable: '+err.message)}return;
+ }
  if(b.id==='voice'){
   if(micSession?.isListening()){micSession.stop();voiceStatus('ready','Microphone stopped. No question was sent.');return;}
   const Recognition=window.SpeechRecognition||window.webkitSpeechRecognition;
@@ -313,6 +334,7 @@ root.addEventListener('click',async e=>{
   voiceReplyRequested=false;
   micSession=createVoiceCapture({
    RecognitionClass:Recognition,
+   language:normalizeSpeechLocale(state.voiceLocale),
    onDraft:text=>{
     const draft=stripCompanionCall(text,state.nameConfigured?state.companionName:null);
     const field=document.getElementById('question');
@@ -483,6 +505,10 @@ async function runLearnerBuild(prompt,revise=false,spoken=false,install=false){
 async function handleCompanionQuestion(raw,spoken=false){
  const question=stripCompanionCall(String(raw||'').trim(),state.nameConfigured?state.companionName:null);
  if(question.length<4)throw Error('Please ask a longer question.');
+ const team=teamCommand(question);
+ if(team){flash('Consulting relevant specialist mentors…');const result=await api('team-study',{question:team});state.teamReport={...result,question:team};const summary=result.specialists.length?result.specialists.map(x=>x.name+': '+x.answer).join('\n\n'):'Specialist advice unavailable; no report has been invented.';companionReply(question,summary,{spoken,notice:result.notice});return}
+ const research=parseResearchCommand(question);
+ if(research){flash('Reading the selected public educational source…');const source=await api('source-import',{url:research.url});if(source.status!=='ready'||!source.text)throw Error('This educational link has no readable source text. Paste the transcript or passage in Study links.');const response=await api('ask',{question:research.question,mode:'teacher',source:{type:'webpage',url:source.url,title:source.title,text:source.text}});state.researchReport={title:source.title,sourceUrl:source.url,question:research.question,answer:response.answer};companionReply(question,response.answer,{spoken,notice:'Explained using only the retrieved educational text. Export a study brief below. Verify important facts against the source.'});return}
  const upgrade=detectSaathiUpgradeIntent(question);
  if(upgrade){await runLearnerBuild(upgrade,false,spoken,true);return}
  const build=detectBuildRequest(question);
@@ -569,7 +595,7 @@ async function handleCompanionQuestion(raw,spoken=false){
  companionReply(question,answer.answer,{spoken,reference:answer.knowledgeReference,notice:'Saathi replied in '+(skill?.mode||state.mode)+' mode. Check important facts.'});
 }
 
-root.addEventListener('change',e=>{if(e.target?.id==='voice-auto-send'){state.voiceAutoSend=e.target.checked;flash(state.voiceAutoSend?'After you tap Speak, final spoken questions will be submitted automatically.':'Spoken questions will wait for your review.')}});
+root.addEventListener('change',e=>{if(e.target?.id==='voice-locale'){micSession?.stop();voiceSpeaker().cancel();state.voiceLocale=normalizeSpeechLocale(e.target.value);flash('Voice language selected. Availability depends on the browser.')}if(e.target?.id==='voice-auto-send'){state.voiceAutoSend=e.target.checked;flash(state.voiceAutoSend?'After you tap Speak, final spoken questions will be submitted automatically.':'Spoken questions will wait for your review.')}});
 root.addEventListener('submit',async e=>{
  e.preventDefault();const form=e.target,fd=new FormData(form);const btn=form.querySelector('[type=submit]');if(btn)btn.disabled=true;
  try{

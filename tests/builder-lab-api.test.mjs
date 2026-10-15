@@ -16,13 +16,13 @@ async function setup(){
  for(const file of ['0001_initial','0003_admin','0004_study','0005_mission','0006_companion_name','0007_personal_memory','0008_push_devices','0011_learner_skills','0012_learner_builder_lab'])
   db.exec(readFileSync(new URL('../migrations/'+file+'.sql',import.meta.url),'utf8'));
  const prepare=(sql,args=[])=>({bind(...v){return prepare(sql,v)},async first(){return db.prepare(sql).get(...args)||null},async all(){return {results:db.prepare(sql).all(...args)}},async run(){return {meta:{changes:Number(db.prepare(sql).run(...args).changes)}}}});
- let code=JSON.stringify(template),calls=0;
- const env={DB:{prepare},AI:{async run(){calls++;return {response:code}}}};
+ let code=JSON.stringify(template),calls=0,queue=[];
+ const env={DB:{prepare},AI:{async run(){calls++;return {response:queue.length?queue.shift():code}}}};
  const salt='00112233445566778899aabbccddeeff',hash=await accessKeyHash(KEY,salt);
  const add=db.prepare('INSERT INTO users(id,username,role,password_salt,password_hash,board,linked_student_id) VALUES(?,?,?,?,?,?,?)');
  const student=randomUUID(),other=randomUUID();add.run(student,'student1','student',salt,hash,'unconfigured',null);add.run(other,'student2','student',salt,hash,'unconfigured',null);add.run(randomUUID(),'parent','parent',salt,hash,'unconfigured',student);
  async function cookie(name){const r=await login({request:req('/api/login','',{username:name,password:KEY}),env});assert.equal(r.status,200);return r.headers.get('Set-Cookie').split(';')[0]}
- return {env,db,cookie,set code(value){code=value},get calls(){return calls}};
+ return {env,db,cookie,set code(value){code=value},set outputs(items){queue=[...items]},get calls(){return calls}};
 }
 test('student can generate, preview, revise and restore a versioned isolated prototype',async()=>{
  const x=await setup(),a=await x.cookie('student1');
@@ -71,4 +71,13 @@ test('learner can export and erase projects but deletion must be explicit',async
  assert.equal(data.learnerBuilds.length,1);
  assert.equal((await eraseData({request:req('/api/my-data',a,{action:'erase-learning-data',confirm:'ERASE MY STUDY DATA'}),env:x.env})).status,200);
  assert.equal((await (await getLab({request:req('/api/builder-lab',a),env:x.env})).json()).projects.length,0);
+});
+
+test('AI project builder repairs one malformed result into a valid saved prototype',async()=>{
+ const x=await setup(),a=await x.cookie('student1');
+ x.outputs=['not JSON',JSON.stringify(template)];
+ const response=await postLab({request:req('/api/builder-lab',a,{action:'generate',prompt:'Build an interactive aircraft instrument quiz'}),env:x.env});
+ assert.equal(response.status,201);assert.equal(x.calls,2);
+ const project=(await (await getLab({request:req('/api/builder-lab?id='+(await response.json()).id,a),env:x.env})).json()).project;
+ assert.equal(project.title,'Flight Quiz');
 });
