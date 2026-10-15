@@ -1,6 +1,7 @@
 import {youtubeIntent} from './youtube-discovery.js';
 import {detectBrahmaAction} from './brahma-actions.js';
 import {buildLoginBriefing} from './live-briefing.js';
+import {VOICE_PRESETS,chooseVoice,voiceSettings} from './voice-profiles.js';
 import {parseOneTimeReminder,parseScheduleIntent,needsReminderDetails,proactiveSearchHint,skillUpgradeIntent} from './saathi-orchestrator.js';
 const root=document.querySelector('#saathi-experience'),form=document.querySelector('#saathi-command-form'),field=document.querySelector('#saathi-command'),mic=document.querySelector('#saathi-mic'),send=document.querySelector('#saathi-send'),answer=document.querySelector('#saathi-answer'),media=document.querySelector('#saathi-media'),alert=document.querySelector('#saathi-alert'),phase=document.querySelector('#saathi-phase');
 let user=null,recognition=null,speaking=null,busy=false,mode='companion',lastTopic='',active=true;
@@ -31,7 +32,37 @@ async function welcome(){
  }catch{report('Welcome back. Your daily schedule is temporarily unavailable. You can still ask me anything.');setPhase('READY')}
 }
 try{user=await api('me');if(user.role!=='student')throw Error('This immersive learning space is available to learner accounts only.');setPhase('WORKING');await welcome();await restoreDialogue()}catch(err){report(err.message+' Sign in using the study workspace first.');link('Sign in ↗','/?workspace=1');setPhase('LOGIN REQUIRED');field.disabled=true;send.disabled=true;mic.disabled=true}
-function say(text){try{if(!window.speechSynthesis||!window.SpeechSynthesisUtterance)return;window.speechSynthesis.cancel();const utter=new SpeechSynthesisUtterance(String(text).slice(0,650));utter.lang='en-IN';utter.rate=.95;utter.onend=()=>{if(conversationEnabled&&active&&!busy)setTimeout(()=>beginListening(),300)};window.speechSynthesis.speak(utter);speaking=utter}catch{}}
+const voiceSelect=document.getElementById('saathi-voice-select');
+let selectedVoiceName=null;
+let selectedPreset='cinematic';
+try{const p=JSON.parse(localStorage.getItem('saathiVoiceV1')||'null');if(p&&VOICE_PRESETS.some(v=>v.id===p.preset)){selectedPreset=p.preset;selectedVoiceName=typeof p.voiceName==='string'?p.voiceName:null}}catch{}
+function syncVoiceOptions(){
+ const voices=window.speechSynthesis?.getVoices?.()||[];
+ const current=voiceSelect.value||selectedVoiceName||selectedPreset;
+ for(const old of [...voiceSelect.querySelectorAll('option[data-system-voice]')])old.remove();
+ const available=voices.filter(v=>/^en(?:-|$)/i.test(v.lang||''));
+ for(const v of available){const o=document.createElement('option');o.value='voice:'+v.name;o.textContent=v.name+' · '+v.lang;o.dataset.systemVoice='1';voiceSelect.append(o)}
+ voiceSelect.value=selectedVoiceName&&available.some(v=>v.name===selectedVoiceName)?'voice:'+selectedVoiceName:selectedPreset;
+ if(!voiceSelect.value)voiceSelect.value='cinematic';
+}
+voiceSelect.addEventListener('change',()=>{const chosen=voiceSelect.value;selectedVoiceName=chosen.startsWith('voice:')?chosen.slice(6):null;selectedPreset=selectedVoiceName?'cinematic':chosen;
+ try{localStorage.setItem('saathiVoiceV1',JSON.stringify({preset:selectedPreset,voiceName:selectedVoiceName}))}catch{}
+ alert.textContent='Voice preference saved on this device. Tap Preview voice to hear it.';
+});
+if(window.speechSynthesis){syncVoiceOptions();window.speechSynthesis.addEventListener?.('voiceschanged',syncVoiceOptions)}
+function say(text){try{
+ if(!window.speechSynthesis||!window.SpeechSynthesisUtterance)return;
+ window.speechSynthesis.cancel();
+ const utter=new SpeechSynthesisUtterance(String(text).slice(0,650));
+ const settings=voiceSettings({preset:selectedPreset});
+ const voice=chooseVoice(window.speechSynthesis.getVoices(),{preset:selectedPreset,voiceName:selectedVoiceName});
+ if(voice){utter.voice=voice;utter.lang=voice.lang||settings.lang}else utter.lang=settings.lang;
+ utter.rate=settings.rate;utter.pitch=settings.pitch;
+ utter.onend=()=>{if(conversationEnabled&&active&&!busy)setTimeout(()=>beginListening(),300)};
+ window.speechSynthesis.speak(utter);speaking=utter;
+}catch{alert.textContent='Voice output is unavailable on this browser.'}}
+document.getElementById('saathi-voice-preview').addEventListener('click',()=>{say('Hello. I am Saathi, your AI learning companion. How may I assist you today?')});
+
 document.getElementById('saathi-brief-voice').addEventListener('click',()=>{if(!welcomeData)return;say(buildLoginBriefing({...welcomeData,weather:weatherData}).text);setPhase('SPEAKING');});
 document.getElementById('saathi-weather-request').addEventListener('click',()=>{
  if(!navigator.geolocation){alert.textContent='Location is not available in this browser.';return}
