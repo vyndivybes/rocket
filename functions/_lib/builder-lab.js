@@ -9,7 +9,7 @@ export function validateBuildRequest(input){
 }
 export function parseGeneratedBuild(raw){
  if(typeof raw!=='string'||raw.length>19000)return null;
- let value;try{value=JSON.parse(raw.trim())}catch{return null}
+ let value;try{const source=raw.trim();const fenced=source.match(/^\x60{3}(?:json)?\s*([\s\S]*?)\s*\x60{3}$/i);value=JSON.parse(fenced?fenced[1]:source)}catch{return null}
  if(!value||typeof value!=='object'||Array.isArray(value)||Object.keys(value).sort().join(',')!=='css,html,js,title')return null;
  const {title,html,css,js}=value;
  if(typeof title!=='string'||title.trim().length<3||title.length>60||/[<>]/.test(title))return null;
