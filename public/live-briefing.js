@@ -9,6 +9,7 @@ export function buildLoginBriefing({username,schedule=[],tasks=[],weather=null},
  const daily=buildDailyBrief({schedule,tasks},now);
  const hour=now.getHours(),greeting=hour<12?'Good morning':hour<17?'Good afternoon':'Good evening';
  const candidate=typeof username==='string'?username.trim():'';
+ const name=candidate&&Array.from(candidate).length<=24&&!/[<>\x00-\x1f]/u.test(candidate)?candidate:'there';
  const name=candidate&&Array.from(candidate).length<=24&&!/[<>\\x00-\\x1f]/u.test(candidate)?candidate:'there';
  const events=daily.todayEvents.slice(0,3).map(e=>e.time+' — '+e.title);
  const open=tasks.filter(t=>t&&t.done!==true&&t.done!==1);
