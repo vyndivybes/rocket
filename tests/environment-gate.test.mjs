@@ -41,3 +41,9 @@ test('owner release override cannot let preview access production records',async
  const r=await onRequest({request:request(),env,next:async()=>{called=true;return new Response('unsafe')}});
  assert.equal(r.status,503);assert.equal(called,false);
 });
+
+test('production Wrangler config carries the operator-side override',async()=>{
+ const {readFile}=await import('node:fs/promises');
+ const config=await readFile(new URL('../wrangler.toml',import.meta.url),'utf8');
+ assert.match(config,/\[env\.production\.vars\][\s\S]*SAATHI_PRODUCTION_RELEASE_OVERRIDE = "owner-authorized-restricted-pilot-2026-10-15"/);
+});
