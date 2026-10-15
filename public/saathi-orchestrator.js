@@ -8,8 +8,8 @@ export function parseScheduleIntent(text){
  if(hour<1||hour>12||minute>59||match[1].length<3||match[1].length>90)return null;
  const time=String((hour%12)+(meridian==='pm'?12:0)).padStart(2,'0')+':'+String(minute).padStart(2,'0');
  const day=match[5]?.toLowerCase(),idx=dayNames.indexOf(day);
- if(day&&idx<0)return null;
- const days=idx>=0?[idx]:[0,1,2,3,4,5,6];
+ if(!day||idx<0)return null; // Never silently convert a single reminder into a daily recurring schedule.
+ const days=[idx];
  return {title:match[1].trim(),kind:'study',time,minutes:30,days};
 }
 export function proactiveSearchHint(q,answer){
@@ -26,3 +26,5 @@ export function skillUpgradeIntent(text){
  const match=text.trim().match(/^(?:(?:saathi[, ]+)?(?:please )?)?(?:upgrade your skills|build (?:me )?a new (?:skill|capability)|learn to teach me|create (?:a )?skill)\s*(?:to|for|about|on)?\s*(.{7,220})$/i);
  return match?match[1].trim():null;
 }
+
+export function needsReminderDetails(text){return typeof text==='string'&&/^(?:(?:hey )?saathi[, ]*)?(?:remind me to|schedule|set (?:a )?reminder|add (?:a )?reminder)/i.test(text)&&!parseScheduleIntent(text)}
