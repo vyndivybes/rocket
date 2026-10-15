@@ -48,8 +48,9 @@ async function refreshWeatherAndBriefing({read=false}={}){
 }
 async function welcome(){
  try{
-  const [schedule,tasks]=await Promise.allSettled([api('schedule'),api('tasks')]);
-  welcomeData={username:user.username,schedule:schedule.status==='fulfilled'?schedule.value.items:[],tasks:tasks.status==='fulfilled'?tasks.value.tasks:[],weather:null};
+  const [schedule,tasks,settings]=await Promise.allSettled([api('schedule'),api('tasks'),api('experience')]);
+  const nickname=settings.status==='fulfilled'?String(settings.value.preferences?.studentNickname||'').trim():'';
+  welcomeData={username:nickname,schedule:schedule.status==='fulfilled'?schedule.value.items:[],tasks:tasks.status==='fulfilled'?tasks.value.tasks:[],weather:null};
   const briefing=buildLoginBriefing(welcomeData);
   report(briefing.text);setPhase('READY');
   alert.textContent='Preparing your spoken weather and schedule briefing. Your browser will ask before sharing location.';
