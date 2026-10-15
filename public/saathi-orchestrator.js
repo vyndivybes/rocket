@@ -27,4 +27,20 @@ export function skillUpgradeIntent(text){
  return match?match[1].trim():null;
 }
 
-export function needsReminderDetails(text){return typeof text==='string'&&/^(?:(?:hey )?saathi[, ]*)?(?:remind me to|schedule|set (?:a )?reminder|add (?:a )?reminder)/i.test(text)&&!parseScheduleIntent(text)}
+export function needsReminderDetails(text){return typeof text==='string'&&/^(?:(?:hey )?saathi[, ]*)?(?:remind me to|schedule|set (?:a )?reminder|add (?:a )?reminder)/i.test(text)&&!parseScheduleIntent(text)&&!parseOneTimeReminder(text)}
+
+export function parseOneTimeReminder(text,now=new Date()){
+ if(typeof text!=='string'||text.length>500)return null;
+ let t=text.trim().replace(/^(?:hey\s+)?(?:saathi[,! ]+)?(?:please\s+)?/i,'');
+ if(!/^(?:remind me|set (?:a )?reminder|schedule)\b/i.test(t))return null;
+ t=t.replace(/^(?:remind me(?: to)?|set (?:a )?reminder(?: to| for)?|schedule)\s+/i,'');
+ const match=t.match(/^(.*?)\s*(?:for\s+)?tomorrow(?:\s+(?:morning|afternoon|evening|night))?\s+(?:at\s+)?(\d{1,2})(?::(\d{2}))?\s*(am|pm)\b[.!?]?$/i);
+ if(!match)return null;
+ const title=(match[1]||'Reminder').trim().replace(/^(?:to|for)\s+/i,'').trim()||'Reminder';
+ const hour=Number(match[2]),minute=Number(match[3]||0),ampm=match[4].toLowerCase();
+ if(title.length>90||hour<1||hour>12||minute>59)return null;
+ const h=String(hour%12+(ampm==='pm'?12:0)).padStart(2,'0');
+ const tomorrow=new Date(now.getFullYear(),now.getMonth(),now.getDate()+1,12,0,0);
+ const date=tomorrow.getFullYear()+'-'+String(tomorrow.getMonth()+1).padStart(2,'0')+'-'+String(tomorrow.getDate()).padStart(2,'0');
+ return {title,date,time:h+':'+String(minute).padStart(2,'0')};
+}
