@@ -271,8 +271,41 @@ async function captureMediaImage(){
  if(uri.length>600000)throw Error('Image too large after resizing; select a simpler or smaller image.');
  return uri;
 }
+
+async function explainCompanionFile(file){
+ const kind=detectMediaFile(file.name,file.size);
+ if(!kind||kind==='unsupported')throw Error('Unsupported file. Choose a small PNG, JPEG, WebP, PDF, DOCX, PPTX or text file.');
+ if(kind==='video-frame-only'){companionReply('Explain attached video','Video files require choosing one visible frame in My uploads; Saathi cannot interpret the entire video automatically.');return}
+ const question=document.getElementById('question')?.value?.trim()||'Teach me the main ideas from this study material step by step.';
+ if(kind==='image'){
+  if(!confirm('Send this image to Cloudflare Workers AI for explanation? Saathi will not save the image.'))return;
+  const previousFile=state.mediaFile,previousKind=state.mediaKind;
+  state.mediaFile=file;state.mediaKind='image';
+  let picture;
+  try{picture=await captureMediaImage()}finally{state.mediaFile=previousFile;state.mediaKind=previousKind}
+  const result=await api('analyze-image',{image:picture,question,confirm:'ANALYZE IMAGE'});
+  companionReply('Explain attached image: '+question,result.answer,{notice:'Single-image analysis only. Verify diagrams and handwriting.'});return;
+ }
+ let text;
+ if(kind==='document'){
+  if(!confirm('Convert this document using Cloudflare and explain its extracted text? Diagrams and tables may be incomplete.'))return;
+  const bytes=new Uint8Array(await file.arrayBuffer());let raw='';
+  for(let i=0;i<bytes.length;i+=8192)raw+=String.fromCharCode(...bytes.subarray(i,i+8192));
+  const converted=await api('convert-document',{name:file.name,base64:btoa(raw),confirm:'CONVERT DOCUMENT'});
+  text=converted.text;
+ }else if(kind==='text'){text=(await file.text()).replace(/\u0000/g,'').slice(0,12000)}
+ if(typeof text!=='string'||text.trim().length<40)throw Error('Not enough readable study text was found in the file.');
+ const response=await api('ask',{question,mode:'teacher',source:{type:'manual',url:'',title:file.name,text}});
+ companionReply('Explain attached '+file.name+': '+question,response.answer,{reference:response.knowledgeReference,notice:'Explanation uses extracted text only. Verify equations, diagrams and source details.'});
+}
+
 root.addEventListener('change',async e=>{
- if(e.target?.id!=='media-file-input')return;
+ if(e.target?.id==='companion-file'){
+   const file=e.target.files?.[0];if(!file)return;
+   try{await explainCompanionFile(file)}catch(err){flash(err.message)}finally{e.target.value=''}
+   return;
+  }
+  if(e.target?.id!=='media-file-input')return;
  const file=e.target.files?.[0];if(!file)return;
  if(state.mediaObjectUrl){URL.revokeObjectURL(state.mediaObjectUrl);state.mediaObjectUrl=null}
  const kind=detectMediaFile(file.name,file.size);state.mediaFile=null;state.mediaKind=null;state.mediaAnswer='';
