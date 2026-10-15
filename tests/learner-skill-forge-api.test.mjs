@@ -32,8 +32,8 @@ test('learner builds, tests as draft, activates and revises an owned skill',asyn
  assert.equal((await (await getSkills({request:req('/api/skills',c),env:x.env})).json()).skills.length,1);
  const activated=await postSkill({request:req('/api/skills',c,{action:'activate',id:a.id}),env:x.env});
  assert.equal((await activated.json()).skill.status,'active');
- const stale=await postSkill({request:req('/api/skills',c,{action:'update',id:a.id,revision:a.revision,...example}),env:x.env});
- assert.equal(stale.status,400); // conflicting action is invalid when stale create fields supersede update
+ const stale=await postSkill({request:req('/api/skills',c,{...example,action:'update',id:a.id,revision:a.revision}),env:x.env});
+ assert.equal(stale.status,409);
  const modified=await postSkill({request:req('/api/skills',c,{...example,action:'update',id:a.id,revision:a.revision+1,purpose:'Build a more creative cockpit revision practice with questions.'}),env:x.env});
  assert.equal(modified.status,200);assert.equal((await modified.json()).skill.status,'draft');
 });
