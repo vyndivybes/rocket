@@ -80,7 +80,7 @@ export function routeCompanionSkill(utterance,now=new Date()){
   if(!time||!days||!minutes||minutes<5||minutes>120){
    const oneTime=/\b(?:today|tomorrow|on\s+\d{4}-\d{2}-\d{2})\b/i.test(text);
    const timeNote=time?' I understood the time as '+time+'.':'';
-   return {kind:'schedule-needs-details',answer:oneTime?'I can save a recurring routine here, but the planner does not support one-off timed reminders yet.'+timeNote+' I still need the activity and duration. Would you like a task due tomorrow, or a repeating routine for selected days?':'I can save a repeating routine here.'+timeNote+' Tell me the activity, duration, and days. Example: “Schedule 30 minutes of maths at 5:30 pm every weekday.”'};
+   return {kind:'schedule-needs-details',answer:oneTime?'I can save a recurring routine here, but the planner does not support one-off timed reminders yet.'+timeNote+' I still need the activity and duration. Would you like a dated task instead, or a repeating routine for selected days?':'I can save a repeating routine here.'+timeNote+' Tell me the activity, duration, and days. Example: “Schedule 30 minutes of maths at 5:30 pm every weekday.”'};
   }
   let title=text.replace(/\b\d{1,3}\s*(?:minutes|mins|min)(?:\s+of)?\b/i,'').replace(/\bat\s+\d{1,2}(?::\d{2})?\s*(?:am|pm)?\b/i,'').replace(/\b(?:every\s+weekday|weekdays|monday\s+to\s+friday|every\s+day|daily)\b/ig,'').replace(/\b(?:on\s+)?(?:sundays?|mondays?|tuesdays?|wednesdays?|thursdays?|fridays?|saturdays?)\b/ig,'').trim().replace(/^of\s+/i,'').replace(/\s+/g,' ');
   if(title.length<2||title.length>100)return {kind:'schedule-needs-details',answer:'What activity would you like in that time slot?'};
