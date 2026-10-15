@@ -1,0 +1,3 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {createConversationLoop} from '../public/conversation-loop.js';
+test('user starts session, speaks, listens, and repeats until stop',()=>{const s=createConversationLoop({maxTurns:3});assert.equal(s.active(),false);s.start();assert.equal(s.submitted(),true);assert.equal(s.speechFinished(),true);assert.equal(s.speechFinished(),false);assert.equal(s.submitted(),true);assert.equal(s.speechFinished(),true);assert.equal(s.submitted(),false);assert.equal(s.active(),false)});
+test('stop or browser error always terminates listening/rearm',()=>{const s=createConversationLoop();s.start();s.submitted();s.stop();assert.equal(s.speechFinished(),false);s.start();s.failed();assert.equal(s.active(),false)});
