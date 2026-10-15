@@ -80,6 +80,8 @@ export function routeCompanionSkill(utterance,now=new Date()){
   if(title.length<2||title.length>100)return {kind:'schedule-needs-details',answer:'What activity would you like in that time slot?'};
   return {kind:'create-schedule',payload:{title,kind:scheduleKind(title),time,days,minutes},confirmation:'Schedule “'+title+'” at '+time+' for '+minutes+' minutes on '+(days.length===7?'every day':days.length===5?'weekdays':days.map(d=>DAY_NAMES[d]).join(', '))+'?',notice:'A saved activity is not a guaranteed phone alert. Notification delivery depends on device permissions and push readiness.'};
  }
+ // High-impact verbs must never be interpreted as educational skills.
+ if(/^(?:buy|purchase|order|send|delete|erase|pay|transfer)\b/i.test(q))return null;
  const mode=academicMode(q);
  return mode?{kind:'ai',mode}:null;
 }
