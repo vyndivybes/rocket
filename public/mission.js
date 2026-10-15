@@ -356,6 +356,31 @@ function companionReply(question,reply,{spoken=false,reference=null,notice=''}={
 async function handleCompanionQuestion(raw,spoken=false){
  const question=stripCompanionCall(String(raw||'').trim(),state.nameConfigured?state.companionName:null);
  if(question.length<4)throw Error('Please ask a longer question.');
+ const proposed=draftSkillFromRequest(question);
+ if(proposed){
+  const result=await api('skills',{action:'create',...proposed});
+  state.skills.unshift(result.skill);
+  companionReply(question,'Created “'+result.skill.name+'” as a private draft skill. Try it by saying: “Try '+result.skill.name+' skill with a topic”, or use Try in Skill Forge. Activate it whenever it is useful.',{spoken,notice:'Your draft was saved and can be revised or deleted anytime.'});return;
+ }
+ const savedSkill=routeSavedSkillRequest(question,state.skills);
+ if(savedSkill?.kind==='list-skills'){
+  companionReply(question,state.skills.length?'Your skills: '+state.skills.map(x=>x.name+' ('+x.status+')').join('; ')+'.':'You have no created skills yet. Say “Create a skill called Flight Deck Trainer that quizzes me on cockpit instruments”.',{spoken});return;
+ }
+ if(savedSkill?.kind==='skill-not-active'){
+  companionReply(question,'“'+savedSkill.skill.name+'” is still a draft. Say “Try '+savedSkill.skill.name+' skill with a topic” or activate it when ready.',{spoken});return;
+ }
+ if(savedSkill?.kind==='set-skill-status'){
+  const action=savedSkill.status==='active'?'activate':'deactivate';
+  const updated=await api('skills',{action,id:savedSkill.skill.id});
+  state.skills=state.skills.map(x=>x.id===updated.skill.id?updated.skill:x);
+  companionReply(question,'“'+updated.skill.name+'” is now '+updated.skill.status+'. You can change this any time.',{spoken});return;
+ }
+ if(savedSkill?.kind==='run-skill'){
+  const prompt=buildSkillQuestion(savedSkill.skill,savedSkill.topic);
+  const reply=await api('ask',{question:prompt,mode:savedSkill.skill.mode});
+  companionReply(question,reply.answer,{spoken,reference:reply.knowledgeReference,notice:'Executed learner-created text skill “'+savedSkill.skill.name+'”. AI response, not a validated textbook answer.'});return;
+ }
+
  const link=detectStudyLinkQuestion(question);
  if(link){
   const notice=await importStudyLink(link.url);
@@ -421,6 +446,6 @@ function checkReminders(){
  if(state.seen.size>200)state.seen.clear();
 }
 async function init(){
- try{state.user=await api('me');if(state.user.role!=='student'){root.innerHTML='<main class="boot"><h1>Student-only space</h1><a href="/">Back to dashboard</a></main>';return}const [notes,schedule,tasks,prefs,packs,memories,mediaStatus,adaptivePlan,pushStatus,welcome]=await Promise.all([api('notes'),api('schedule'),api('tasks'),api('companion-preferences'),api('knowledge-packs').catch(()=>({packs:[]})),api('personal-memory'),api('media-status').catch(()=>({enabled:false})),api('adaptive-plan').catch(()=>null),api('push-device').catch(()=>({ready:false,notice:'Background push status unavailable; export a calendar instead.'})),api('welcome-once').catch(()=>null)]);state.notes=notes.notes;state.schedule=schedule.items;state.tasks=tasks.tasks;state.knowledgePacks=packs.packs;state.memories=memories.memories;state.visionEnabled=mediaStatus.enabled===true;state.adaptivePlan=adaptivePlan;state.pushStatus=pushStatus;state.welcome=welcome;state.companionName=prefs.name;state.nameConfigured=prefs.configured;if(!prefs.configured)state.tab='identity';render();setInterval(checkReminders,30000)}catch{root.innerHTML='<main class="boot"><h1>Sign in as a student</h1><p>Mission Control requires the learner login.</p><a href="/">Go to learner login</a></main>'}
+ try{state.user=await api('me');if(state.user.role!=='student'){root.innerHTML='<main class="boot"><h1>Student-only space</h1><a href="/">Back to dashboard</a></main>';return}const [notes,schedule,tasks,prefs,packs,memories,mediaStatus,adaptivePlan,pushStatus,welcome,skillData]=await Promise.all([api('notes'),api('schedule'),api('tasks'),api('companion-preferences'),api('knowledge-packs').catch(()=>({packs:[]})),api('personal-memory'),api('media-status').catch(()=>({enabled:false})),api('adaptive-plan').catch(()=>null),api('push-device').catch(()=>({ready:false,notice:'Background push status unavailable; export a calendar instead.'})),api('welcome-once').catch(()=>null),api('skills').catch(()=>({skills:[],unavailable:true}))]);state.skills=skillData.skills||[];state.forgeAvailable=skillData.unavailable!==true;state.notes=notes.notes;state.schedule=schedule.items;state.tasks=tasks.tasks;state.knowledgePacks=packs.packs;state.memories=memories.memories;state.visionEnabled=mediaStatus.enabled===true;state.adaptivePlan=adaptivePlan;state.pushStatus=pushStatus;state.welcome=welcome;state.companionName=prefs.name;state.nameConfigured=prefs.configured;if(!prefs.configured)state.tab='identity';render();setInterval(checkReminders,30000)}catch{root.innerHTML='<main class="boot"><h1>Sign in as a student</h1><p>Mission Control requires the learner login.</p><a href="/">Go to learner login</a></main>'}
 }
 init();
