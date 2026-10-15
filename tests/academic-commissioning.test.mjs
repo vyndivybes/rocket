@@ -21,7 +21,11 @@ test('no learner subjects are invented, deduplicated inputs cannot inflate cover
  assert.deepEqual(academicInventory(null),[]);assert.deepEqual(academicInventory([]),[]);
  assert.equal(academicInventory(['Physics','Physics']).length,1);
 });
-test('all mandatory commissioning gates are held; runtime cannot override',()=>{
- const s=commissioningStatus();assert.equal(s.productionEligible,false);assert.equal(s.status,'HOLD');
- assert.ok(s.gates.every(g=>g.status==='HOLD'));
+test('commissioning gates stay held unless exact owner pilot override is set',()=>{
+ const held=commissioningStatus();assert.equal(held.productionEligible,false);assert.equal(held.status,'HOLD');
+ assert.ok(held.gates.every(g=>g.status==='HOLD'));
+ const overridden=commissioningStatus({SAATHI_PRODUCTION_RELEASE_OVERRIDE:'owner-authorized-restricted-pilot-2026-10-15'});
+ assert.equal(overridden.productionEligible,true);assert.equal(overridden.status,'OVERRIDDEN');
+ assert.match(overridden.releaseBasis,/gates remain HOLD/);
+ assert.ok(overridden.gates.every(g=>g.status==='HOLD'));
 });
