@@ -45,6 +45,9 @@ export function routeCompanionSkill(utterance,now=new Date()){
  if(typeof utterance!=='string'||utterance.length>1600)return null;
  const q=utterance.trim().replace(/[.!?]+$/,'');
  if(q.length<4)return null;
+ if(/^(?:show|list|read) my (?:study )?tasks?(?: please)?$/i.test(q))return {kind:'read-tasks'};
+ if(/^(?:show|list|read) my (?:private )?notes?(?: please)?$/i.test(q))return {kind:'read-notes'};
+ if(/^(?:show|list|read) my (?:study )?(?:schedule|routine)(?: please)?$/i.test(q))return {kind:'read-schedule'};
  // Only direct, affirmative requests to the learner's own data may become write proposals.
  let match=q.match(/^(?:remember(?:\s+that)?|save\s+(?:this\s+)?(?:as\s+)?(?:a\s+)?memory\s*:?)[\s:]+(.+)$/i);
  if(match){
