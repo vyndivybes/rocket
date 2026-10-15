@@ -49,6 +49,12 @@ try{
  if(/^(?:stop|stop conversation|end conversation|goodbye|stop listening)$/i.test(q)){
   stopConversation();report('Conversation stopped. Your saved history remains private, and you can restart any time.');setPhase('STOPPED');return;
  }
+ if(/^(?:show|review|read|recall) (?:my )?(?:chat history|conversation history|past chats)$/i.test(q)){
+  const r=await api('dialogue');
+  const turns=Array.isArray(r.turns)?r.turns.slice(-16):[];
+  report(turns.length?turns.map(t=>(t.role==='student'?'You':'Saathi')+': '+t.text).join('\n\n'):'No saved conversation history was found.');
+  setPhase('READY');return;
+ }
  if(/^(?:clear|erase|delete) (?:my )?(?:chat history|conversation history)$/i.test(q)){
   pendingAction={kind:'erase-history'};report('Delete your saved conversation history permanently? Please confirm.');actionButton('Yes, erase my history',async()=>{try{await api('dialogue',{action:'clear'});sessionTurns=[];report('Saved conversation history erased.')}catch(e){report(e.message)}});actionButton('Cancel',()=>{pendingAction=null;report('No history was deleted.')});setPhase('READY');return;
  }
