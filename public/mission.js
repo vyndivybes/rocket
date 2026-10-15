@@ -25,13 +25,14 @@ import {teamCommand} from './team-command.js';
 import {parseResearchCommand,buildStudyDocument} from './research-workflow.js';
 import {makeOfficeFile} from './office-export.js';
 import {detectBrahmaAction,buildAgentReceipt} from './brahma-actions.js';
+import {pairLocalCompanion,callLocalCompanion} from './device-bridge.js';
 import {detectMediaFile,frameTimeLabel} from './media-file.js';
 const root=document.getElementById('mission-root');
 attachImmersiveScene({root:document,win:window});
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const state={user:null,tab:'companion',mode:'companion',notes:[],schedule:[],tasks:[],knowledgePacks:[],packId:null,memories:[],linkSource:null,linkUrl:'',linkText:'',linkQuestion:'',linkAnswer:'',linkEvidence:[],answer:'',answerReference:null,mediaFile:null,mediaObjectUrl:null,mediaKind:null,mediaQuestion:'',mediaAnswer:'',mediaTimeLabel:null,visionEnabled:false,adaptivePlan:null,companionName:DEFAULT_COMPANION_NAME,nameConfigured:false,notifications:false,pushStatus:null,welcome:null,seen:new Set(),conversation:[],skills:[],forgeAvailable:false,builds:[],builderAvailable:false,selectedBuild:null,buildVersions:[],forgedSkills:[],voicePhase:'idle',voiceAutoSend:false,voiceLocale:'en-IN',introHidden:false,installedFeatures:[],installedAvailable:false,lastProbe:null,teamReport:null,researchReport:null,coreSkills:[],agentAction:null};
 const sketchState=createSketchState();
-let micSession=null,voiceReplyRequested=false,spokenReply=null;
+let micSession=null,voiceReplyRequested=false,spokenReply=null,devicePairToken=null;
 const conversationLoop=createConversationLoop({maxTurns:12});
 function voiceSpeaker(){
  if(!spokenReply)spokenReply=createVoiceReadback({
@@ -73,7 +74,7 @@ function adaptive(){
  return '<section class="card"><h2>Next learning steps</h2><p class="muted">From graded foundation practice only—not an educational diagnosis, predicted marks or school-certified curriculum.</p>'+p.recommendations.map(x=>'<div class="listitem"><div><span class="tag">'+esc(x.status)+'</span><h3>'+esc(x.title)+'</h3><p class="small">'+esc(x.subject)+' · '+Number(x.minutes)+' minutes · '+Number(x.attempts)+' attempts, '+Number(x.correct)+' correct</p><p class="muted">'+esc(x.reason)+'</p></div><div class="actions"><button type="button" class="btn secondary" data-plan-lesson="'+esc(x.lessonId)+'">Review suggested revision schedule</button></div></div>').join('')+'<p class="small">'+esc(p.notice)+'</p><a class="btn secondary" href="/">Open Lessons &amp; practice</a></section>';
 }
 function developmentHub(){
- return '<details class="card" id="saathi-development-hub"><summary><strong>AI Development Hub</strong> — propose source upgrades & optional device tools</summary><p class="muted">Your personal Skill Forge can build and test features immediately. For changes to the shared Saathi source code, submit an idea for a reviewed GitHub upgrade. You do not need GitHub credentials to propose an idea.</p><form id="core-idea-form"><label class="form-field">What should Saathi learn to do next?<textarea name="idea" required minlength="15" maxlength="600" placeholder="Build a new core cockpit simulator with a simple interactive instrument panel."></textarea></label><button class="btn" type="submit">Save source upgrade proposal</button></form><div class="saathi-devbridge"><h3>Device companion (optional)</h3><p class="small">Install and run the free Node.js local companion on your own Windows computer to open educational websites, search topics, save local notes and view device status. It never starts by itself.</p><a class="btn secondary" href="http://127.0.0.1:31984/" target="_blank" rel="noopener noreferrer">Open my local companion ↗</a><p class="small">If nothing opens, start the helper from your local Saathi repository. Your hosted AI does not have native device-control permission. An optional click-to-run Chrome/Edge extension can also read the current educational tab, highlight phrases or open a selected link. <a href="https://github.com/vyndivybes/rocket/blob/feat/saathi-academic-mvp/local-companion/extension/README.md" target="_blank" rel="noopener noreferrer">How to install browser helper</a>.</p></div></details>';
+ return '<details class="card" id="saathi-development-hub"><summary><strong>AI Development Hub</strong> — propose source upgrades & optional device tools</summary><p class="muted">Your personal Skill Forge can build and test features immediately. For changes to the shared Saathi source code, submit an idea for a reviewed GitHub upgrade. You do not need GitHub credentials to propose an idea.</p><form id="core-idea-form"><label class="form-field">What should Saathi learn to do next?<textarea name="idea" required minlength="15" maxlength="600" placeholder="Build a new core cockpit simulator with a simple interactive instrument panel."></textarea></label><button class="btn" type="submit">Save source upgrade proposal</button></form><div class="saathi-devbridge"><h3>Device companion (optional)</h3><p class="small">'+(devicePairToken?'Paired with the local helper on this laptop. Pairing automatically expires after 20 minutes.':'Not paired. Start the local helper on this laptop and enter its displayed code.')+'</p><form id="device-pair-form"><label class="form-field">Local helper pairing code<input type="text" name="code" minlength="6" maxlength="6" inputmode="numeric" pattern="[0-9]{6}" autocomplete="off" required placeholder="Six digits"></label><button class="btn secondary" type="submit">Connect this laptop</button></form><div class="actions"><button type="button" class="btn secondary" id="device-health">Read device status</button><button type="button" class="btn ghost" id="device-disconnect">Disconnect local helper</button></div><p class="small">Install and run the free Node.js local companion on your own Windows computer to open educational websites, search topics, save local notes and view device status. It never starts by itself.</p><a class="btn secondary" href="http://127.0.0.1:31984/" target="_blank" rel="noopener noreferrer">Open my local companion ↗</a><p class="small">If nothing opens, start the helper from your local Saathi repository. Your hosted AI does not have native device-control permission. An optional click-to-run Chrome/Edge extension can also read the current educational tab, highlight phrases or open a selected link. <a href="https://github.com/vyndivybes/rocket/blob/feat/saathi-academic-mvp/local-companion/extension/README.md" target="_blank" rel="noopener noreferrer">How to install browser helper</a>.</p></div></details>';
 }
 
 function coreUpgradeCards(){
@@ -409,6 +410,10 @@ root.addEventListener('click',async e=>{
   if(!confirm('Share ONE '+kind+' frame with Saathi AI for explanation? Check that it contains no passwords or private information. The recording stops after one frame.'))return;
   try{const image=await captureVisualFrame(kind);const q='Explain the learning or creative content visible in this '+kind+' image. Describe only what is actually shown and say if something is unclear.';const r=await api('analyze-image',{confirm:'ANALYZE IMAGE',image,question:q});companionReply(q,r.answer,{notice:'Only the selected '+kind+' frame was sent; capture ended. Vision is subject to preview model availability.'});}catch(err){flash('Visual explanation unavailable: '+err.message)}return;
  }
+ if(b.id==='device-health'){
+  try{const result=await callLocalCompanion(devicePairToken,{action:'system-status'});flash('This laptop · '+result.platform+' · '+result.logicalProcessors+' CPU cores · '+result.freeMemoryMiB+' MiB free RAM.')}catch(err){flash(err.message)}return;
+ }
+ if(b.id==='device-disconnect'){devicePairToken=null;render();flash('Local device session disconnected in this browser tab.');return}
  if(b.id==='conversation-start'){
   if(!conversationLoop.active()){conversationLoop.start();state.voiceAutoSend=true;startVoiceTurn();flash('Voice conversation started by you. It will pause after each answer and stop automatically after twelve turns. Use Stop conversation anytime.');}return;
  }
@@ -564,7 +569,14 @@ async function handleCompanionQuestion(raw,spoken=false){
  if(question.length<4)throw Error('Please ask a longer question.');
  state.agentAction=null;
  const requestedAction=detectBrahmaAction(question);
- if(requestedAction){state.agentAction=buildAgentReceipt(requestedAction);companionReply(question,requestedAction.notice,{spoken,notice:'Saathi Action Gateway: '+requestedAction.status+'. Follow the visible control to perform the action.'});return}
+ if(requestedAction){
+  state.agentAction=buildAgentReceipt(requestedAction);
+  if(requestedAction.kind==='device-handoff'&&devicePairToken){
+   try{const info=await callLocalCompanion(devicePairToken,{action:'system-status'});state.agentAction={...state.agentAction,status:'DEVICE_STATUS_READ',label:'Your laptop is connected',notice:'Read-only status: '+info.platform+', '+info.logicalProcessors+' CPU cores, '+info.freeMemoryMiB+' MiB free memory. No external commands were run.'};}
+   catch(err){devicePairToken=null;state.agentAction={...state.agentAction,status:'RECONNECT_REQUIRED',notice:err.message}}
+  }
+  companionReply(question,state.agentAction.notice,{spoken,notice:'Saathi Action Gateway: '+state.agentAction.status+'. Device changes are never implied.'});return
+ }
  const team=teamCommand(question);
  if(team){flash('Consulting relevant specialist mentors…');const result=await api('team-study',{question:team});state.teamReport={...result,question:team};const summary=result.specialists.length?result.specialists.map(x=>x.name+': '+x.answer).join('\n\n'):'Specialist advice unavailable; no report has been invented.';companionReply(question,summary,{spoken,notice:result.notice});return}
  const research=parseResearchCommand(question);
@@ -674,6 +686,10 @@ root.addEventListener('submit',async e=>{
  if(form.id==='builder-new-form'||form.id==='builder-revise-form'){
   const prompt=String(fd.get('prompt')||'').trim();
   await runLearnerBuild(prompt,form.id==='builder-revise-form');return;
+ }
+ if(form.id==='device-pair-form'){
+  devicePairToken=await pairLocalCompanion(String(fd.get('code')||'').trim());
+  render();flash('Local helper paired in this browser tab. Supported actions remain permission-bound.');return;
  }
  if(form.id==='core-idea-form'){
   const idea=String(fd.get('idea')||'').trim();
