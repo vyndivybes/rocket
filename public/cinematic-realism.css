@@ -1,0 +1,204 @@
+/* SAATHI CINEMA / FLIGHT DECK — Original, dependency-free cinematic styling.
+   Atmospheric aviation, steel-blue UI, warm light and believable depth.
+   No stock imagery, vendor animation libraries, trackers or remote assets. */
+:root{
+ --wonder-peach:#c7d9e3;--wonder-tangerine:#dba87a;--wonder-rose:#d4e2e8;
+ --wonder-cream:#f0f5f7;--wonder-yellow:#e8d6ad;--wonder-mint:#d7e9e9;
+ --wonder-lilac:#dfe5f0;--wonder-blue:#c1e0eb;--wonder-ink:#173149;
+ --wonder-mulberry:#174a6b;--wonder-line:#a6bdc9;
+ --saathi-navy:#0c2744;--saathi-steel:#1c4e70;--saathi-cyan:#74d4e0;
+ --saathi-pearl:#f2f7f9;--saathi-amber:#f0c792;
+ --saathi-glass:#fffefaee;--saathi-stroke:#a8c2cd;
+ font-family:"Aptos","Segoe UI",Arial,system-ui,sans-serif;
+ color:#173649;
+}
+html{background:#f0f6f8}
+body{
+ background:radial-gradient(ellipse at 88% 6%,#b3dce678,transparent 33%),
+ radial-gradient(ellipse at 9% 74%,#d0e6e855,transparent 40%),
+ linear-gradient(145deg,#e8f2f5,#f9fbfa 48%,#e4eef2)!important;
+ color:#173649!important;letter-spacing:.005em
+}
+body:before{opacity:.08!important;background-size:22px 22px!important;background-image:radial-gradient(#1b5c80 0.5px,transparent 0.5px)!important}
+.saathi-dynamic-bg{opacity:.6;background:radial-gradient(ellipse at 83% 10%,#8fc8df44,transparent 35%),radial-gradient(ellipse at 20% 90%,#f6ddb533,transparent 45%)}
+.saathi-immersive-sky{display:none!important}
+.saathi-page-progress{background:linear-gradient(90deg,#65ccd7,#edc99d)!important;height:4px!important;box-shadow:none!important}
+.saathi-ticker{min-height:43px!important;border:0!important;border-bottom:1px solid #6d9cb6!important;background:linear-gradient(90deg,#0d2c48,#1f5b7a 65%,#0d2c48)!important;color:#edf7fa!important;font-size:11px!important;letter-spacing:.20em!important;box-shadow:0 2px 18px #1d526b22}
+.saathi-ticker-track span:before{content:"✦";color:#f1c68e;font-size:14px}
+.saathi-scene-label,.kicker,.eyebrow,.welcome-eyebrow{color:#437c96!important;letter-spacing:.18em!important;text-transform:uppercase;font:700 11px/1.7 "Segoe UI",Arial,sans-serif!important}
+.side,.rail{
+ background:linear-gradient(150deg,#0d2b49 0%,#154260 70%,#1e5268)!important;
+ color:#ecf7fa!important;border-right:1px solid #719bb2!important;
+ box-shadow:8px 0 30px #102b4021!important;backdrop-filter:none!important;
+}
+.wordmark,.brand{color:#f5faff!important;font:750 clamp(27px,2.1vw,35px)/1.1 "Segoe UI",Arial,sans-serif!important;letter-spacing:-.065em!important;text-transform:none!important}
+.wordmark b,.brand span{color:#e6c994!important}
+.under,.subtitle,.sidefoot,.foot{color:#c1d5dd!important}
+.tabs button,.nav-item{color:#d2e3eb!important;font-size:14px!important;font-weight:600!important;border:1px solid transparent!important}
+.tabs button:hover,.nav-item:hover{background:#ffffff18!important;color:#fff!important;transform:translateX(2px)}
+.tabs button.active,.nav-item.selected{
+ background:linear-gradient(95deg,#376f86aa,#6ac5ce22)!important;
+ color:#fff!important;border:1px solid #8ad2d744!important;
+ box-shadow:inset 3px 0 #d7bd90!important;border-radius:12px!important
+}
+.content,.main{background:transparent!important}
+.display,.top h1{font:760 clamp(38px,4.2vw,66px)/1.06 "Segoe UI",Arial,sans-serif!important;letter-spacing:-.065em!important;text-transform:none!important;color:#163a55!important}
+.card,.login-card{
+ background:linear-gradient(140deg,#fffffff7,#f2f8f8f5)!important;
+ color:#23435b!important;border:1px solid #b5ccd4!important;
+ border-radius:20px!important;box-shadow:0 14px 42px #1e4d6620,0 1px 4px #24475b15!important;
+ backdrop-filter:blur(16px)!important
+}
+.card h2,.card h3,.login-card h1{font:740 clamp(22px,2vw,33px)/1.16 "Segoe UI",Arial,sans-serif!important;letter-spacing:-.04em!important;text-transform:none!important;color:#1d4b66!important}
+.card:hover,.activity-card:hover,.core-capability-card:hover{transform:translateY(-2px)!important;box-shadow:0 18px 49px #1f536a2a!important}
+.small,.sub,.muted,.notice{color:#496779!important}
+.btn,button.btn{
+ border:1px solid #195a77!important;background:linear-gradient(110deg,#194862,#2b7691)!important;
+ color:#f8fcfd!important;border-radius:12px!important;font-weight:700!important;
+ box-shadow:0 7px 18px #13445f2e!important
+}
+.btn.secondary,.btn.ghost,.btn.outline{
+ background:linear-gradient(110deg,#e9f5f7,#d6eaf0)!important;
+ color:#1c5671!important;border:1px solid #95bccc!important
+}
+.btn:hover,button.btn:hover{transform:translateY(-1px)!important;box-shadow:0 11px 22px #15496836!important}
+.tag,.chip{background:#e3f2f4!important;color:#1d5973!important;border:1px solid #a9ccd5!important;font:700 12px/1.5 "Segoe UI",Arial,sans-serif!important;letter-spacing:.03em}
+.form-field input,.form-field select,.form-field textarea,.field input,.field textarea,.field select{
+ background:#fff!important;border:1px solid #a5c3cf!important;border-radius:12px!important;
+ color:#1a4058!important
+}
+.answer,.ai-answer,.worked-example{background:linear-gradient(125deg,#eaf7f7,#f9fbf7)!important;color:#1c485f!important;border:1px solid #a6d1d4!important;border-left:3px solid #5ebac9!important;border-radius:17px!important}
+.hero.saathi-feature-stage,.saathi-feature-stage,.welcome-stage{
+ position:relative;isolation:isolate;overflow:hidden;perspective:1400px!important;
+ background:
+ radial-gradient(ellipse at 72% 38%,#a8e0ea38 0%,transparent 26%),
+ linear-gradient(179deg,#112a43e0 0%,#174662da 46%,#2b6170ce 63%,#092944 80%),
+ linear-gradient(115deg,#061b34,#295e7e)!important;
+ border:1px solid #7dacc5!important;border-radius:clamp(22px,2.7vw,35px)!important;
+ color:#f8fcff!important;
+ box-shadow:0 27px 65px #1239553b,inset 0 1px #c7e9f78a!important;
+ transform-style:preserve-3d;min-height:clamp(400px,43vw,580px)
+}
+.hero.saathi-feature-stage:before,.saathi-feature-stage:before{
+ content:"";inset:0!important;opacity:.95!important;
+ background:
+ radial-gradient(circle at 15% 18%,#ffffffcf 0 1px,transparent 2px),
+ radial-gradient(circle at 52% 23%,#cde8f8a9 0 1px,transparent 2px),
+ radial-gradient(circle at 66% 57%,#e6edf6ae 0 1px,transparent 2px),
+ linear-gradient(178deg,transparent 52%,#78b5c724 53%,transparent 54%),
+ repeating-linear-gradient(0deg,transparent 0 48px,#d8e8e610 49px 50px);
+ background-size:100% 100%,100% 100%,100% 100%,100% 100%,100% 100%;
+ transform:translate3d(var(--saathi-shift-x,0px),var(--saathi-shift-y,0px),0)
+}
+.saathi-feature-stage:after{content:"";position:absolute;right:-14%;top:36%;width:65%;height:75%;border:1px solid #9bd1d743;border-radius:50%;transform:rotateX(71deg);box-shadow:0 0 0 34px #addbe91c,0 0 0 120px #c8e7e40b;pointer-events:none}
+.saathi-feature-copy{z-index:2}
+.saathi-feature-stage h1,.saathi-feature-stage h2{
+ font:780 clamp(44px,5.4vw,88px)/1.04 "Segoe UI",Arial,sans-serif!important;
+ letter-spacing:-.065em!important;text-transform:none!important;color:#fffefa!important;
+ -webkit-text-stroke:0!important;text-shadow:0 3px 24px #071c34a0!important
+}
+.saathi-feature-stage h1 span,.saathi-feature-stage h2 span{
+ color:#a4e4ef!important;-webkit-text-stroke:0!important;text-shadow:0 0 28px #72d4ec80!important;
+}
+.saathi-feature-stage p{color:#d9e9ef!important;max-width:600px;font-weight:450!important;font-size:clamp(15px,1.5vw,19px)!important}
+.saathi-feature-stage .btn{border-color:#83c5d4!important}
+.saathi-feature-stage .tag,.saathi-feature-stage .chip{background:#ffffff17!important;border:1px solid #bbdbe27a!important;color:#effbfe!important}
+.saathi-feature-scene{min-height:295px;filter:drop-shadow(0 20px 32px #02152899)}
+.saathi-feature-scene .orbit,.saathi-feature-scene .saathi-stage-planet,.hero .orbit{
+ background:
+ radial-gradient(circle at 33% 23%,#ffffffc7 0%,transparent 13%),
+ radial-gradient(circle at 38% 26%,#c2ecf880 0%,#386e96 28%,#123955 62%,#041a35 90%)!important;
+ border:1px solid #b9e6ef99!important;color:#f6fafe!important;
+ box-shadow:inset -22px -25px 43px #061626ad,inset 14px 15px 32px #d7effc51,0 13px 52px #65bddb4c,0 0 0 12px #a8d9e918!important;
+ border-radius:50%!important;font:700 clamp(94px,12vw,175px)/1 "Segoe UI",Arial,sans-serif!important;
+ transform:translateZ(34px)!important
+}
+.saathi-sticker,.saathi-feature-stage:after ~ .saathi-sticker{display:none!important}
+.saathi-feature-scene:before,.saathi-feature-scene:after{border-color:#a1d9e6bb!important}
+.welcome-stage{min-height:unset!important}
+.welcome-stage h2,.welcome-stage h2 span{font:740 clamp(36px,4vw,62px)/1.04 "Segoe UI",Arial,sans-serif!important;letter-spacing:-.06em!important;color:#fff!important;text-transform:none!important;-webkit-text-stroke:0!important;text-shadow:0 2px 20px #09233a90!important}
+.welcome-stage h2 span{color:#b5e8ef!important}
+.welcome-stage .welcome-lead,.welcome-stage .welcome-summary,.welcome-stage .welcome-eyebrow,.welcome-stage .welcome-disclosure{color:#d3e8ed!important}
+.welcome-core{background:radial-gradient(circle at 32% 23%,#e3faff,#81b4d3 25%,#1e557a 60%,#0a2c53 90%)!important;border:1px solid #a8ddec!important;box-shadow:inset -24px -22px 34px #0b3154,0 0 49px #88d4e66b!important}
+.welcome-core-center{font:750 86px/1 "Segoe UI",Arial,sans-serif!important;text-shadow:0 0 24px #c5ecfe90!important;color:#fff!important}
+.welcome-agenda-wrap{background:#0b2e46b5!important;border-top:1px solid #b7e6eb55!important}
+.welcome-event,.welcome-event:nth-child(2n),.welcome-event:nth-child(3n),.welcome-metrics span{background:#edf9f5ed!important;color:#205369!important;border:1px solid #99c6d2!important}
+.welcome-event-name,.welcome-event-name small,.welcome-metrics strong{color:#24556c!important}
+.saathi-showcase-title,.saathi-studio-heading h2{font:760 clamp(35px,5vw,70px)/1.04 "Segoe UI",Arial,sans-serif!important;letter-spacing:-.065em!important;text-transform:none!important;color:#174763!important}
+.saathi-showcase-strip{background:linear-gradient(110deg,#dcecf1,#edf4f2)!important;border:1px solid #abc6d0!important;border-radius:24px!important;box-shadow:0 14px 31px #13456317!important}
+.saathi-studio-slide,.saathi-studio-slide.saathi-studio-sky,.saathi-studio-slide.saathi-studio-art,.saathi-studio-slide.saathi-studio-learn,.saathi-studio-slide.saathi-studio-plan{
+ background:linear-gradient(156deg,#0d2d4d,#276484 55%,#102a44)!important;
+ border:1px solid #8bc4d9!important;box-shadow:0 15px 33px #0c3c5c38!important
+}
+.saathi-studio-slide:nth-child(2n){background:linear-gradient(140deg,#203653,#496c8c 57%,#16344a)!important}
+.saathi-studio-slide:before{background:repeating-linear-gradient(90deg,transparent 0 47px,#c8ebed12 48px 49px),linear-gradient(165deg,transparent 55%,#d1e7dc24 56%,transparent 57%)!important}
+.saathi-studio-meta{color:#c4e7f0!important}
+.saathi-studio-inner h3{font:750 clamp(35px,4.1vw,65px)/1.04 "Segoe UI",Arial,sans-serif!important;letter-spacing:-.055em!important;text-transform:none!important;color:white!important}
+.saathi-studio-inner p{color:#d8edf2!important;font-weight:450!important}
+.saathi-studio-shape,.saathi-studio-art .saathi-studio-shape,.saathi-studio-learn .saathi-studio-shape,.saathi-studio-plan .saathi-studio-shape{
+ background:radial-gradient(circle at 27% 20%,#ecf8ff,#74b6d3 25%,#215078 65%,#0b2644 94%)!important;
+ border:1px solid #c2effb!important;border-radius:48% 52% 49% 51%!important;
+ box-shadow:inset -20px -21px 40px #062b4eaa,0 24px 49px #041d36a0!important;color:#f7fdff!important
+}
+.saathi-studio-action{background:#dceff3!important;color:#13516c!important;border:1px solid #b0d9e2!important;border-radius:12px!important}
+.saathi-studio-controls button{background:#e6f4f6!important;color:#1d5774!important;border:1px solid #a6cbd8!important;box-shadow:none!important}
+.saathi-studio-hint{color:#467587!important}
+.core-capability-card,.core-capability-card:nth-child(2n){
+ background:linear-gradient(145deg,#ecf6f6,#e2edf4)!important;border:1px solid #aecbd3!important;box-shadow:0 7px 20px #194d681d!important
+}
+.core-capability-symbol{background:radial-gradient(circle at 22% 15%,#ecfcfd,#8bc0d1)!important;border:1px solid #7bb5c8!important;color:#1a5b79!important}
+.saathi-login-layout{
+ background:radial-gradient(ellipse at 18% 16%,#a6d5dd7d,transparent 33%),linear-gradient(125deg,#cbdde5,#ecf4f4 72%)!important
+}
+.saathi-login-feature{
+ background:radial-gradient(circle at 78% 36%,#a2cad554 0%,transparent 27%),
+ linear-gradient(161deg,#102a46,#2f6c87 58%,#081e37)!important;
+ border:1px solid #b7d4e2!important;border-radius:31px!important;
+ box-shadow:0 21px 54px #173c553a!important
+}
+.saathi-login-feature h2,.saathi-login-feature h2 em{font:750 clamp(50px,5.3vw,98px)/.99 "Segoe UI",Arial,sans-serif!important;letter-spacing:-.07em!important;color:#f3fcff!important;-webkit-text-stroke:0!important;text-shadow:0 6px 29px #041d35bf!important}
+.saathi-login-feature h2 em{color:#bbe7ec!important}
+.saathi-login-feature p,.saathi-login-feature .saathi-scene-label{color:#d4e9f0!important}
+.saathi-login-planet{
+ background:radial-gradient(circle at 30% 20%,#fff,#89cee0 20%,#245d80 58%,#071e3a 92%)!important;
+ border:1px solid #caeffb!important;color:#f5fdff!important;
+ box-shadow:inset -20px -22px 41px #071f3b9e,0 18px 48px #051b3399!important
+}
+.saathi-login-burst{display:none!important}
+.logo-mark{background:radial-gradient(circle at 28% 19%,#e5ffff,#7abcd1 38%,#295e89 87%)!important;border:1px solid #95cedc!important;color:white!important;box-shadow:0 9px 31px #21688733!important}
+.activity-card,.activity-card:nth-child(4n+1),.activity-card:nth-child(4n+2),.activity-card:nth-child(4n+3),.activity-card:nth-child(4n+4){
+ background:linear-gradient(135deg,#f7fcfc,#e4f2f4)!important;border:1px solid #accbd5!important
+}
+.activity-card h2{color:#1d5370!important}
+#saathi-development-hub{background:linear-gradient(145deg,#f2fbfa,#e4f2f4)!important}
+#saathi-development-hub summary{font:740 clamp(20px,2.4vw,33px)/1.2 "Segoe UI",Arial,sans-serif!important;text-transform:none!important}
+.saathi-agent-timeline{
+ margin:18px 0 26px;padding:24px 27px;position:relative;overflow:hidden;
+ background:linear-gradient(120deg,#133853,#22536d 70%,#0f334b);
+ color:#f1f9fb;border:1px solid #76b8ce;border-radius:20px;
+ box-shadow:0 12px 31px #143f5e35
+}
+.saathi-agent-timeline:before{content:"";position:absolute;right:-50px;top:-110px;width:300px;height:300px;border:1px solid #b2e5ed52;border-radius:50%;box-shadow:0 0 0 37px #d9f7ff12,0 0 0 84px #dcf1f50b;pointer-events:none}
+.saathi-agent-timeline h3{color:white!important;margin:9px 0!important}
+.saathi-agent-timeline p{color:#d7eaf0!important;max-width:74ch}
+.saathi-cinema-eyebrow{font:750 11px/1.4 "Segoe UI",Arial,sans-serif;letter-spacing:.16em;color:#92dbe3}
+.saathi-agent-pills{display:flex;gap:9px;flex-wrap:wrap;margin-top:17px}
+.saathi-agent-pills span{padding:7px 11px;background:#ffffff18;border:1px solid #a0d8df65;border-radius:9px;color:#e9fafe;font-size:12px;font-weight:650}
+.saathi-agent-timeline .btn.secondary{display:inline-flex!important;margin:8px 0;background:#e2f7f9!important;color:#174c64!important;border-color:#a6dbe2!important}
+.saathi-document-page>h1{font:750 clamp(36px,5.7vw,67px)/1.12 "Segoe UI",Arial,sans-serif!important;text-transform:none!important;letter-spacing:-.055em!important;color:#1b506d!important}
+.saathi-document-page p{color:#37576c}
+.saathi-document-page .card h2{font-size:clamp(22px,2vw,29px)!important}
+@media(max-width:991px){.side,.rail{border-right:0!important;border-bottom:1px solid #6997ae!important}.saathi-feature-stage{grid-template-columns:1fr;min-height:auto!important}}
+@media(max-width:767px){
+ .saathi-feature-stage{padding:27px 20px!important}
+ .saathi-feature-stage h1,.saathi-feature-stage h2{font-size:clamp(40px,10vw,64px)!important}
+ .saathi-feature-scene{min-height:190px!important}
+ .saathi-login-feature{min-height:390px!important}
+ .saathi-login-feature h2{font-size:clamp(45px,10.2vw,73px)!important}
+ .saathi-agent-timeline{padding:19px}
+ .saathi-studio-inner{max-width:82%}
+}
+@media(prefers-reduced-motion:reduce){
+ .saathi-feature-scene,.saathi-feature-scene *,.saathi-studio-shape{animation:none!important;transform:none!important}
+ .saathi-agent-timeline:before{display:none}
+}
