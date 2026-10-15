@@ -8,7 +8,9 @@ export function describeWeather(weather){
 export function buildLoginBriefing({username,schedule=[],tasks=[],weather=null},now=new Date()){
  const daily=buildDailyBrief({schedule,tasks},now);
  const hour=now.getHours(),greeting=hour<12?'Good morning':hour<17?'Good afternoon':'Good evening';
- const name=typeof username==='string'&&/^[\w.-]{2,40}$/.test(username)?username.replace(/[_.-]+/g,' '):'there';
+ const candidate=typeof username==='string'?username.trim():'';
+ const name=candidate&&Array.from(candidate).length<=24&&!/[<>\x00-\x1f]/u.test(candidate)?candidate:'there';
+
  const events=daily.todayEvents.slice(0,3).map(e=>e.time+' — '+e.title);
  const open=tasks.filter(t=>t&&t.done!==true&&t.done!==1);
  const pending=open.slice(0,2).map(t=>t.title);

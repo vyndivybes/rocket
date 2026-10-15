@@ -1,5 +1,5 @@
 import {renderAdminOverview} from './admin-overview.js';
-import {renderMyDay,renderMySpace} from './experience-ui.js';
+import {renderMyDay,renderMySpace,renderStudentFeatureGallery} from './experience-ui.js';
 import {renderGuidedTeaching,extractPracticePrompt} from './guided-ui.js';
 const root=document.querySelector('#app');
 let currentUser=null, tasks=[], topics=[], references=[], profile=null, lessons=[], practice={total:0,correct:0,byLesson:[]},activeLessonId=null,activeQuestionId='base',tab='overview',experience=null,ideas=[],experienceReady=false,guidedContext=null;
@@ -13,7 +13,7 @@ async function api(path,options={}){
 }
 const post=(path,body)=>api(path,{method:'POST',body:JSON.stringify(body)});
 function showMessage(text,good=false){const e=$('message');if(!e)return;e.textContent=text;e.className=good?'ok':'danger';e.hidden=!text;}
-async function init(){try{currentUser=await api('me');if(currentUser?.role==='student'&&!new URLSearchParams(location.search).has('workspace')){location.replace('/experience.html');return}await loadView();}catch{renderLogin()}}
+async function init(){const requestedTab=new URLSearchParams(location.search).get('tab');if(['myspace','features','planner','library','setup'].includes(requestedTab))tab=requestedTab;try{currentUser=await api('me');if(currentUser?.role==='student'&&!new URLSearchParams(location.search).has('workspace')){location.replace('/experience.html');return}await loadView();}catch{renderLogin()}}
 function renderLogin(){root.innerHTML=`<div class="login-wrap saathi-login-layout"><aside class="saathi-login-feature" aria-label="Welcome to Saathi"><span class="saathi-scene-label">✳ YOUR MIND. YOUR WORLD.</span><h2>NOT JUST<br><em>HOMEWORK.</em><br>YOUR<br>UNIVERSE.</h2><p>Science, art, aviation and big ideas—all in your own creative learning space.</p><div class="saathi-login-planet" aria-hidden="true">S</div><span class="saathi-login-burst" aria-hidden="true">★</span></aside><main class="login-card"><div class="logo-mark" aria-hidden="true">S</div><div class="eyebrow" style="margin-top:18px">Student-first AI</div><h1>HEY, SAATHI!</h1><p class="muted">Make things. Learn things. Discover your next big idea.</p><form id="login-form"><label class="field">Username<input name="username" autocomplete="username" required minlength="3" maxlength="40"></label><label class="field">Private access key<input name="password" type="password" autocomplete="current-password" required minlength="64" maxlength="64" pattern="[a-f0-9]{64}"></label><button type="submit" class="btn">Sign in securely</button></form><p id="message" hidden role="alert"></p><div class="divider"></div><p class="notice">Private access only. A parent or operator must provision student and guardian accounts. Conversations are not stored. Saathi is an AI, not a person or crisis service.</p></main></div>`;
   $('login-form').onsubmit=async(e)=>{e.preventDefault();const b=Object.fromEntries(new FormData(e.currentTarget));try{await post('login',b);currentUser=await api('me');if(currentUser?.role==='student'){location.assign('/experience.html');return}await loadView()}catch(err){showMessage(err.message)}};
 }
@@ -33,7 +33,7 @@ async function loadView(){
  }
  renderApp();
 }
-function sidebar(){return `<aside class="rail"><div><div class="brand">saathi<span style="color:#d1ba7e">.</span></div><div class="subtitle">study and grow</div></div><nav aria-label="Main navigation">${(currentUser.role==='admin'?[['overview','Administration']]:currentUser.role==='parent'?[['overview','Parent overview']]:[['overview','My day'],['myspace','My Saathi'],['setup','My subjects'],['library','Lessons & practice'],['teacher','Ask Saathi'],['planner','Study planner']]).map(([id,label])=>`<button type="button" data-tab="${id}" class="nav-item ${tab===id?'selected':''}">${label}</button>`).join('')}</nav>${currentUser.role==='student'?'<a class="nav-item" href="/syllabus.html" style="display:block;text-decoration:none">2026–27 Syllabus</a><a class="nav-item" href="/mission.html" style="display:block;text-decoration:none;font-weight:700;background:#244e5d;color:#e6fff7">✦ Mission Control</a>':''}<div class="foot">Your ideas belong to you.<br>AI cannot replace people, teachers or emergency care.</div><button id="logout" class="btn outline" style="color:white">Sign out</button></aside>`}
+function sidebar(){return `<aside class="rail"><div><div class="brand">saathi<span style="color:#d1ba7e">.</span></div><div class="subtitle">study and grow</div></div><nav aria-label="Main navigation">${(currentUser.role==='admin'?[['overview','Administration']]:currentUser.role==='parent'?[['overview','Parent overview']]:[['overview','Home'],['library','Learn'],['planner','Plan'],['features','Features'],['myspace','Settings']]).map(([id,label])=>`<button type="button" data-tab="${id}" class="nav-item ${tab===id?'selected':''}">${label}</button>`).join('')}</nav><div class="foot">Your ideas belong to you.<br>AI cannot replace people, teachers or emergency care.</div><button id="logout" class="btn outline" style="color:white">Sign out</button></aside>`}
 function renderApp(){
  if(currentUser?.role==='student'){
   document.documentElement.dataset.saathiTheme=experience?.theme||'sky';
@@ -42,7 +42,7 @@ function renderApp(){
   delete document.documentElement.dataset.saathiTheme;
   delete document.documentElement.dataset.saathiTextSize;
  }
- root.innerHTML=`<div class="layout">${sidebar()}<main class="main"><div class="top"><div><div class="eyebrow">${currentUser.role==='admin'?'Administration':currentUser.role==='parent'?'Guardian view':'Class 12 workspace'}</div><h1>${currentUser.role==='admin'?'Administration':({overview:'My day',myspace:'My Saathi',setup:'Set up your studies',lesson:'Guided chapter lesson',teacher:'Ask Saathi',planner:'Study planner',library:'Lessons & practice'})[tab]}</h1><p class="muted">${currentUser.role==='admin'?'Manage the application, not private student conversations.':currentUser.role==='parent'?'Only aggregate commitments — never private conversations.':'Small steps. Real progress. You decide the pace.'}</p></div><span class="chip">${escapeHtml(currentUser.board||'Not configured')}</span></div><div id="message" role="status" hidden></div><div id="content">${content()}</div><footer>Saathi v0.1 · Study helper, not a substitute for your teacher or trusted adults. Academic outputs need verification. · <a href="/privacy.html">Privacy & safety</a></footer></main></div>`;
+ root.innerHTML=`<div class="layout">${sidebar()}<main class="main"><div class="top"><div><div class="eyebrow">${currentUser.role==='admin'?'Administration':currentUser.role==='parent'?'Guardian view':'Class 12 workspace'}</div><h1>${currentUser.role==='admin'?'Administration':({overview:'Home',myspace:'Settings & options',features:'Features',setup:'My subjects',lesson:'Guided lesson',teacher:'Ask Saathi',planner:'Planner',library:'Lessons & practice'})[tab]}</h1><p class="muted">${currentUser.role==='admin'?'Manage the application, not private student conversations.':currentUser.role==='parent'?'Only aggregate commitments — never private conversations.':'Small steps. Real progress. You decide the pace.'}</p></div><span class="chip">${escapeHtml(currentUser.board||'Not configured')}</span></div><div id="message" role="status" hidden></div><div id="content">${content()}</div><footer>Saathi v0.1 · Study helper, not a substitute for your teacher or trusted adults. Academic outputs need verification. · <a href="/privacy.html">Privacy & safety</a></footer></main></div>`;
   document.querySelectorAll('[data-tab]').forEach(btn=>btn.addEventListener('click',()=>{if(currentUser?.role==='student'&&btn.dataset.tab==='teacher'){window.location.assign('/mission.html');return;}tab=btn.dataset.tab;renderApp()}));
   $('logout').onclick=async()=>{await post('logout',{}).catch(()=>{});currentUser=null;experience=null;ideas=[];experienceReady=false;guidedContext=null;delete document.documentElement.dataset.saathiTheme;delete document.documentElement.dataset.saathiTextSize;tab='overview';renderLogin()};
   wire();
@@ -124,12 +124,26 @@ function lessonView(){
 function homeView(){
  return renderMyDay({tasks,practice,lessons,prefs:experience});
 }
+function featuresView(){
+ return `<div class="features-page"><section class="features-intro"><span class="eyebrow">YOUR TOOLKIT</span><h2>All features, one tidy place</h2><p>Open a tool when you need it. Your Home screen stays focused.</p></section>
+  <div class="feature-hub-grid">
+   <a class="feature-hub-card" href="#library" data-go="library"><span>01 · LEARN</span><strong>Lessons &amp; practice</strong><small>Chapter lessons, worked examples and self-checks.</small></a>
+   <a class="feature-hub-card" href="#planner" data-go="planner"><span>02 · ORGANISE</span><strong>Planner</strong><small>Save study tasks and deadlines.</small></a>
+   <a class="feature-hub-card" href="/mission.html"><span>03 · COMPANION</span><strong>Ask Saathi</strong><small>Voice, guided explanations and a continuing conversation.</small></a>
+   <a class="feature-hub-card" href="/mission.html"><span>04 · CREATE</span><strong>Art studio</strong><small>Sketch, paint and collect creative ideas.</small></a>
+   <a class="feature-hub-card" href="/mission.html"><span>05 · AVIATION</span><strong>Pilot academy</strong><small>Explore flight, aircraft and the science behind them.</small></a>
+   <a class="feature-hub-card" href="/syllabus.html"><span>06 · REFERENCE</span><strong>2026–27 syllabus</strong><small>Check subject and chapter coverage.</small></a>
+   <a class="feature-hub-card" href="#setup" data-go="setup"><span>07 · PROFILE</span><strong>My subjects</strong><small>Choose board, stream and subjects.</small></a>
+   <a class="feature-hub-card" href="#myspace" data-go="myspace"><span>08 · OPTIONS</span><strong>Settings</strong><small>Nickname, appearance, learning style and quiet time.</small></a>
+  </div>${renderStudentFeatureGallery()}</div>`;
+}
 function content(){if(currentUser.role==='admin')return `<div><div class="row between" style="margin:24px 0 10px"><h2>System overview</h2><button id="admin-summary" type="button" class="btn secondary">Refresh overview</button></div><div id="admin-stats" aria-live="polite" class="muted">Loading operational information…</div></div>`;if(currentUser.role==='parent')return `<div class="grid"><section class="card wide"><h2>Shared study progress</h2><p class="muted">Student-approved task counts, without notes, chat history or emotional monitoring.</p><button class="btn secondary" id="summary">Refresh summary</button><div id="aggregate" class="metric" style="margin-top:16px">—</div><p class="notice">There are no automatic safety alerts in this prototype. If a child may be unsafe, contact appropriate trusted people directly.</p></section></div>`;
   if(tab==='myspace')return renderMySpace(experience,ideas,experienceReady?'ready':'unavailable');
   if(tab==='setup')return setupView();
   if(tab==='library')return libraryView();
   if(tab==='lesson')return lessonView();
   if(tab==='overview')return homeView();
+  if(tab==='features')return featuresView();
   if(tab==='teacher')return `<div class="grid">${renderGuidedTeaching(lessons)}<section class="card wide"><span class="chip">Ask, understand, practise</span><h2 style="margin-top:15px">What are you working on?</h2><form id="ask-form"><label class="field">Your question<textarea id="question" maxlength="1600" required placeholder="Why does changing magnetic flux induce an emf?"></textarea></label><div class="row"><button class="btn" type="submit">Explain it</button><span class="notice">12 requests per day · No chat transcript stored</span></div></form><div id="answer-wrap" hidden><h2 style="margin-top:25px">Saathi's response</h2><div class="answer" id="answer"></div><p class="notice" id="answer-note"></p></div></section></div>`;
   if(tab==='planner')return `<div class="grid"><section class="card"><h2>Add a study commitment</h2><form id="task-form"><label class="field">Task<input name="title" maxlength="180" minlength="2" required placeholder="Revise electromagnetic induction"></label><label class="field">Subject<input name="subject" maxlength="50" placeholder="Physics"></label><label class="field">Due date<input type="date" name="due_date"></label><button type="submit" class="btn">Add task</button></form></section><section class="card"><h2>My study commitments</h2><div id="task-list">${taskList()}</div></section></div>`;
   if(tab==='library')return `<div class="grid"><section class="card wide"><h2>Start with a concept</h2><p class="muted">Illustrative Class 12 topics, not a certified curriculum. Ask your school for your board's current syllabus.</p><div class="topic-list">${topics.map(t=>`<button data-topic="${escapeHtml(t.topic)}" class="topic">${escapeHtml(t.subject)} · ${escapeHtml(t.topic)}</button>`).join('')}</div><h2 style="margin-top:28px">Authoritative starting points</h2><ul class="note-list">${references.map(s=>`<li><a href="${escapeHtml(s.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(s.label)}</a> — ${escapeHtml(s.type)}</li>`).join('')}</ul></section></div>`;
@@ -140,14 +154,14 @@ function wire(){
  if($('experience-form'))$('experience-form').onsubmit=async e=>{
   e.preventDefault();
   const form=e.currentTarget,fd=new FormData(form);
-  const next={theme:fd.get('theme'),assistStyle:fd.get('assistStyle'),textSize:fd.get('textSize'),
+  const next={theme:fd.get('theme'),assistStyle:fd.get('assistStyle'),textSize:fd.get('textSize'),studentNickname:String(fd.get('studentNickname')||'').trim(),
     visibleCards:fd.getAll('visibleCards'),quietMode:fd.has('quietMode'),remindersEnabled:fd.has('remindersEnabled')};
   const button=form.querySelector('[type="submit"]');button.disabled=true;
   try{const saved=await post('experience',next);experience=saved.preferences;renderApp();showMessage('Your space is saved.',true)}
   catch(err){showMessage(err.message)}finally{if(button.isConnected)button.disabled=false}
  };
  if($('reset-experience'))$('reset-experience').onclick=async()=>{
-  const calm={theme:'sky',assistStyle:'balanced',textSize:'normal',visibleCards:['learn','plan','create','explore'],quietMode:true,remindersEnabled:false};
+  const calm={theme:'sky',assistStyle:'balanced',textSize:'normal',studentNickname:'',visibleCards:['learn','plan','create','explore'],quietMode:true,remindersEnabled:false};
   try{const saved=await post('experience',calm);experience=saved.preferences;renderApp();showMessage('Calm defaults restored.',true)}
   catch(err){showMessage(err.message)}
  };
@@ -182,7 +196,7 @@ function wire(){
    finally{if(btn.isConnected)btn.disabled=false}
   };
   if($('practice-form'))$('practice-form').onsubmit=async e=>{e.preventDefault();const choice=new FormData(e.currentTarget).get('choice');if(choice===null)return;const button=e.currentTarget.querySelector('button');button.disabled=true;try{const r=await post('practice',{lessonId:activeLessonId,questionId:activeQuestionId,choice:Number(choice)});const panel=$('practice-feedback');panel.className=r.correct?'ok':'danger';panel.textContent=(r.correct?'Correct. ':'Not quite. ')+r.explanation+' Correct answer: '+r.correctOption+'.';practice=(await api('practice')).progress;}catch(err){showMessage(err.message)}finally{button.disabled=false}};
-  document.querySelectorAll('[data-go]').forEach(e=>e.onclick=()=>{tab=e.dataset.go;renderApp()});document.querySelectorAll('[data-topic]').forEach(e=>e.onclick=()=>{tab='teacher';renderApp();$('question').value=`Help me understand ${e.dataset.topic}. Ask me a quick question and then explain.`;$('question').focus()});
+  document.querySelectorAll('[data-go]').forEach(e=>e.onclick=()=>{if(e.dataset.go==='teacher'){location.assign('/mission.html');return}tab=e.dataset.go;renderApp()});document.querySelectorAll('[data-topic]').forEach(e=>e.onclick=()=>{tab='teacher';renderApp();$('question').value=`Help me understand ${e.dataset.topic}. Ask me a quick question and then explain.`;$('question').focus()});
   if($('guided-teach-form'))$('guided-teach-form').onsubmit=async e=>{
     e.preventDefault();
     const form=e.currentTarget,submit=form.querySelector('[type="submit"]'),data=new FormData(form);

@@ -43,13 +43,14 @@ async function refreshWeatherAndBriefing({read=false}={}){
   const started=say(briefing.text);
   if(started)setPhase('SPEAKING');
  }else{
-  alert.textContent=weatherData?'Local weather added. Tap Hear my briefing to listen.':'Location was not shared or weather is unavailable; your saved schedule is still available.';
+  alert.textContent=weatherData?'Local weather added. open Voice & briefing options and tap Hear my briefing.':'Location was not shared or weather is unavailable; your saved schedule is still available.';
  }
 }
 async function welcome(){
  try{
-  const [schedule,tasks]=await Promise.allSettled([api('schedule'),api('tasks')]);
-  welcomeData={username:user.username,schedule:schedule.status==='fulfilled'?schedule.value.items:[],tasks:tasks.status==='fulfilled'?tasks.value.tasks:[],weather:null};
+  const [schedule,tasks,settings]=await Promise.allSettled([api('schedule'),api('tasks'),api('experience')]);
+  const nickname=settings.status==='fulfilled'?String(settings.value.preferences?.studentNickname||'').trim():'';
+  welcomeData={username:nickname,schedule:schedule.status==='fulfilled'?schedule.value.items:[],tasks:tasks.status==='fulfilled'?tasks.value.tasks:[],weather:null};
   const briefing=buildLoginBriefing(welcomeData);
   report(briefing.text);setPhase('READY');
   alert.textContent='Preparing your spoken weather and schedule briefing. Your browser will ask before sharing location.';
