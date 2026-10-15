@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "skills": [
+    {
+      "id": "safe-flight-physics",
+      "title": "Flight Science Studio",
+      "description": "Understand lift, drag, forces and aircraft design through guided inquiry.",
+      "prompt": "Guide me through flight science with an original interactive example and a self-check question.",
+      "category": "aviation"
+    },
+    {
+      "id": "creative-sketch",
+      "title": "Art Discovery Lab",
+      "description": "Invent sketches, compositions and colour studies with your own creative choices.",
+      "prompt": "Give me a modern art sketch challenge and help me refine the composition.",
+      "category": "art"
+    }
+  ]
+}
