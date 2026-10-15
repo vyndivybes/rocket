@@ -1,6 +1,6 @@
 // An explicit learner request to upgrade Saathi itself becomes a scoped extension.
 // Generated code still only runs in the existing opaque-origin Builder Lab sandbox.
-const unsafe=/(?:password|credential|private account|all student|every student|other student|read my (?:email|files)|send (?:emails?|messages?)|email (?:my|other)|payment|purchase|bank|filesystem|file system|terminal|shell|external api|internet access|javascript injection|malware|spyware|steal|hack|root access|admin access|bypass|override|secret|disable (?:safety|privacy))/i;
+const unsafe=/(?:password|credential|private account|all student|every student|other student|read my (?:email|files)|(?:send|sends|sending)\s+(?:\w+\s+){0,2}(?:emails?|messages?)|email (?:my|other)|payment|purchase|bank|filesystem|file system|terminal|shell|external api|internet access|javascript injection|malware|spyware|steal|hack|root access|admin access|bypass|override|secret|disable (?:safety|privacy))/i;
 export function detectSaathiUpgradeIntent(input){
  if(typeof input!=='string'||input.length>600)return null;
  const q=input.trim().replace(/^(?:hey )?saathi[,!:\s]+/i,'');
