@@ -5,7 +5,7 @@ export const DEFAULT_EXPERIENCE=Object.freeze({
  quietMode:true,remindersEnabled:false,visibleCards:[...CARDS]
 });
 const THEMES=['sky','forest','violet'],STYLES=['quick','balanced','guide'],SIZES=['normal','large'];
-const validNickname=value=>typeof value==='string'&&Array.from(value).length<=24&&!/[<>\\x00-\\x1f]/u.test(value);
+const validNickname=value=>typeof value==='string'&&Array.from(value).length<=24&&!/[<>\x00-\x1f]/u.test(value);
 export function validateExperience(x){
  if(!x||typeof x!=='object'||Array.isArray(x))return 'Invalid experience settings';
  const keys=Object.keys(DEFAULT_EXPERIENCE);
