@@ -45,6 +45,8 @@ export function routeCompanionSkill(utterance,now=new Date()){
  if(typeof utterance!=='string'||utterance.length>1600)return null;
  const q=utterance.trim().replace(/[.!?]+$/,'');
  if(q.length<4)return null;
+ // Sensitive, emergency and harmful disclosures must reach the safeguarding-aware /ask route.
+ if(/(?:suicid|kill\s+myself|want\s+to\s+die|hurt\s+myself|harm\s+myself|self[- ]?harm|overdose|abuse(?:d)?|password|passcode|secret\s+key|api\s*key|phone\s+number|home\s+address)/i.test(q))return null;
  if(/^(?:show|list|read) my (?:study )?tasks?(?: please)?$/i.test(q))return {kind:'read-tasks'};
  if(/^(?:show|list|read) my (?:private )?notes?(?: please)?$/i.test(q))return {kind:'read-notes'};
  if(/^(?:show|list|read) my (?:study )?(?:schedule|routine)(?: please)?$/i.test(q))return {kind:'read-schedule'};
