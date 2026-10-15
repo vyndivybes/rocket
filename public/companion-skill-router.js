@@ -73,11 +73,15 @@ export function routeCompanionSkill(utterance,now=new Date()){
   const subject=/\bphysics\b/i.test(title)?'Physics':/\b(?:maths|mathematics)\b/i.test(title)?'Mathematics':/\bchemistry\b/i.test(title)?'Chemistry':/\bbiology\b/i.test(title)?'Biology':'General';
   return {kind:'create-task',payload:{title,subject,due_date:taskDate(raw,now)},confirmation:'Add “'+title+'” to your study tasks?',notice:'This saves a task; it does not send a notification.'};
  }
- match=q.match(/^(?:schedule|plan|add\s+to\s+(?:my\s+)?schedule|set\s+a\s+routine\s+for)\s+(.+)$/i);
+ match=q.match(/^(?:(?:can|could|would)\s+(?:you|u)\s+)?(?:please\s+)?(?:schedule|plan|add\s+to\s+(?:my\s+)?schedule|set\s+a\s+routine\s+for|(?:make|create)\s+(?:a\s+|new\s+)?schedule(?:\s+for)?)\s+(.+)$/i);
  if(match){
   const text=match[1].trim(),time=extractTime(text),days=extractDays(text),duration=text.match(/\b(\d{1,3})\s*(?:minutes|mins|min)\b/i);
   const minutes=duration?Number(duration[1]):null;
-  if(!time||!days||!minutes||minutes<5||minutes>120)return {kind:'schedule-needs-details',answer:'Tell me the activity, duration, clock time with AM/PM, and days. Example: “Schedule 30 minutes of maths at 5:30 pm every weekday.”'};
+  if(!time||!days||!minutes||minutes<5||minutes>120){
+   const oneTime=/\b(?:today|tomorrow|on\s+\d{4}-\d{2}-\d{2})\b/i.test(text);
+   const timeNote=time?' I understood the time as '+time+'.':'';
+   return {kind:'schedule-needs-details',answer:oneTime?'I can save a recurring routine here, but the planner does not support one-off timed reminders yet.'+timeNote+' I still need the activity and duration. Would you like a task due tomorrow, or a repeating routine for selected days?':'I can save a repeating routine here.'+timeNote+' Tell me the activity, duration, and days. Example: “Schedule 30 minutes of maths at 5:30 pm every weekday.”'};
+  }
   let title=text.replace(/\b\d{1,3}\s*(?:minutes|mins|min)(?:\s+of)?\b/i,'').replace(/\bat\s+\d{1,2}(?::\d{2})?\s*(?:am|pm)?\b/i,'').replace(/\b(?:every\s+weekday|weekdays|monday\s+to\s+friday|every\s+day|daily)\b/ig,'').replace(/\b(?:on\s+)?(?:sundays?|mondays?|tuesdays?|wednesdays?|thursdays?|fridays?|saturdays?)\b/ig,'').trim().replace(/^of\s+/i,'').replace(/\s+/g,' ');
   if(title.length<2||title.length>100)return {kind:'schedule-needs-details',answer:'What activity would you like in that time slot?'};
   return {kind:'create-schedule',payload:{title,kind:scheduleKind(title),time,days,minutes},confirmation:'Schedule “'+title+'” at '+time+' for '+minutes+' minutes on '+(days.length===7?'every day':days.length===5?'weekdays':days.map(d=>DAY_NAMES[d]).join(', '))+'?',notice:'A saved activity is not a guaranteed phone alert. Notification delivery depends on device permissions and push readiness.'};
