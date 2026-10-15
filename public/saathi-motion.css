@@ -181,3 +181,44 @@ a:hover{text-decoration-thickness:2px}
  .saathi-feature-scene{transform:none!important}
 }
 @media print{.saathi-ticker,.saathi-page-progress,.saathi-dynamic-bg{display:none!important}.side,.rail{display:none!important}.mc,.layout{display:block!important}.card{box-shadow:none!important;background:white!important}body{background:white!important;color:black!important}}
+
+
+/* Student sign-in: editorial split stage, not a generic credential card */
+.saathi-login-layout{display:grid!important;grid-template-columns:minmax(0,1.2fr) minmax(320px,.8fr);align-items:center;gap:clamp(22px,5vw,85px);padding:clamp(18px,5vw,75px);min-height:100vh;background:linear-gradient(132deg,var(--wonder-mint),var(--wonder-peach) 75%)!important}
+.saathi-login-feature{min-height:650px;padding:clamp(25px,4vw,64px);position:relative;display:flex;flex-direction:column;justify-content:center;isolation:isolate;background:var(--wonder-yellow);border:3px solid var(--wonder-mulberry);border-radius:clamp(23px,4vw,53px);box-shadow:14px 17px 0 #5a294e30;overflow:hidden}
+.saathi-login-feature::after{content:"";position:absolute;inset:0;z-index:-1;opacity:.43;background:repeating-radial-gradient(circle at 85% 80%,transparent 0 33px,#61234d4d 34px 35px,transparent 36px 65px)}
+.saathi-login-feature h2{margin:23px 0;font-family:Impact,"Arial Narrow",sans-serif;font-size:clamp(58px,7vw,135px);line-height:.88;letter-spacing:-.035em;color:var(--wonder-mulberry);text-transform:uppercase}
+.saathi-login-feature h2 em{color:#fff8df;font-style:normal;-webkit-text-stroke:2px var(--wonder-mulberry);text-shadow:5px 7px 0 var(--wonder-mulberry)}
+.saathi-login-feature p{font-size:clamp(17px,1.8vw,26px);max-width:530px;font-weight:700;line-height:1.32;color:#563350}
+.saathi-login-planet{position:absolute;right:-15px;bottom:-66px;width:240px;height:240px;border-radius:100%;display:grid;place-items:center;background:radial-gradient(circle at 30% 19%,#fef7c3,#c2e9d5 39%,#9d8dd1 77%);border:3px solid var(--wonder-mulberry);box-shadow:inset -24px -22px 0 #5f358b33,11px 15px 0 #61234d3d;transform:rotate(-15deg);font:180px/.9 Impact,"Arial Narrow",sans-serif;color:var(--wonder-mulberry)}
+.saathi-login-burst{position:absolute;right:31%;top:12%;font-size:90px;color:var(--wonder-peach);text-shadow:4px 5px 0 var(--wonder-mulberry)}
+.saathi-login-layout .login-card{max-width:540px;margin:0 auto;width:100%;z-index:1}
+.saathi-login-layout .login-card .logo-mark{margin-bottom:20px}
+.saathi-login-layout .login-card .divider{background:var(--wonder-mulberry);opacity:.2}
+.saathi-learner-feature .saathi-feature-scene{z-index:1}
+.saathi-learner-feature .saathi-feature-scene::before{content:"";width:80%;height:80%;position:absolute;top:10%;left:10%;border-radius:100%;border:3px dashed #532f60;transform:rotateX(72deg);pointer-events:none}
+.saathi-learner-feature .saathi-feature-scene::after{content:"✦";position:absolute;font-size:94px;color:#fff4d7;right:5%;top:2%;text-shadow:4px 5px 0 #61234d;transform:rotate(13deg)}
+.saathi-learner-feature{grid-column:1/-1}
+.saathi-learner-feature .row{margin-top:30px}
+.saathi-learner-feature .saathi-feature-copy{max-width:720px}
+.saathi-learner-feature .saathi-feature-copy p{max-width:550px}
+.saathi-learner-feature .saathi-sticker{bottom:8%;right:5%}
+.saathi-showcase-strip{grid-column:1/-1}
+.learner-home .day-intro{position:relative}
+.learner-home .activity-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px}
+.activity-card{min-height:250px;display:flex;flex-direction:column;align-items:flex-start}
+.activity-card:nth-child(4n+1){background:var(--wonder-mint)!important}
+.activity-card:nth-child(4n+2){background:var(--wonder-lilac)!important}
+.activity-card:nth-child(4n+3){background:var(--wonder-rose)!important}
+.activity-card:nth-child(4n+4){background:var(--wonder-yellow)!important}
+.activity-card .btn{margin-top:auto!important}
+.activity-card .eyebrow{font-size:12px!important}
+.activity-card h2{font-size:clamp(26px,3vw,45px)!important}
+.activity-card p{font-size:15px!important;line-height:1.55!important;max-width:35ch}
+#saathi-development-hub{background:var(--wonder-mint)!important}
+#saathi-development-hub summary{font-family:Impact,"Arial Narrow",sans-serif;font-size:clamp(22px,3vw,41px);text-transform:uppercase;cursor:pointer}
+#saathi-development-hub summary::marker{color:var(--wonder-mulberry)}
+#saathi-development-hub[open] summary{margin-bottom:20px}
+@media (max-width:1100px){.saathi-login-layout{grid-template-columns:1fr;gap:22px}.saathi-login-feature{min-height:430px}.saathi-login-feature h2{font-size:clamp(58px,12vw,100px)}.saathi-login-planet{width:190px;height:190px;font-size:130px}.saathi-login-layout .login-card{max-width:700px}}
+@media (max-width:767px){.saathi-login-layout{padding:18px}.saathi-login-feature{min-height:390px;padding:25px}.saathi-login-feature h2{font-size:clamp(52px,12vw,85px)}.saathi-login-feature p{max-width:26ch}.saathi-login-planet{width:140px;height:140px;font-size:92px;right:-30px;bottom:-37px}.saathi-login-burst{font-size:50px}.learner-home .activity-grid{grid-template-columns:1fr}.activity-card{min-height:205px}}
+@media (prefers-reduced-motion:reduce){.saathi-login-planet,.saathi-login-burst{animation:none!important}}
