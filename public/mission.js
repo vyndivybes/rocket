@@ -207,6 +207,15 @@ root.addEventListener('click',async e=>{
  if(dataset.pack){state.packId=dataset.pack==='all'?null:dataset.pack;state.tab='knowledge';render();return}
  if(dataset.knowledgeQuestion){const pack=state.knowledgePacks.find(p=>p.id===state.packId),module=pack?.modules.find(m=>m.id===dataset.knowledgeQuestion);if(module){state.mode=pack.id==='aviation'?'pilot':pack.id==='art'?'artist':pack.id==='study-skills'?'planner':'teacher';state.tab='companion';render();document.getElementById('question').value='Please explain '+module.title+' step by step using an example and one practice question.';}return}
  try{
+ if(dataset.upgradeInstall){
+  try{await api('installed-features',{action:'install',id:dataset.upgradeInstall});await reloadInstalledFeatures();render();flash('Feature installed into Saathi. You can improve or uninstall it any time.')}catch(err){flash(err.message)}return;
+ }
+ if(dataset.upgradeRemove){
+  try{await api('installed-features',{action:'remove',id:dataset.upgradeRemove});await reloadInstalledFeatures();render();flash('Feature uninstalled; the saved prototype remains available.')}catch(err){flash(err.message)}return;
+ }
+ if(dataset.upgradeImprove){
+  try{await selectLearnerBuild(dataset.upgradeImprove);state.tab='companion';render();document.getElementById('builder-lab')?.scrollIntoView({block:'start'});flash('Describe what to improve below. Changes to installed features update automatically.')}catch(err){flash(err.message)}return;
+ }
  if(dataset.buildView){
   try{await selectLearnerBuild(dataset.buildView);render();document.getElementById('builder-lab')?.scrollIntoView({block:'start'});}catch(err){flash(err.message)}
   return;
@@ -217,7 +226,7 @@ root.addEventListener('click',async e=>{
   try{
    await api('builder-lab',{action:'delete',id:project.id,confirm:'DELETE MY PROJECT'});
    if(state.selectedBuild?.id===project.id){state.selectedBuild=null;state.buildVersions=[];}
-   await reloadLearnerBuilds();render();flash('Project deleted.');
+   await reloadLearnerBuilds();if(state.installedAvailable)await reloadInstalledFeatures();render();flash('Project deleted.');
   }catch(err){flash(err.message)}
   return;
  }
@@ -227,7 +236,7 @@ root.addEventListener('click',async e=>{
   if(!confirm('Restore version '+version+' of your project as a new revision?'))return;
   try{
    await api('builder-lab',{action:'restore',id:current.id,revision:version,currentRevision:current.revision});
-   await selectLearnerBuild(current.id);await reloadLearnerBuilds();render();flash('Previous version restored in a new revision.');
+   await selectLearnerBuild(current.id);await reloadLearnerBuilds();if(state.installedAvailable)await reloadInstalledFeatures();render();flash('Previous version restored in a new revision.');
   }catch(err){flash(err.message)}return;
  }
  if(dataset.buildExport){
@@ -455,19 +464,27 @@ async function reloadLearnerBuilds(){
  const info=await api('builder-lab');
  state.builds=info.projects||[];state.builderAvailable=true;
 }
-async function runLearnerBuild(prompt,revise=false,spoken=false){
+async function reloadInstalledFeatures(){
+ const r=await api('installed-features');state.installedFeatures=r.features||[];state.installedAvailable=true;
+}
+async function runLearnerBuild(prompt,revise=false,spoken=false,install=false){
  const prior=revise?state.selectedBuild:null;
  if(revise&&!prior)throw Error('Choose your project before revising it.');
- flash(revise?'Improving your project safely…':'Generating an isolated prototype…');
+ flash(revise?'Improving your project safely…':'Generating a private Saathi feature…');
  const result=await api('builder-lab',revise?{action:'revise',id:prior.id,revision:prior.revision,prompt}:{action:'generate',prompt});
  await reloadLearnerBuilds();
  await selectLearnerBuild(result.id);
- companionReply(prompt,'Your '+(revise?'improved':'new')+' prototype “'+state.selectedBuild.title+'” is saved as version '+state.selectedBuild.revision+'. Open Build & Upgrade Lab below to try it. This changes your personal project, not Saathi itself.',{spoken,notice:'Saved to your private Builder Lab. It runs only inside an isolated preview.'});
+ if(install)await api('installed-features',{action:'install',id:result.id});
+ if(state.installedAvailable||install)await reloadInstalledFeatures();
+ const message=install?'I created “'+state.selectedBuild.title+'” and installed it in your Saathi companion. Use My Saathi upgrades above to try it or choose Improve to evolve it.': 'Your '+(revise?'improved':'new')+' prototype “'+state.selectedBuild.title+'” was saved as version '+state.selectedBuild.revision+'. Open Build & Upgrade Lab to try it or install it into Saathi.';
+ companionReply(prompt,message,{spoken,notice:'Your upgrade is saved. Generated code runs only inside a sandboxed module, not inside the core assistant.'});
 }
 
 async function handleCompanionQuestion(raw,spoken=false){
  const question=stripCompanionCall(String(raw||'').trim(),state.nameConfigured?state.companionName:null);
  if(question.length<4)throw Error('Please ask a longer question.');
+ const upgrade=detectSaathiUpgradeIntent(question);
+ if(upgrade){await runLearnerBuild(upgrade,false,spoken,true);return}
  const build=detectBuildRequest(question);
  if(build){await runLearnerBuild(build,false,spoken);return}
  if(state.selectedBuild&&/^(?:improve|upgrade|refine|change|modify)\s+(?:my|this)\s+(?:prototype|project|app|game|tool)\b/i.test(question)){
@@ -593,6 +610,6 @@ function checkReminders(){
  if(state.seen.size>200)state.seen.clear();
 }
 async function init(){
- try{state.user=await api('me');if(state.user.role!=='student'){root.innerHTML='<main class="boot"><h1>Student-only space</h1><a href="/">Back to dashboard</a></main>';return}const [notes,schedule,tasks,prefs,packs,memories,mediaStatus,adaptivePlan,pushStatus,welcome,skillData,buildData,forgedData]=await Promise.all([api('notes'),api('schedule'),api('tasks'),api('companion-preferences'),api('knowledge-packs').catch(()=>({packs:[]})),api('personal-memory'),api('media-status').catch(()=>({enabled:false})),api('adaptive-plan').catch(()=>null),api('push-device').catch(()=>({ready:false,notice:'Background push status unavailable; export a calendar instead.'})),api('welcome-once').catch(()=>null),api('skills').catch(()=>({skills:[],unavailable:true})),api('builder-lab').catch(()=>({projects:[],unavailable:true})),api('auto-forge').catch(()=>({skills:[]}))]);state.forgedSkills=forgedData.skills||[];state.builds=buildData.projects||[];state.builderAvailable=buildData.unavailable!==true;state.skills=skillData.skills||[];state.forgeAvailable=skillData.unavailable!==true;state.notes=notes.notes;state.schedule=schedule.items;state.tasks=tasks.tasks;state.knowledgePacks=packs.packs;state.memories=memories.memories;state.visionEnabled=mediaStatus.enabled===true;state.adaptivePlan=adaptivePlan;state.pushStatus=pushStatus;state.welcome=welcome;state.companionName=prefs.name;state.nameConfigured=prefs.configured;if(!prefs.configured)state.tab='identity';render();setInterval(checkReminders,30000)}catch{root.innerHTML='<main class="boot"><h1>Sign in as a student</h1><p>Mission Control requires the learner login.</p><a href="/">Go to learner login</a></main>'}
+ try{state.user=await api('me');if(state.user.role!=='student'){root.innerHTML='<main class="boot"><h1>Student-only space</h1><a href="/">Back to dashboard</a></main>';return}const [notes,schedule,tasks,prefs,packs,memories,mediaStatus,adaptivePlan,pushStatus,welcome,skillData,buildData,forgedData,installedData]=await Promise.all([api('notes'),api('schedule'),api('tasks'),api('companion-preferences'),api('knowledge-packs').catch(()=>({packs:[]})),api('personal-memory'),api('media-status').catch(()=>({enabled:false})),api('adaptive-plan').catch(()=>null),api('push-device').catch(()=>({ready:false,notice:'Background push status unavailable; export a calendar instead.'})),api('welcome-once').catch(()=>null),api('skills').catch(()=>({skills:[],unavailable:true})),api('builder-lab').catch(()=>({projects:[],unavailable:true})),api('auto-forge').catch(()=>({skills:[]})),api('installed-features').catch(()=>({features:[],unavailable:true}))]);state.installedFeatures=installedData.features||[];state.installedAvailable=installedData.unavailable!==true;state.forgedSkills=forgedData.skills||[];state.builds=buildData.projects||[];state.builderAvailable=buildData.unavailable!==true;state.skills=skillData.skills||[];state.forgeAvailable=skillData.unavailable!==true;state.notes=notes.notes;state.schedule=schedule.items;state.tasks=tasks.tasks;state.knowledgePacks=packs.packs;state.memories=memories.memories;state.visionEnabled=mediaStatus.enabled===true;state.adaptivePlan=adaptivePlan;state.pushStatus=pushStatus;state.welcome=welcome;state.companionName=prefs.name;state.nameConfigured=prefs.configured;if(!prefs.configured)state.tab='identity';render();setInterval(checkReminders,30000)}catch{root.innerHTML='<main class="boot"><h1>Sign in as a student</h1><p>Mission Control requires the learner login.</p><a href="/">Go to learner login</a></main>'}
 }
 init();
