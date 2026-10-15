@@ -33,6 +33,7 @@ export async function onRequestPost({request,env}){
  }
  if(action==='delete'){
   if(body.confirm!=='DELETE MY PROJECT')return error('Confirm the project deletion');
+  try{await env.DB.prepare('DELETE FROM learner_installed_features WHERE student_id=? AND build_id=?').bind(u.id,current.id).run()}catch{/* upgrade table not yet installed in older test fixtures */}
   await env.DB.prepare('DELETE FROM learner_builds WHERE student_id=? AND id=?').bind(u.id,current.id).run();
   return json({ok:true});
  }

@@ -1,0 +1,65 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {DatabaseSync} from 'node:sqlite';
+import {readFileSync} from 'node:fs';
+import {randomUUID} from 'node:crypto';
+import {accessKeyHash} from '../functions/_lib/core.js';
+import {onRequestPost as login} from '../functions/api/login.js';
+import {onRequestGet as installed,onRequestPost as modify} from '../functions/api/installed-features.js';
+import {onRequestGet as getBuilder,onRequestPost as builder} from '../functions/api/builder-lab.js';
+import {onRequestGet as preview} from '../functions/api/builder-preview.js';
+import {onRequestGet as exportData,onRequestPost as erase} from '../functions/api/my-data.js';
+const BASE='https://saathi-preview.pages.dev',KEY='0123456789abcdef'.repeat(4);
+const req=(path,cookie='',body,origin=BASE)=>new Request(BASE+path,{method:body===undefined?'GET':'POST',headers:{Origin:origin,'Content-Type':'application/json',...(cookie?{Cookie:cookie}:{})},body:body===undefined?undefined:JSON.stringify(body)});
+const project={title:'Pilot Trainer',html:'<div><h1>Flight quiz</h1><button id="next">Next</button></div>',css:'body{font:17px sans-serif}',js:'document.getElementById("next").onclick=()=>{document.querySelector("h1").textContent="Altimeter";};'};
+async function setup(){
+ const db=new DatabaseSync(':memory:');db.exec('PRAGMA foreign_keys=ON');
+ for(const name of ['0001_initial','0003_admin','0004_study','0005_mission','0006_companion_name','0007_personal_memory','0008_push_devices','0011_learner_skills','0012_learner_builder_lab','0013_autoforge_plans','0014_installed_features'])db.exec(readFileSync(new URL('../migrations/'+name+'.sql',import.meta.url),'utf8'));
+ const prepare=(sql,args=[])=>({bind(...v){return prepare(sql,v)},async first(){return db.prepare(sql).get(...args)||null},async all(){return {results:db.prepare(sql).all(...args)}},async run(){return {meta:{changes:Number(db.prepare(sql).run(...args).changes)}}}});
+ const env={DB:{prepare},AI:{async run(){return{response:JSON.stringify(project)}}}};
+ const salt='00112233445566778899aabbccddeeff',hash=await accessKeyHash(KEY,salt);
+ const add=db.prepare('INSERT INTO users(id,username,role,password_salt,password_hash,board,linked_student_id) VALUES(?,?,?,?,?,?,?)');
+ const a=randomUUID(),b=randomUUID();add.run(a,'student_a','student',salt,hash,'unconfigured',null);add.run(b,'student_b','student',salt,hash,'unconfigured',null);add.run(randomUUID(),'parent','parent',salt,hash,'unconfigured',a);
+ const cookie=async username=>{const r=await login({request:req('/api/login','',{username,password:KEY}),env});assert.equal(r.status,200);return r.headers.get('Set-Cookie').split(';')[0]};
+ return {db,env,cookie};
+}
+test('learner installs a generated mini-app as a persistent Saathi module and removes it',async()=>{
+ const x=await setup(),a=await x.cookie('student_a');
+ const made=await builder({request:req('/api/builder-lab',a,{action:'generate',prompt:'Build an interactive aviation quiz'}),env:x.env});
+ assert.equal(made.status,201);const id=(await made.json()).id;
+ const add=await modify({request:req('/api/installed-features',a,{action:'install',id}),env:x.env});
+ assert.equal(add.status,200);
+ const active=await (await installed({request:req('/api/installed-features',a),env:x.env})).json();
+ assert.equal(active.features.length,1);assert.equal(active.features[0].id,id);assert.equal(active.features[0].title,'Pilot Trainer');
+ assert.equal('js' in active.features[0],false);
+ const view=await preview({request:req('/api/builder-preview?id='+id,a),env:x.env});
+ assert.equal(view.status,200);assert.match(view.headers.get('Content-Security-Policy'),/sandbox allow-scripts/);assert.doesNotMatch(view.headers.get('Content-Security-Policy'),/allow-same-origin/);
+ const remove=await modify({request:req('/api/installed-features',a,{action:'remove',id}),env:x.env});assert.equal(remove.status,200);
+ assert.equal((await (await installed({request:req('/api/installed-features',a),env:x.env})).json()).features.length,0);
+ assert.equal((await (await getBuilder({request:req('/api/builder-lab?id='+id,a),env:x.env})).json()).project.id,id);
+});
+test('feature installation does not leak across learners or allow parent actions / CSRF',async()=>{
+ const x=await setup(),a=await x.cookie('student_a'),b=await x.cookie('student_b'),p=await x.cookie('parent');
+ const id=(await (await builder({request:req('/api/builder-lab',a,{action:'generate',prompt:'Build an interactive aviation quiz'}),env:x.env})).json()).id;
+ assert.equal((await modify({request:req('/api/installed-features',b,{action:'install',id}),env:x.env})).status,404);
+ assert.equal((await modify({request:req('/api/installed-features',p,{action:'install',id}),env:x.env})).status,403);
+ assert.equal((await modify({request:req('/api/installed-features',a,{action:'install',id},'https://evil.example'),env:x.env})).status,403);
+ assert.equal((await installed({request:req('/api/installed-features',p),env:x.env})).status,403);
+ assert.equal((await modify({request:req('/api/installed-features',a,{action:'install',id}),env:x.env})).status,200);
+ assert.equal((await (await installed({request:req('/api/installed-features',b),env:x.env})).json()).features.length,0);
+ assert.equal((await modify({request:req('/api/installed-features',b,{action:'remove',id}),env:x.env})).status,404);
+});
+test('deleting or erasing the underlying project uninstalls the module from Saathi',async()=>{
+ const x=await setup(),a=await x.cookie('student_a');
+ const id=(await (await builder({request:req('/api/builder-lab',a,{action:'generate',prompt:'Build an interactive aviation quiz'}),env:x.env})).json()).id;
+ await modify({request:req('/api/installed-features',a,{action:'install',id}),env:x.env});
+ const saved=await (await exportData({request:req('/api/my-data',a),env:x.env})).json();
+ assert.equal(saved.data.installedFeatures.length,1);
+ const deleted=await builder({request:req('/api/builder-lab',a,{action:'delete',id,confirm:'DELETE MY PROJECT'}),env:x.env});
+ assert.equal(deleted.status,200);
+ assert.equal((await (await installed({request:req('/api/installed-features',a),env:x.env})).json()).features.length,0);
+ const second=(await (await builder({request:req('/api/builder-lab',a,{action:'generate',prompt:'Build an interactive aviation quiz'}),env:x.env})).json()).id;
+ await modify({request:req('/api/installed-features',a,{action:'install',id:second}),env:x.env});
+ assert.equal((await erase({request:req('/api/my-data',a,{action:'erase-learning-data',confirm:'ERASE MY STUDY DATA'}),env:x.env})).status,200);
+ assert.equal((await (await installed({request:req('/api/installed-features',a),env:x.env})).json()).features.length,0);
+});
