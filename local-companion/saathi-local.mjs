@@ -1,0 +1,71 @@
+// Optional local helper for a Windows 11 device. Node 22+, no npm packages.
+// This is NOT unrestricted desktop control: only explicit browser opens, document
+// notes and local status. Binds 127.0.0.1; no Cloudflare/GitHub credentials.
+import {createServer} from 'node:http';
+import {execFile} from 'node:child_process';
+import {mkdir,writeFile} from 'node:fs/promises';
+import {homedir,platform,freemem,totalmem,cpus} from 'node:os';
+import {join,resolve} from 'node:path';
+import {randomBytes} from 'node:crypto';
+import {fileURLToPath} from 'node:url';
+const sources=['ncert.nic.in','cbseacademic.nic.in','www.ncert.nic.in','nasa.gov','wikipedia.org','khanacademy.org','developer.mozilla.org','openstax.org'];
+export function normalizeBrowserUrl(value){
+ if(typeof value!=='string'||value.length>1200||/[\x00-\x20\\]/.test(value))throw Error('Invalid browser URL');
+ let url;try{url=new URL(value)}catch{throw Error('Invalid browser URL')}
+ if(url.protocol!=='https:'||url.username||url.password||url.port||!/^[a-z0-9.-]+$/i.test(url.hostname))throw Error('Only clean HTTPS links are supported');
+ const host=url.hostname.toLowerCase();
+ if(!sources.some(allowed=>host===allowed||host.endsWith('.'+allowed)))throw Error('This browser action is limited to supported public educational sources');
+ return url;
+}
+export function safeNoteName(title){
+ if(typeof title!=='string'||title.length>110)throw Error('Invalid note title');
+ const name=title.replace(/[^A-Za-z0-9 -]/g,'').trim().replace(/\s+/g,'-').slice(0,66);
+ return (name||'Saathi-note')+'.md';
+}
+export function validateLocalAction(value){
+ if(!value||typeof value!=='object')return {ok:false,reason:'Invalid action'};
+ const {action}=value;
+ if(action==='system-status')return {ok:true};
+ if(action==='open-url'){try{normalizeBrowserUrl(value.url);return {ok:true}}catch(e){return{ok:false,reason:e.message}}}
+ if(action==='search-web'&&typeof value.query==='string'&&value.query.trim().length>=3&&value.query.length<=120&&!/[\x00-\x1f]/.test(value.query))return {ok:true};
+ if(action==='save-note'&&typeof value.content==='string'&&value.content.length>=4&&value.content.length<=20000){try{safeNoteName(value.title);return {ok:true}}catch(e){return {ok:false,reason:e.message}}}
+ return {ok:false,reason:'Unsupported or oversized local action'};
+}
+const plain=(str)=>String(str).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function ui(nonce){
+ return '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Saathi Local Companion</title><style>body{margin:0;background:linear-gradient(135deg,#edf6f4,#fff8ea);font:16px/1.6 Segoe UI,Arial,sans-serif;color:#254c63;padding:30px}main{max-width:800px;margin:auto;background:#fffefa;padding:30px;border:1px solid #c7dfe0;border-radius:22px;box-shadow:0 19px 55px #63939b26}h1{font-size:32px}label{display:block;margin:15px 0}input,textarea{width:100%;padding:12px;border:1px solid #aac9cd;border-radius:10px;box-sizing:border-box;font:inherit}button{background:#2d838d;border:0;border-radius:10px;color:white;padding:11px 17px;font:inherit;cursor:pointer}button:focus-visible{outline:3px solid #b88a45}p{color:#55727f}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#eaf4f3;padding:14px;border-radius:12px}</style></head><body><main><p>LOCAL · DEVICE CONTROLLED · FREE</p><h1>Saathi Local Companion</h1><p>This optional helper does not connect to Saathi automatically, monitor your computer or grant remote control. It opens selected educational websites and saves your notes locally only when you click an action.</p><form id="open"><label>Educational URL<input name="url" placeholder="https://www1.grc.nasa.gov/"></label><button>Open in default browser</button></form><form id="search"><label>Research topic<input name="query" placeholder="How aircraft wings generate lift"></label><button>Open a web search</button></form><form id="note"><label>Note title<input name="title" value="My Saathi notes"></label><label>Your notes<textarea name="content" rows="6" placeholder="Copy a verified study explanation here"></textarea></label><button>Save into Documents / Saathi</button></form><button id="status">Show device status</button><pre id="result" role="status">Ready. No background actions are running.</pre></main><script>const nonce='+JSON.stringify(nonce)+';async function act(payload){const r=await fetch("/action",{method:"POST",headers:{"Content-Type":"application/json","X-Saathi-Nonce":nonce},body:JSON.stringify(payload)});const d=await r.json();document.getElementById("result").textContent=JSON.stringify(d,null,2)}for(const [id,make] of [["open",d=>({action:"open-url",url:d.get("url")})],["search",d=>({action:"search-web",query:d.get("query")})],["note",d=>({action:"save-note",title:d.get("title"),content:d.get("content")})]])document.getElementById(id).addEventListener("submit",e=>{e.preventDefault();act(make(new FormData(e.target))).catch(err=>document.getElementById("result").textContent=err.message)});document.getElementById("status").onclick=()=>act({action:"system-status"});</script></body></html>';
+}
+export async function createLocalCompanion({port=31984}={}){
+ const nonce=randomBytes(32).toString('hex');
+ let recent=0,used=0;
+ const server=createServer(async(req,res)=>{
+  const headers={'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','Referrer-Policy':'no-referrer','X-Content-Type-Options':'nosniff','Access-Control-Allow-Origin':'http://127.0.0.1:'+server.address().port,'Vary':'Origin'};
+  const send=(status,data,extra={})=>{res.writeHead(status,{...headers,...extra});res.end(JSON.stringify(data))};
+  if(req.method==='GET'&&req.url==='/'){res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Content-Security-Policy':"default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; form-action 'none'; base-uri 'none'","Cache-Control":"no-store",'X-Content-Type-Options':'nosniff'});res.end(ui(nonce));return}
+  if(req.method!=='POST'||req.url!=='/action'){send(404,{error:'Not found'});return}
+  const origin='http://127.0.0.1:'+server.address().port;
+  if(req.headers.origin!==origin||req.headers['x-saathi-nonce']!==nonce||req.headers['content-type']?.split(';')[0]!=='application/json'){send(403,{error:'Local permission denied'});return}
+  const now=Date.now();if(now-recent>60000){used=0;recent=now}if(++used>24){send(429,{error:'Too many commands'});return}
+  try{
+   const chunks=[];let length=0;for await(const chunk of req){length+=chunk.length;if(length>23000){send(413,{error:'Request too large'});return}chunks.push(chunk)}
+   const data=JSON.parse(Buffer.concat(chunks).toString('utf8'));
+   const check=validateLocalAction(data);if(!check.ok){send(400,{error:check.reason});return}
+   if(data.action==='system-status'){send(200,{ok:true,platform:platform(),logicalProcessors:cpus().length,freeMemoryMiB:Math.round(freemem()/1048576),totalMemoryMiB:Math.round(totalmem()/1048576),scope:'Local read only'});return}
+   if(data.action==='save-note'){
+    const folder=resolve(homedir(),'Documents','Saathi');await mkdir(folder,{recursive:true});
+    const path=join(folder,safeNoteName(data.title));await writeFile(path,data.content,'utf8');
+    send(200,{ok:true,operation:'Saved note locally',file:safeNoteName(data.title)});return;
+   }
+   const url=data.action==='search-web'?'https://www.google.com/search?q='+encodeURIComponent(data.query):normalizeBrowserUrl(data.url).href;
+   if(platform()!=='win32'){send(501,{error:'Opening a browser is currently supported in the Windows local companion only',url});return}
+   execFile('explorer.exe',[url],{windowsHide:true,timeout:5000},err=>{if(err)send(502,{error:'Could not open default browser'});else send(200,{ok:true,operation:'Opened browser',url})});
+  }catch{send(400,{error:'Invalid or failed local action'})}
+ });
+ await new Promise((resolve,reject)=>{server.once('error',reject);server.listen(port,'127.0.0.1',resolve)});
+ return {server,port:server.address().port};
+}
+if(process.argv[1]&&fileURLToPath(import.meta.url)===resolve(process.argv[1])){
+ const app=await createLocalCompanion();
+ process.stdout.write('Saathi Local Companion ready at http://127.0.0.1:'+app.port+'\n');
+ process.stdout.write('Open it in your browser. Only this computer can connect. Press Ctrl+C to stop.\n');
+}

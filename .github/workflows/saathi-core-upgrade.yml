@@ -1,0 +1,53 @@
+name: Saathi reviewed core upgrade
+on:
+  workflow_dispatch:
+    inputs:
+      feature:
+        description: Approved student learning capability template
+        required: true
+        type: choice
+        options:
+          - aviation-instruments
+          - physics-lab
+          - coding-coach
+          - art-composition
+          - revision-pilot
+permissions:
+  contents: write
+  pull-requests: write
+jobs:
+  create-source-upgrade-pr:
+    runs-on: ubuntu-latest
+    environment: saathi-core-upgrade-approval
+    steps:
+      - name: Checkout staging, not production
+        uses: actions/checkout@v4
+        with:
+          ref: feat/saathi-academic-mvp
+          persist-credentials: true
+      - name: Use Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Generate and test approved source
+        env:
+          FEATURE: ${{ inputs.feature }}
+        run: |
+          set -eu
+          node scripts/generate-core-upgrade.mjs "--feature=$FEATURE"
+          npm ci
+          npm run check
+      - name: Open inspectable pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          FEATURE: ${{ inputs.feature }}
+        run: |
+          set -eu
+          BRANCH="saathi/core-upgrade-$FEATURE-$GITHUB_RUN_ID"
+          git config user.name "saathi-upgrade-bot"
+          git config user.email "saathi-upgrade-bot@users.noreply.github.com"
+          git checkout -b "$BRANCH"
+          git add public/core-skills/catalog.json
+          git commit -m "feat(saathi): reviewed core ability $FEATURE"
+          git push origin "$BRANCH"
+          gh pr create --base feat/saathi-academic-mvp --head "$BRANCH" --title "Saathi core skill upgrade: $FEATURE" --body "Audited template; npm check passed. Human review required. Preview only. No production deployment."
