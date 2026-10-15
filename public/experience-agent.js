@@ -32,7 +32,7 @@ async function welcome(){
  }catch{report('Welcome back. Your daily schedule is temporarily unavailable. You can still ask me anything.');setPhase('READY')}
 }
 try{user=await api('me');if(user.role!=='student')throw Error('This immersive learning space is available to learner accounts only.');setPhase('WORKING');await welcome();await restoreDialogue()}catch(err){report(err.message+' Sign in using the study workspace first.');link('Sign in ↗','/?workspace=1');setPhase('LOGIN REQUIRED');field.disabled=true;send.disabled=true;mic.disabled=true}
-function say(text){try{if(!window.speechSynthesis||!window.SpeechSynthesisUtterance)return;window.speechSynthesis.cancel();const utter=new SpeechSynthesisUtterance(String(text).slice(0,650));utter.lang='en-IN';utter.rate=.95;window.speechSynthesis.speak(utter);speaking=utter}catch{}}
+function say(text){try{if(!window.speechSynthesis||!window.SpeechSynthesisUtterance)return;window.speechSynthesis.cancel();const utter=new SpeechSynthesisUtterance(String(text).slice(0,650));utter.lang='en-IN';utter.rate=.95;utter.onend=()=>{if(conversationEnabled&&active&&!busy)setTimeout(()=>beginListening(),300)};window.speechSynthesis.speak(utter);speaking=utter}catch{}}
 document.getElementById('saathi-brief-voice').addEventListener('click',()=>{if(!welcomeData)return;say(buildLoginBriefing({...welcomeData,weather:weatherData}).text);setPhase('SPEAKING');});
 document.getElementById('saathi-weather-request').addEventListener('click',()=>{
  if(!navigator.geolocation){alert.textContent='Location is not available in this browser.';return}
@@ -48,7 +48,7 @@ function addVideos(videos){for(const v of videos){const b=document.createElement
 async function command(text){const q=String(text||'').trim();if(q.length<3||busy)return;busy=true;send.disabled=true;field.value='';clearMedia();setPhase('WORKING');report('Working on your request…');
 try{
  if(/^(?:stop|stop conversation|end conversation|goodbye|stop listening)$/i.test(q)){
-  conversationEnabled=false;recognition?.stop();window.speechSynthesis?.cancel();report('Conversation stopped. Your saved history remains private, and you can restart any time.');setPhase('STOPPED');return;
+  stopConversation();report('Conversation stopped. Your saved history remains private, and you can restart any time.');setPhase('STOPPED');return;
  }
  if(/^(?:clear|erase|delete) (?:my )?(?:chat history|conversation history)$/i.test(q)){
   pendingAction={kind:'erase-history'};report('Delete your saved conversation history permanently? Please confirm.');actionButton('Yes, erase my history',async()=>{try{await api('dialogue',{action:'clear'});sessionTurns=[];report('Saved conversation history erased.')}catch(e){report(e.message)}});actionButton('Cancel',()=>{pendingAction=null;report('No history was deleted.')});setPhase('READY');return;
@@ -80,6 +80,24 @@ try{
 finally{busy=false;send.disabled=false;field.focus({preventScroll:true})}
 }
 form.addEventListener('submit',e=>{e.preventDefault();command(field.value)});
+const liveButton=document.getElementById('saathi-live-conversation');
+function stopConversation(){
+ conversationEnabled=false;liveButton.setAttribute('aria-pressed','false');liveButton.textContent='Start conversation';
+ try{recognition?.abort()}catch{}window.speechSynthesis?.cancel();setPhase('STOPPED');
+ alert.textContent='Voice conversation stopped. Type or press Start conversation to resume.';
+}
+function beginListening(){
+ if(!conversationEnabled||!active||busy||!Recognition)return;
+ if(recognition)return;
+ mic.click();
+}
+liveButton.addEventListener('click',()=>{
+ if(conversationEnabled){stopConversation();return}
+ if(!Recognition){alert.textContent='Continuous speech recognition is not supported on this browser. Use typing.';return}
+ conversationEnabled=true;liveButton.setAttribute('aria-pressed','true');liveButton.textContent='Stop conversation';
+ beginListening();
+});
+
 const Recognition=window.SpeechRecognition||window.webkitSpeechRecognition;
 if(!Recognition){mic.title='Speech recognition is not supported here. Type instead.';mic.disabled=true;}
 else mic.addEventListener('click',()=>{
@@ -90,10 +108,10 @@ else mic.addEventListener('click',()=>{
   r.onstart=()=>{setPhase('LISTENING');mic.setAttribute('aria-pressed','true');alert.textContent='Microphone listening—tap again to stop'};
   r.onresult=e=>{let draft='';for(let i=0;i<e.results.length;i++){draft+=e.results[i][0].transcript+' ';if(e.results[i].isFinal)finalText+=e.results[i][0].transcript+' '}field.value=draft.trim()};
   r.onerror=e=>{alert.textContent='Voice unavailable ('+e.error+'). Type your question.';setPhase('READY')};
-  r.onend=()=>{recognition=null;mic.setAttribute('aria-pressed','false');alert.textContent='';if(finalText.trim().length>2)command(finalText.trim());else setPhase('READY')};
+  r.onend=()=>{recognition=null;mic.setAttribute('aria-pressed','false');alert.textContent='';if(finalText.trim().length>2){command(finalText.trim()).then(()=>{if(conversationEnabled&&active){say(answer.textContent||'How can I help?')}})}else{setPhase('READY');if(conversationEnabled&&active)setTimeout(beginListening,400)}};
   r.start();
  }catch{recognition=null;alert.textContent='Microphone unavailable. Use typing.'}
 });
-document.querySelector('#saathi-stop').addEventListener('click',()=>{window.speechSynthesis?.cancel();recognition?.stop();alert.textContent='Audio stopped.'});
+document.querySelector('#saathi-stop').addEventListener('click',()=>{stopConversation()});
 root.addEventListener('saathi:part',e=>{const part=e.detail.part;if(busy||field.disabled)return;field.value='Explain the '+part+' of an aircraft with a real-world physics example';field.focus({preventScroll:true});alert.textContent='Aircraft component selected. Press send or speak to study it.'});
 window.addEventListener('pagehide',()=>{active=false;recognition?.abort();window.speechSynthesis?.cancel()},{once:true});
