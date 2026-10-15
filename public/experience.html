@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#081521">
+<title>Saathi — Interactive Flight Deck</title>
+<link rel="icon" href="/saathi-symbol.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/experience.css">
+</head>
+<body>
+<main class="experience" id="saathi-experience">
+ <canvas id="saathi-stage" aria-label="Interactive three-dimensional aircraft in a cinematic flight hangar"></canvas>
+ <div class="grade" aria-hidden="true"></div>
+ <header class="topbar"><a class="logotype" href="/experience.html">SAATHI<span class="status-dot"></span></a><div class="toplinks"><span class="live-indicator" id="saathi-state">INITIALISING</span><a href="/?workspace=1" aria-label="Open original study dashboard">Study workspace ↗</a><a href="/mission.html" aria-label="Open all Saathi specialist tools">All tools ↗</a></div></header>
+ <section class="intro" aria-label="Saathi companion">
+  <div class="intro-label"><span class="thin-line"></span> YOUR PERSONAL AI FLIGHT DECK</div>
+  <h1>YOUR WORLD.<br><em>YOUR QUESTIONS.</em></h1>
+  <p>Speak naturally or type below. Explore science, aviation, art and learning—Saathi selects the next step.</p>
+  <p class="scene-tip">Drag to rotate the aircraft · Tap the aircraft to explore its parts</p>
+ </section>
+ <aside class="object-label" id="saathi-object-label" aria-live="polite">INTERACTIVE AIRCRAFT · SELECT ANY COMPONENT</aside>
+ <section class="conversation" aria-label="Live AI conversation">
+  <div class="answer-header"><span class="pulse"></span><span id="saathi-phase">SAATHI READY</span><button id="saathi-stop" type="button" aria-label="Stop voice output">Stop voice</button></div>
+  <div id="saathi-answer" role="log" aria-live="polite"><p>Welcome aboard. What would you like to explore?</p></div>
+  <form id="saathi-command-form"><label class="sr-only" for="saathi-command">Ask Saathi anything</label><input id="saathi-command" name="command" autocomplete="off" minlength="3" maxlength="700" placeholder="Ask anything, or say “Show me how aircraft fly”..." required><button id="saathi-mic" type="button" aria-label="Start listening">◉ <span class="sr-only">Speak</span></button><button id="saathi-send" type="submit" aria-label="Send message">➜</button></form>
+  <div class="microcopy">Microphone activates only when pressed. Your questions are processed by Saathi AI. <span id="saathi-alert" role="status"></span></div>
+  <div id="saathi-media" aria-label="Video suggestions and study actions"></div>
+ </section>
+ <p class="scene-credits">REAL-TIME 3D · PERFORMANCE-ADAPTIVE · LEARNER CONTROLLED</p>
+</main>
+<script type="module" src="/experience-agent.js"></script>
+<script type="module" src="/experience-3d.js"></script>
+</body></html>
