@@ -4,8 +4,7 @@ import {buildLoginBriefing} from './live-briefing.js';
 import {parseScheduleIntent,proactiveSearchHint,skillUpgradeIntent} from './saathi-orchestrator.js';
 const root=document.querySelector('#saathi-experience'),form=document.querySelector('#saathi-command-form'),field=document.querySelector('#saathi-command'),mic=document.querySelector('#saathi-mic'),send=document.querySelector('#saathi-send'),answer=document.querySelector('#saathi-answer'),media=document.querySelector('#saathi-media'),alert=document.querySelector('#saathi-alert'),phase=document.querySelector('#saathi-phase');
 let user=null,recognition=null,speaking=null,busy=false,mode='companion',lastTopic='',active=true;
-let sessionTurns=[],pendingAction=null,conversationEnabled=false,sessionVoice=false,stopRequested=false;
-const pendingConfirm=document.getElementById('saathi-confirm');
+let sessionTurns=[],pendingAction=null,conversationEnabled=false;
 function setPhase(p){phase.textContent='SAATHI '+p;root.querySelector('.conversation').dataset.phase=p;root.dispatchEvent(new CustomEvent('saathi:phase',{detail:p}))}
 function report(text){answer.replaceChildren();const p=document.createElement('p');p.textContent=String(text).slice(0,11000);answer.append(p);answer.scrollTop=0}
 function clearMedia(){media.replaceChildren()}
@@ -56,7 +55,23 @@ try{
  const scheduleIntent=parseScheduleIntent(q);
  if(scheduleIntent){pendingAction={kind:'schedule',payload:scheduleIntent};report('I understood: '+scheduleIntent.title+' at '+scheduleIntent.time+'. Repeat days: '+scheduleIntent.days.join(', ')+'. Shall I save this to your real schedule?');actionButton('Save reminder',async()=>{try{setPhase('WORKING');await api('schedule',scheduleIntent);report('Saved: '+scheduleIntent.title+' at '+scheduleIntent.time+'. This is in your schedule. Delivery outside the app depends on notification permissions.');await recordTurn(q,'Reminder saved to schedule.');setPhase('READY')}catch(e){report('Unable to save: '+e.message);setPhase('ERROR')}finally{pendingAction=null}});actionButton('Cancel',()=>{pendingAction=null;report('Reminder was not saved.')});return}
  const upgrade=skillUpgradeIntent(q);
- if(upgrade){report('I can design a sandboxed learner skill for '+upgrade+'. I will generate and validate a teaching plan; I cannot silently rewrite the core application.');setPhase('WORKING');try{const result=await api('auto-forge',{action:'forge',goal:upgrade});report('Skill generation result: '+(result.notice||result.skill?.name||'Draft created')+'. You can review the new personal skill in All tools.');link('Review your skill ↗','/mission.html');await recordTurn(q,'Personal skill forge requested.')}catch(e){report('Skill creation could not be completed: '+e.message)}setPhase('READY');return}
+ if(upgrade){
+  report('I am preparing your learner skill. First I will validate a teaching plan, then generate a separate sandboxed interactive prototype. Neither operation changes Saathi core code.');setPhase('WORKING');
+  const progress=[];
+  try{
+   const result=await api('auto-forge',{action:'forge',goal:upgrade});
+   progress.push('Teaching skill: '+(result.skill?.name||'registered')+' — structural checks passed.');
+   report(progress.join('\n')+'\nNow generating a safe interactive learning prototype…');
+  }catch(e){progress.push('Teaching skill could not be registered: '+e.message)}
+  try{
+   const project=await api('builder-lab',{action:'generate',prompt:'Build a simple interactive educational web practice tool to help a learner '+upgrade+'. Include a self-check question and feedback.'});
+   progress.push('Interactive source code generated and saved privately as '+project.title+'. Preview runs in an isolated sandbox.');
+  }catch(e){progress.push('Interactive prototype could not be built: '+e.message)}
+  report(progress.join('\n')+'\nCore software is unchanged; review the resulting tools before use.');
+  link('Open Skill Forge and Builder Lab ↗','/mission.html');
+  await recordTurn(q,progress.join(' '));
+  setPhase('READY');return;
+ }
  const video=youtubeIntent(q);
  if(video){lastTopic=video.topic;const out=await api('youtube-search',{query:video.topic});report(out.videos.length?'Here are video lessons related to '+video.topic+'. Choose one to play. I can explain the topic as well.':'I could not find suitable educational videos. Ask me to explain the topic instead.');addVideos(out.videos)}
  else{
