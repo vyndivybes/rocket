@@ -1,5 +1,5 @@
 // Restricted in-Saathi educational prototypes; never code executing in Saathi's origin.
-const unsafe=/(?:fetch\s*\(|XMLHttpRequest|WebSocket|EventSource|Worker\s*\(|serviceWorker|importScripts|eval\s*\(|new\s+Function|localStorage|sessionStorage|indexedDB|document\.cookie|postMessage|parent\s*\.|top\s*\.|opener\s*\.|location\s*[.=]|navigator\s*\.|setInterval\s*\(|https?:\/\/|data:text\/html|javascript:|<\s*\/\s*script)/i;
+const unsafe=/(?:fetch\s*\(|XMLHttpRequest|WebSocket|EventSource|Worker\s*\(|serviceWorker|importScripts|eval\s*\(|new\s+Function|localStorage|sessionStorage|indexedDB|document\.cookie|postMessage|parent\s*\.|top\s*\.|opener\s*\.|location\s*[.=]|navigator\s*\.|setInterval\s*\(|requestAnimationFrame\s*\(|while\s*\(|for\s*\(\s*;\s*;|https?:\/\/|data:text\/html|javascript:|<\s*\/\s*script)/i;
 const forbiddenHtml=/<\s*(?:script|iframe|frame|object|embed|form|link|meta|base|style)\b|\bon\w+\s*=|\b(?:src|href|action|formaction)\s*=/i;
 const unsafePrompt=/(?:password|credentials|api\s*key|secret\s*token|phish|spy(?:ing|ware)?|steal|hack|malware|ransomware|bypass.*safety|purchase|payment|send\s+(?:a\s+)?message|email\s+(?:my|someone|others)|terminal|shell\s+command|powershell)/i;
 export function validateBuildRequest(input){
