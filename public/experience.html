@@ -8,7 +8,7 @@
 <main class="experience" id="saathi-experience">
  <canvas id="saathi-stage" aria-label="Interactive three-dimensional aircraft in a cinematic flight hangar"></canvas>
  <div class="grade" aria-hidden="true"></div>
- <header class="topbar"><a class="logotype" href="/experience.html">SAATHI<span class="status-dot"></span></a><div class="toplinks"><span class="live-indicator" id="saathi-state">INITIALISING</span><a href="/?workspace=1" aria-label="Open original study dashboard">Study workspace ↗</a><a href="/mission.html" aria-label="Open all Saathi specialist tools">All tools ↗</a></div></header>
+ <header class="topbar"><a class="logotype" href="/experience.html">SAATHI<span class="status-dot"></span></a><div class="toplinks"><span class="live-indicator" id="saathi-state">INITIALISING</span><a href="/?workspace=1" aria-label="Open Saathi home">Home</a><a href="/?workspace=1&amp;tab=features" aria-label="Open Saathi features">Features</a><a href="/?workspace=1&amp;tab=myspace" aria-label="Open Saathi settings">Settings</a></div></header>
  <section class="intro" aria-label="Saathi companion">
   <div class="intro-label"><span class="thin-line"></span> YOUR PERSONAL AI FLIGHT DECK</div>
   <h1>YOUR WORLD.<br><em>YOUR QUESTIONS.</em></h1>
@@ -20,8 +20,9 @@
   <div class="answer-header"><span class="pulse"></span><span id="saathi-phase">SAATHI READY</span><button id="saathi-live-conversation" type="button" aria-pressed="false">Start conversation</button><button id="saathi-stop" type="button" aria-label="Stop voice output">Stop voice</button></div>
   <div id="saathi-answer" role="log" aria-live="polite"><p>Welcome aboard. What would you like to explore?</p></div>
   <form id="saathi-command-form"><label class="sr-only" for="saathi-command">Ask Saathi anything</label><input id="saathi-command" name="command" autocomplete="off" minlength="3" maxlength="700" placeholder="Ask anything, or say “Show me how aircraft fly”..." required><button id="saathi-mic" type="button" aria-label="Start listening">◉ <span class="sr-only">Speak</span></button><button id="saathi-send" type="submit" aria-label="Send message">➜</button></form>
-  <div class="saathi-voice-settings"><label for="saathi-voice-select">Saathi voice</label><select id="saathi-voice-select" aria-label="Choose Saathi voice"><option value="cinematic">Cinematic AI · default</option><option value="natural">Natural · conversational</option><option value="warm">Warm · friendly</option><option value="clear">Clear · study mode</option></select><button id="saathi-voice-preview" type="button">▶ Preview voice</button></div>
+  <details class="saathi-options"><summary>Voice &amp; briefing options</summary><div class="saathi-options-body"><div class="saathi-voice-settings"><label for="saathi-voice-select">Saathi voice</label><select id="saathi-voice-select" aria-label="Choose Saathi voice"><option value="cinematic">Cinematic AI · default</option><option value="natural">Natural · conversational</option><option value="warm">Warm · friendly</option><option value="clear">Clear · study mode</option></select><button id="saathi-voice-preview" type="button">▶ Preview voice</button></div></div>
   <div class="saathi-brief-actions"><button id="saathi-brief-voice" type="button">▶ Hear my briefing</button><button id="saathi-weather-request" type="button">☁ Include local weather</button></div>
+  </details>
   <div class="microcopy">Microphone activates only when pressed. Your questions are processed by Saathi AI. <span id="saathi-alert" role="status"></span></div>
   <div id="saathi-media" aria-label="Video suggestions and study actions"></div>
  </section>
