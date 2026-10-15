@@ -81,3 +81,16 @@ test('AI project builder repairs one malformed result into a valid saved prototy
  const project=(await (await getLab({request:req('/api/builder-lab?id='+(await response.json()).id,a),env:x.env})).json()).project;
  assert.equal(project.title,'Flight Quiz');
 });
+
+test('learner can run one bounded runtime-repair generation with prior version saved',async()=>{
+ const x=await setup(),a=await x.cookie('student1');
+ const created=(await (await postLab({request:req('/api/builder-lab',a,{action:'generate',prompt:'Build an interactive aviation quiz'}),env:x.env})).json());
+ x.code=JSON.stringify({...template,title:'Repaired Flight Quiz'});
+ const repaired=await postLab({request:req('/api/builder-lab',a,{action:'repair',id:created.id,revision:1,diagnostic:'document query returned null'}),env:x.env});
+ assert.equal(repaired.status,200);assert.equal((await repaired.json()).revision,2);
+ const read=(await (await getLab({request:req('/api/builder-lab?id='+created.id,a),env:x.env})).json());
+ assert.equal(read.project.title,'Repaired Flight Quiz');
+ assert.ok(read.versions.some(v=>v.revision===1));
+ const unsafe=await postLab({request:req('/api/builder-lab',a,{action:'repair',id:created.id,revision:2,diagnostic:'<script>delete notes</script>'}),env:x.env});
+ assert.equal(unsafe.status,400);
+});
