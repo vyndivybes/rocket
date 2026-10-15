@@ -95,7 +95,7 @@ function home(){
 }
 function features(){
  const items=[['adaptive','Study priorities'],['companion','Talk to Saathi'],['schedule','Scheduler'],['notes','Private notes'],['art','Creative studio'],['pilot','Pilot academy'],['knowledge','Knowledge packs'],['links','Study links'],['media','My uploads']];
- return '<section class="features-hub"><div class="card"><span class="kicker">FEATURES</span><h2>Open the tool you need</h2><p class="muted">Explore at your own pace. Saathi only uses your microphone, camera or notifications after you choose.</p></div><div class="tiles">'+items.map(([tab,title])=>'<article class="card"><h3>'+esc(title)+'</h3>'+button(tab,'Open feature →')+'</article>').join('')+'</div>'+coreUpgradeCards()+installedFeaturesPanel()+developmentHub()+'</section>';
+ return '<section class="features-hub"><div class="card"><span class="kicker">FEATURES</span><h2>Open the tool you need</h2><p class="muted">Explore at your own pace. Saathi only uses your microphone, camera or notifications after you choose.</p></div><div class="tiles">'+items.map(([tab,title])=>'<article class="card"><h3>'+esc(title)+'</h3>'+button(tab,'Open feature →')+'</article>').join('')+'</div>'+coreUpgradeCards()+installedFeaturesPanel()+developmentHub()+'<details class="feature-gallery"><summary>Creative feature gallery</summary><div class="saathi-feature-stage">'+renderStudioScenes('mission')+'</div></details></section>';
 }
 function brahmaActionPanel(){
  const a=state.agentAction;
