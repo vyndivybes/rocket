@@ -46,4 +46,4 @@ export function renderMySpace(prefs,ideas=[],status='ready'){
  </div>`;
 }
 
-export function renderStudentFeatureGallery(){return '<details class="feature-gallery"><summary>Creative feature gallery</summary>'+renderStudioScenes('student')+'</details>';}
+export function renderStudentFeatureGallery(){return '<details class="feature-gallery"><summary>Creative feature gallery</summary><div class="saathi-feature-stage">'+renderStudioScenes('student')+'</div></details>';}
