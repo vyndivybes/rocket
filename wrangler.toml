@@ -26,6 +26,7 @@ database_id = "eacc17bb-a4da-46ad-8aca-c488540911d4"
 
 [env.production.vars]
 SAATHI_STAGE = "production"
+SAATHI_PRODUCTION_RELEASE_OVERRIDE = "owner-authorized-restricted-pilot-2026-10-15"
 SAATHI_VISION_ENABLED = "false"
 PUSH_DISPATCH_CONFIGURED = "false"
 
