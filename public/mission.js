@@ -14,6 +14,8 @@ import {detectBuildRequest,buildSandboxDocument} from './builder-lab.js';
 import {detectSaathiUpgradeIntent} from './saathi-upgrades.js';
 import {createVoiceReadback} from './voice-readback.js';
 import {createVoiceCapture,voiceAcknowledgement} from './voice-interaction.js';
+import {createConversationLoop} from './conversation-loop.js';
+import {runProbe} from './skill-crucible.js';
 import {VOICE_LANGUAGES,normalizeSpeechLocale} from './voice-languages.js';
 import {captureVisualFrame} from './visual-capture.js';
 import {teamCommand} from './team-command.js';
@@ -24,11 +26,12 @@ const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 const state={user:null,tab:'companion',mode:'companion',notes:[],schedule:[],tasks:[],knowledgePacks:[],packId:null,memories:[],linkSource:null,linkUrl:'',linkText:'',linkQuestion:'',linkAnswer:'',linkEvidence:[],answer:'',answerReference:null,mediaFile:null,mediaObjectUrl:null,mediaKind:null,mediaQuestion:'',mediaAnswer:'',mediaTimeLabel:null,visionEnabled:false,adaptivePlan:null,companionName:DEFAULT_COMPANION_NAME,nameConfigured:false,notifications:false,pushStatus:null,welcome:null,seen:new Set(),conversation:[],skills:[],forgeAvailable:false,builds:[],builderAvailable:false,selectedBuild:null,buildVersions:[],forgedSkills:[],voicePhase:'idle',voiceAutoSend:false,voiceLocale:'en-IN',introHidden:false,installedFeatures:[],installedAvailable:false,teamReport:null,researchReport:null};
 const sketchState=createSketchState();
 let micSession=null,voiceReplyRequested=false,spokenReply=null;
+const conversationLoop=createConversationLoop({maxTurns:12});
 function voiceSpeaker(){
  if(!spokenReply)spokenReply=createVoiceReadback({
   synthesis:window.speechSynthesis,UtteranceClass:window.SpeechSynthesisUtterance,language:()=>normalizeSpeechLocale(state.voiceLocale),
-  onError:()=>{state.voicePhase='error';refreshVoiceDisplay();flash('Browser voice playback is unavailable; the written reply is still visible.')},
-  onState:phase=>{state.voicePhase=phase==='SPEAKING'?'speaking':phase==='QUEUED'?'thinking':phase==='ERROR'?'error':'idle';refreshVoiceDisplay()}
+  onError:()=>{conversationLoop.failed();state.voicePhase='error';refreshVoiceDisplay();flash('Browser voice playback is unavailable; the written reply is still visible.')},
+  onState:phase=>{if(phase==='FINISHED'&&conversationLoop.speechFinished()){queueMicrotask(()=>{if(conversationLoop.active()&&state.tab==='companion'){startVoiceTurn()}})}state.voicePhase=phase==='SPEAKING'?'speaking':phase==='QUEUED'?'thinking':phase==='ERROR'?'error':'idle';refreshVoiceDisplay()}
  });
  return spokenReply;
 }
@@ -72,7 +75,7 @@ function home(){
 function companion(){
  const history=state.conversation.slice(0,-1).slice(-12).map(entry=>'<div class="listitem"><div><strong>'+esc(entry.role==='student'?'You':state.companionName)+'</strong><p style="white-space:pre-wrap;overflow-wrap:anywhere">'+esc(entry.text)+'</p></div></div>').join('');
  const modes=[['companion','Companion'],['teacher','Patient teacher'],['planner','Organiser'],['pilot','Pilot mentor'],['artist','Art mentor']];
- return (!state.introHidden?renderWelcomeScene({schedule:state.schedule,tasks:state.tasks,assistant:state.companionName,phase:state.voicePhase,voiceAutoSend:state.voiceAutoSend}):'<button type="button" class="btn ghost" id="show-intro">▶ Open today’s briefing</button>')+installedFeaturesPanel()+'<section class="card"><h2>What is on your mind?</h2><div class="modebuttons">'+modes.map(x=>'<button type="button" data-mode="'+x[0]+'" class="'+(state.mode===x[0]?'active':'')+'">'+x[1]+'</button>').join('')+'</div><p class="muted">'+esc(state.companionName)+' is your AI assistant, not a human friend or professional adviser. It can teach and help you save a task, routine, private note or memory after you confirm. Background notifications depend on device readiness. For Maths, Physics, Chemistry or Biology, ask one question at a time and request worked steps. For checked answers, use <a href="/">Lessons &amp; practice</a> in your learning workspace.</p><div class="saathi-voice-indicator" id="saathi-voice-indicator" data-phase="ready" role="status" aria-live="polite"><span aria-hidden="true" class="saathi-voice-ring"></span>Tap Speak to start listening</div><label class="form-field">Voice language<select id="voice-locale" aria-label="Speech recognition and spoken reply language">'+VOICE_LANGUAGES.map(([v,label])=>'<option value="'+v+'" '+(v===state.voiceLocale?'selected':'')+'>'+label+'</option>').join('')+'</select></label><div role="log" aria-label="Recent conversation">'+history+'</div><form id="talk-form"><label class="form-field">Your question or idea<textarea id="question" required minlength="4" maxlength="1600" placeholder="Help me understand Newton’s laws using an aircraft"></textarea></label><label class="form-field">Attach a study image, PDF, Word, PowerPoint or text file<input id="companion-file" type="file" accept=".png,.jpg,.jpeg,.webp,.pdf,.docx,.pptx,.txt,text/plain,image/png,image/jpeg,image/webp,application/pdf"></label><div class="actions"><button class="btn" type="submit" id="ask-button">Ask '+esc(state.companionName)+'</button><button class="btn secondary" id="voice" type="button">🎙 Speak</button><button class="btn ghost" type="button" id="speak-answer" '+(state.answer?'':'disabled')+'>Read reply aloud</button><button class="btn secondary" type="button" id="explain-screen">Explain screen</button><button class="btn secondary" type="button" id="explain-camera">Explain camera frame</button></div></form><div class="actions"><button type="button" class="btn secondary" data-memory-draft="1">Save a memory from my question (review first)</button></div><p class="small">Microphone activates only when you press Speak. Partial transcripts are drafts and nothing is submitted until you select Ask; spoken questions can receive a spoken reply. Browser speech recognition may use a vendor service. AI messages are not saved in the app’s database but are sent to Cloudflare Workers AI for processing.</p>'+(state.answer?'<div class="ai-answer" id="answer">'+esc(state.answer)+'</div>'+(state.answerReference?'<p class="small">Related reference: <a href="'+esc(state.answerReference.url)+'" target="_blank" rel="noopener noreferrer">'+esc(state.answerReference.publisher)+' · '+esc(state.answerReference.title)+' ↗</a>. This does not certify the AI answer.</p>':''):'<p class="notice">Try: “What’s my plan today?”, “What should I do next?”, “Why do planes fly?” or “Create a skill called Flight Deck Trainer that quizzes me on cockpit instruments”.</p>')+'</section>'+specialistResults()+(state.researchReport?'<section class="card"><h2>Research brief</h2><p>'+esc(state.researchReport.title)+'</p><button class="btn secondary" id="export-research-brief" type="button">Export HTML document</button></section>':'')+forgePanel()+builderLabPanel();
+ return (!state.introHidden?renderWelcomeScene({schedule:state.schedule,tasks:state.tasks,assistant:state.companionName,phase:state.voicePhase,voiceAutoSend:state.voiceAutoSend}):'<button type="button" class="btn ghost" id="show-intro">▶ Open today’s briefing</button>')+installedFeaturesPanel()+'<section class="card"><h2>What is on your mind?</h2><div class="modebuttons">'+modes.map(x=>'<button type="button" data-mode="'+x[0]+'" class="'+(state.mode===x[0]?'active':'')+'">'+x[1]+'</button>').join('')+'</div><p class="muted">'+esc(state.companionName)+' is your AI assistant, not a human friend or professional adviser. It can teach and help you save a task, routine, private note or memory after you confirm. Background notifications depend on device readiness. For Maths, Physics, Chemistry or Biology, ask one question at a time and request worked steps. For checked answers, use <a href="/">Lessons &amp; practice</a> in your learning workspace.</p><div class="saathi-voice-indicator" id="saathi-voice-indicator" data-phase="ready" role="status" aria-live="polite"><span aria-hidden="true" class="saathi-voice-ring"></span>Tap Speak to start listening</div><label class="form-field">Voice language<select id="voice-locale" aria-label="Speech recognition and spoken reply language">'+VOICE_LANGUAGES.map(([v,label])=>'<option value="'+v+'" '+(v===state.voiceLocale?'selected':'')+'>'+label+'</option>').join('')+'</select></label><div role="log" aria-label="Recent conversation">'+history+'</div><form id="talk-form"><label class="form-field">Your question or idea<textarea id="question" required minlength="4" maxlength="1600" placeholder="Help me understand Newton’s laws using an aircraft"></textarea></label><label class="form-field">Attach a study image, PDF, Word, PowerPoint or text file<input id="companion-file" type="file" accept=".png,.jpg,.jpeg,.webp,.pdf,.docx,.pptx,.txt,text/plain,image/png,image/jpeg,image/webp,application/pdf"></label><div class="actions"><button class="btn" type="submit" id="ask-button">Ask '+esc(state.companionName)+'</button><button class="btn secondary" id="voice" type="button">🎙 Speak</button><button class="btn secondary" id="conversation-start" type="button">Start voice conversation</button><button class="btn ghost" id="conversation-stop" type="button">Stop conversation</button><button class="btn ghost" type="button" id="speak-answer" '+(state.answer?'':'disabled')+'>Read reply aloud</button><button class="btn secondary" type="button" id="explain-screen">Explain screen</button><button class="btn secondary" type="button" id="explain-camera">Explain camera frame</button></div></form><div class="actions"><button type="button" class="btn secondary" data-memory-draft="1">Save a memory from my question (review first)</button></div><p class="small">Microphone activates only when you press Speak. Partial transcripts are drafts and nothing is submitted until you select Ask; spoken questions can receive a spoken reply. Browser speech recognition may use a vendor service. AI messages are not saved in the app’s database but are sent to Cloudflare Workers AI for processing.</p>'+(state.answer?'<div class="ai-answer" id="answer">'+esc(state.answer)+'</div>'+(state.answerReference?'<p class="small">Related reference: <a href="'+esc(state.answerReference.url)+'" target="_blank" rel="noopener noreferrer">'+esc(state.answerReference.publisher)+' · '+esc(state.answerReference.title)+' ↗</a>. This does not certify the AI answer.</p>':''):'<p class="notice">Try: “What’s my plan today?”, “What should I do next?”, “Why do planes fly?” or “Create a skill called Flight Deck Trainer that quizzes me on cockpit instruments”.</p>')+'</section>'+specialistResults()+(state.researchReport?'<section class="card"><h2>Research brief</h2><p>'+esc(state.researchReport.title)+'</p><button class="btn secondary" id="export-research-brief" type="button">Export HTML document</button></section>':'')+forgePanel()+builderLabPanel();
 }
 
 function specialistResults(){
@@ -187,15 +190,66 @@ function attachDrawing(){
  canvas.onpointerup=canvas.onpointercancel=()=>{if(down){down=false;ctx.beginPath();sketchState.remember(canvas.toDataURL('image/png'))}};
 }
 async function refresh(kind){const data=await api(kind);state[kind]=kind==='schedule'?data.items:data.notes;render()}
+function startVoiceTurn(){
+
+  if(micSession?.isListening()){micSession.stop();voiceStatus('ready','Microphone stopped. No question was sent.');return;}
+  const Recognition=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(typeof Recognition!=='function'){voiceStatus('error','Speech recognition is unavailable here. You can type instead.');return;}
+  voiceSpeaker().cancel();
+  voiceReplyRequested=false;
+  micSession=createVoiceCapture({
+   RecognitionClass:Recognition,
+   language:normalizeSpeechLocale(state.voiceLocale),
+   onDraft:text=>{
+    const draft=stripCompanionCall(text,state.nameConfigured?state.companionName:null);
+    const field=document.getElementById('question');
+    if(field)field.value=draft;
+    voiceStatus('listening','Listening: '+draft+' (draft only; not sent)');
+   },
+   onFinal:raw=>{
+    const phrase=stripCompanionCall(raw,state.nameConfigured?state.companionName:null);
+    if(conversationLoop.active())conversationLoop.submitted();
+    if(!phrase){voiceStatus('heard',"I'm here. What would you like to ask?");announce("I'm here. What would you like to ask?");return;}
+    const navigation=matchVoiceCommand(phrase);
+    if(navigation){
+     state.tab=navigation;render();
+     voiceStatus('answered','Opened '+navigation+' as requested.');
+     announce('Opened '+navigation+'.');
+     return;
+    }
+    const local=answerPersonalRequest(phrase,{schedule:state.schedule,tasks:state.tasks,memories:state.memories});
+    if(local){
+     state.answer=local.answer;state.tab='companion';render();
+     voiceStatus('answered','Answered from your private daily plan. No AI request sent.');
+     announce(local.answer);
+     return;
+    }
+    const field=document.getElementById('question');
+    if(field){field.value=phrase;field.focus();}
+    if(state.voiceAutoSend||conversationLoop.active()){
+     voiceReplyRequested=false;voiceStatus('thinking','I heard you. Preparing your reply.');
+     handleCompanionQuestion(phrase,true).catch(err=>{conversationLoop.failed();voiceStatus('error',err.message)});return;
+    }
+    voiceReplyRequested=true;
+    voiceStatus('heard','I heard your question. Review it and select Ask to send it.');
+    announce(voiceAcknowledgement('HEARD'));
+   },
+   onState:phase=>{if(phase==='LISTENING')voiceStatus('listening','Listening after your tap. Audio may be processed by the browser vendor.');if(phase==='STOPPED')voiceStatus('ready','Microphone stopped. Review the draft and select Ask to send it.');},
+   onError:code=>{conversationLoop.failed();voiceStatus('error',code==='MIC_PERMISSION_DENIED'
+    ?'Microphone permission was denied. Allow the mic in browser settings or type.'
+    :'Voice recognition is unavailable. Type your question instead.');}
+  });
+  micSession.start();return;
+}
 root.addEventListener('click',async e=>{
  const b=e.target.closest('button');if(!b)return;
  const dataset=b.dataset;
  if(b.id==='play-welcome'){micSession?.stop();const text=composeWelcomeReport({schedule:state.schedule,tasks:state.tasks},state.companionName).spoken;if(!announce(text))voiceStatus('error','Speech not available; the written agenda is still visible.');return}
- if(b.id==='stop-welcome'){voiceSpeaker().cancel();state.voicePhase='idle';refreshVoiceDisplay();flash('Voice stopped.');return}
+ if(b.id==='stop-welcome'){conversationLoop.stop();micSession?.stop();voiceSpeaker().cancel();state.voicePhase='idle';refreshVoiceDisplay();flash('Voice stopped.');return}
  if(b.id==='show-intro'){state.introHidden=false;render();return}
  if(dataset.welcomeHide){voiceSpeaker().cancel();state.introHidden=true;render();return}
  if(dataset.dismissWelcome){if(dataset.dismissWelcome!==state.welcome?.version)return;try{await api('welcome-once',{action:'dismiss',version:dataset.dismissWelcome});state.welcome={...state.welcome,show:false};render();flash('Enjoy exploring Saathi!')}catch(err){flash('Could not save your choice: '+err.message)}return}
- if(dataset.tab){voiceReplyRequested=false;micSession?.stop();state.tab=dataset.tab;render();return}
+ if(dataset.tab){conversationLoop.stop();voiceReplyRequested=false;micSession?.stop();state.tab=dataset.tab;render();return}
  if(dataset.mode){state.mode=dataset.mode;render();return}
  if(dataset.planLesson){
  const lesson=state.adaptivePlan?.recommendations?.find(x=>x.lessonId===dataset.planLesson);
@@ -326,55 +380,11 @@ root.addEventListener('click',async e=>{
   if(!confirm('Share ONE '+kind+' frame with Saathi AI for explanation? Check that it contains no passwords or private information. The recording stops after one frame.'))return;
   try{const image=await captureVisualFrame(kind);const q='Explain the learning or creative content visible in this '+kind+' image. Describe only what is actually shown and say if something is unclear.';const r=await api('analyze-image',{confirm:'ANALYZE IMAGE',image,question:q});companionReply(q,r.answer,{notice:'Only the selected '+kind+' frame was sent; capture ended. Vision is subject to preview model availability.'});}catch(err){flash('Visual explanation unavailable: '+err.message)}return;
  }
- if(b.id==='voice'){
-  if(micSession?.isListening()){micSession.stop();voiceStatus('ready','Microphone stopped. No question was sent.');return;}
-  const Recognition=window.SpeechRecognition||window.webkitSpeechRecognition;
-  if(typeof Recognition!=='function'){voiceStatus('error','Speech recognition is unavailable here. You can type instead.');return;}
-  voiceSpeaker().cancel();
-  voiceReplyRequested=false;
-  micSession=createVoiceCapture({
-   RecognitionClass:Recognition,
-   language:normalizeSpeechLocale(state.voiceLocale),
-   onDraft:text=>{
-    const draft=stripCompanionCall(text,state.nameConfigured?state.companionName:null);
-    const field=document.getElementById('question');
-    if(field)field.value=draft;
-    voiceStatus('listening','Listening: '+draft+' (draft only; not sent)');
-   },
-   onFinal:raw=>{
-    const phrase=stripCompanionCall(raw,state.nameConfigured?state.companionName:null);
-    if(!phrase){voiceStatus('heard',"I'm here. What would you like to ask?");announce("I'm here. What would you like to ask?");return;}
-    const navigation=matchVoiceCommand(phrase);
-    if(navigation){
-     state.tab=navigation;render();
-     voiceStatus('answered','Opened '+navigation+' as requested.');
-     announce('Opened '+navigation+'.');
-     return;
-    }
-    const local=answerPersonalRequest(phrase,{schedule:state.schedule,tasks:state.tasks,memories:state.memories});
-    if(local){
-     state.answer=local.answer;state.tab='companion';render();
-     voiceStatus('answered','Answered from your private daily plan. No AI request sent.');
-     announce(local.answer);
-     return;
-    }
-    const field=document.getElementById('question');
-    if(field){field.value=phrase;field.focus();}
-    if(state.voiceAutoSend){
-     voiceReplyRequested=false;voiceStatus('thinking','I heard you. Preparing your reply.');
-     handleCompanionQuestion(phrase,true).catch(err=>voiceStatus('error',err.message));return;
-    }
-    voiceReplyRequested=true;
-    voiceStatus('heard','I heard your question. Review it and select Ask to send it.');
-    announce(voiceAcknowledgement('HEARD'));
-   },
-   onState:phase=>{if(phase==='LISTENING')voiceStatus('listening','Listening after your tap. Audio may be processed by the browser vendor.');if(phase==='STOPPED')voiceStatus('ready','Microphone stopped. Review the draft and select Ask to send it.');},
-   onError:code=>voiceStatus('error',code==='MIC_PERMISSION_DENIED'
-    ?'Microphone permission was denied. Allow the mic in browser settings or type.'
-    :'Voice recognition is unavailable. Type your question instead.')
-  });
-  micSession.start();return;
+ if(b.id==='conversation-start'){
+  if(!conversationLoop.active()){conversationLoop.start();state.voiceAutoSend=true;startVoiceTurn();flash('Voice conversation started by you. It will pause after each answer and stop automatically after twelve turns. Use Stop conversation anytime.');}return;
  }
+ if(b.id==='conversation-stop'){conversationLoop.stop();micSession?.stop();voiceSpeaker().cancel();voiceStatus('ready','Conversation stopped. Microphone and speech paused.');return}
+ if(b.id==='voice'){startVoiceTurn();return;}
  if(b.id==='speak-answer'){voiceSpeaker().cancel();if(!announce(state.answer))voiceStatus('error','Spoken reply unavailable. The written answer is still visible.');return}
  if(b.id==='save-png'){const canvas=document.getElementById('sketch'),link=document.createElement('a');link.download='my-artwork.png';link.href=canvas.toDataURL('image/png');link.click();flash('Art saved to your device, not uploaded.');return}
  if(b.id==='clear-png'){if(confirm('Clear the sketch? Unsaved artwork will be lost.')){sketchState.clear();attachDrawing();flash('Canvas cleared.')}return}
