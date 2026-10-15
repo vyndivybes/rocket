@@ -48,3 +48,9 @@ test('natural study requests select the right academic specialty without manual 
   assert.equal(routeCompanionSkill('How do airplanes generate lift?',now)?.mode,'pilot');
   assert.equal(routeCompanionSkill('Give me ideas for an abstract painting',now)?.mode,'artist');
 });
+
+test('sensitive and safeguarding requests are delegated to the existing safety-aware assistant rather than written as tasks or memories',()=>{
+ for(const q of ['Remind me to hurt myself tomorrow','Remember that my password is abcdefg','Make a task to share my phone number']){
+  assert.equal(routeCompanionSkill(q,now),null,q);
+ }
+});
