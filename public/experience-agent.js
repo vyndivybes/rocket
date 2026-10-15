@@ -57,10 +57,10 @@ function say(text){
  const synth=window.speechSynthesis;
  if(!synth||!window.SpeechSynthesisUtterance){alert.textContent='Speech output is unavailable in this browser. Text remains available.';setPhase('READY');return}
  cancelSpeech();const generation=speechGeneration;
- const content=String(text||'').replace(/\\s+/g,' ').trim().slice(0,850);
+ const content=String(text||'').replace(/\s+/g,' ').trim().slice(0,850);
  if(!content)return;
  // Mobile Web Speech engines can remain indefinitely "pending" on longer utterances.
- const chunks=content.match(/.{1,170}(?:[.!?](?=\\s|$)|(?=\\s)|$)/g)||[content];
+ const chunks=content.match(/.{1,170}(?:[.!?](?=\s|$)|(?=\s)|$)/g)||[content];
  let index=0,started=false;
  function endSpeech(problem){
   if(generation!==speechGeneration)return;
