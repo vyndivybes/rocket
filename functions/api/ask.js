@@ -1,5 +1,6 @@
 import {json,error,auth,ensureRole,sameOrigin,safeBody,validateQuestion,safetyRoute,acquireAiQuota,AI_MODEL,llmMessages} from '../_lib/core.js';
 import {AI_MODES,COACH_PROMPTS} from '../_lib/mission.js';
+import {historyContext} from '../_lib/dialogue.js';
 import {relevantFoundation} from '../_lib/study.js';
 import {selectKnowledgeContext} from '../_lib/knowledge-packs.js';
 import {qualifyAiAnswer} from '../_lib/response-guard.js';
@@ -24,6 +25,12 @@ export async function onRequestPost({request,env}){
     const prefs=await env.DB.prepare('SELECT name FROM companion_preferences WHERE student_id=?').bind(user.id).first();
     const chosenName=prefs?.name??DEFAULT_COMPANION_NAME;
     const messages=llmMessages(b.question,user.board);
+    // Recall the same student's recent durable conversation. This data is never trusted as instructions.
+    try{
+      const past=await env.DB.prepare('SELECT role,text FROM dialogue_turns WHERE student_id=? ORDER BY created_at DESC,id DESC LIMIT 8').bind(user.id).all();
+      messages[0].content+=historyContext((past.results||[]).reverse());
+    }catch{ /* Continue without chat recall if the staging migration is pending. */ }
+
     // Learner-owned response length/guidance preference. The instruction is fixed,
     // non-executable and cannot weaken safeguarding or change model permissions.
     let learnerStyle='balanced';
