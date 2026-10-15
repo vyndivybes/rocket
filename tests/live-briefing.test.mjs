@@ -14,8 +14,8 @@ test('weather description distinguishes available data and missing permission',(
  assert.match(describeWeather({temperature:29,code:0}),/29°C/);
  assert.match(describeWeather(null),/not available/);
 });
-test('new page loads briefing automatically and keeps consent controls for speech and location',()=>{
+test('new page automatically reads the saved schedule and permission-based local weather',()=>{
  const s=read('public/experience-agent.js');
- for(const token of ['buildLoginBriefing','api(\'schedule\')','api(\'tasks\')','geolocation','saathi-brief-voice','saathi-weather-request'])assert.ok(s.includes(token),token);
+ for(const token of ['buildLoginBriefing','api(\'schedule\')','api(\'tasks\')','geolocation','saathi-brief-voice','saathi-weather-request','autoWelcomePending=true','refreshWeatherAndBriefing({read:true})','say(briefing.text)'])assert.ok(s.includes(token),token);
  const h=read('public/experience.html');assert.match(h,/saathi-brief-voice/);assert.match(h,/saathi-weather-request/);
 });

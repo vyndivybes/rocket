@@ -22,14 +22,38 @@ async function restoreDialogue(){
 function actionButton(label,onClick){const b=document.createElement('button');b.type='button';b.textContent=label;b.addEventListener('click',onClick,{once:true});media.append(b)}
 function link(text,url){const a=document.createElement('a');a.href=url;a.textContent=text;a.rel='noopener noreferrer';a.target='_blank';media.append(a);return a}
 async function api(path,body){const res=await fetch('/api/'+path,{method:body?'POST':'GET',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:body?JSON.stringify(body):undefined});const data=await res.json().catch(()=>({}));if(!res.ok)throw Error(data.error||'Saathi service unavailable');return data}
-let welcomeData=null,weatherData=null;
+let welcomeData=null,weatherData=null,autoWelcomePending=false;
+function requestLocalWeather(){
+ if(!navigator.geolocation)return Promise.resolve(null);
+ return new Promise(resolve=>{
+  try{navigator.geolocation.getCurrentPosition(async p=>{
+   try{resolve(await api('live-weather',{latitude:p.coords.latitude,longitude:p.coords.longitude}))}catch{resolve(null)}
+  },()=>resolve(null),{enableHighAccuracy:false,timeout:9500,maximumAge:600000})}catch{resolve(null)}
+ });
+}
+async function refreshWeatherAndBriefing({read=false}={}){
+ if(!welcomeData)return;
+ alert.textContent='Allow location access for local weather; Saathi will continue with the saved schedule if you decline.';
+ weatherData=await requestLocalWeather();
+ welcomeData.weather=weatherData;
+ const briefing=buildLoginBriefing(welcomeData);
+ report(briefing.text);setPhase('READY');
+ if(read){
+  alert.textContent=weatherData?'Your weather and saved schedule briefing is starting. If this browser blocks automatic voice, tap Hear my briefing.':'Location was not shared or weather is unavailable. Saathi is reading the saved schedule.';
+  const started=say(briefing.text);
+  if(started)setPhase('SPEAKING');
+ }else{
+  alert.textContent=weatherData?'Local weather added. Tap Hear my briefing to listen.':'Location was not shared or weather is unavailable; your saved schedule is still available.';
+ }
+}
 async function welcome(){
  try{
   const [schedule,tasks]=await Promise.allSettled([api('schedule'),api('tasks')]);
-  welcomeData={username:user.username,schedule:schedule.status==='fulfilled'?schedule.value.items:[],tasks:tasks.status==='fulfilled'?tasks.value.tasks:[],weather:weatherData};
+  welcomeData={username:user.username,schedule:schedule.status==='fulfilled'?schedule.value.items:[],tasks:tasks.status==='fulfilled'?tasks.value.tasks:[],weather:null};
   const briefing=buildLoginBriefing(welcomeData);
   report(briefing.text);setPhase('READY');
-  alert.textContent='Your daily briefing is ready. Select Hear my briefing to enable voice.';
+  alert.textContent='Preparing your spoken weather and schedule briefing. Your browser will ask before sharing location.';
+  autoWelcomePending=true;
  }catch{report('Welcome back. Your daily schedule is temporarily unavailable. You can still ask me anything.');setPhase('READY')}
 }
 try{user=await api('me');if(user.role!=='student')throw Error('This immersive learning space is available to learner accounts only.');setPhase('WORKING');await welcome();await restoreDialogue()}catch(err){report(err.message+' Sign in using the study workspace first.');link('Sign in ↗','/?workspace=1');setPhase('LOGIN REQUIRED');field.disabled=true;send.disabled=true;mic.disabled=true}
@@ -86,20 +110,12 @@ function say(text){
   try{synth.resume?.();synth.speak(utter)}catch{cancelSpeech();alert.textContent='Speech could not start. Try a different voice.';setPhase('READY')}
  }
  next();
+ return true;
 }
 document.getElementById('saathi-voice-preview').addEventListener('click',()=>{say('Hello. I am Saathi, your AI learning companion. How may I assist you today?')});
 
 document.getElementById('saathi-brief-voice').addEventListener('click',()=>{if(!welcomeData)return;say(buildLoginBriefing({...welcomeData,weather:weatherData}).text);setPhase('SPEAKING');});
-document.getElementById('saathi-weather-request').addEventListener('click',()=>{
- if(!navigator.geolocation){alert.textContent='Location is not available in this browser.';return}
- alert.textContent='Requesting location permission for this weather briefing…';
- navigator.geolocation.getCurrentPosition(async p=>{
-  try{
-   weatherData=await api('live-weather',{latitude:p.coords.latitude,longitude:p.coords.longitude});
-   if(welcomeData){welcomeData.weather=weatherData;report(buildLoginBriefing(welcomeData).text);alert.textContent='Weather updated. Select Hear my briefing to listen.'}
-  }catch(err){alert.textContent=err.message}
- },()=>{alert.textContent='Location not shared. Saathi will continue without weather.'},{enableHighAccuracy:false,timeout:9500,maximumAge:600000});
-});
+document.getElementById('saathi-weather-request').addEventListener('click',()=>{void refreshWeatherAndBriefing()});
 function addVideos(videos){for(const v of videos){const b=document.createElement('button');b.textContent='▶ '+v.title.slice(0,75);b.type='button';b.addEventListener('click',()=>{media.querySelector('iframe')?.remove();const f=document.createElement('iframe');f.src=v.embedUrl;f.title=v.title;f.loading='lazy';f.allow='encrypted-media;picture-in-picture';f.allowFullscreen=true;media.append(f)});media.append(b)}}
 async function command(text){const q=String(text||'').trim();if(q.length<3||busy)return;busy=true;send.disabled=true;field.value='';clearMedia();setPhase('WORKING');report('Working on your request…');
 try{
@@ -222,3 +238,4 @@ else mic.addEventListener('click',()=>{
 document.querySelector('#saathi-stop').addEventListener('click',()=>{stopConversation()});
 root.addEventListener('saathi:part',e=>{const part=e.detail.part;if(busy||field.disabled)return;field.value='Explain the '+part+' of an aircraft with a real-world physics example';field.focus({preventScroll:true});alert.textContent='Aircraft component selected. Press send or speak to study it.'});
 window.addEventListener('pagehide',()=>{active=false;recognition?.abort();cancelSpeech()},{once:true});
+if(autoWelcomePending){autoWelcomePending=false;void refreshWeatherAndBriefing({read:true})}
