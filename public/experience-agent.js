@@ -43,7 +43,7 @@ async function refreshWeatherAndBriefing({read=false}={}){
   const started=say(briefing.text);
   if(started)setPhase('SPEAKING');
  }else{
-  alert.textContent=weatherData?'Local weather added. Tap Hear my briefing to listen.':'Location was not shared or weather is unavailable; your saved schedule is still available.';
+  alert.textContent=weatherData?'Local weather added. open Voice & briefing options and tap Hear my briefing.':'Location was not shared or weather is unavailable; your saved schedule is still available.';
  }
 }
 async function welcome(){
