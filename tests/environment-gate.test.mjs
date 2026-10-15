@@ -23,9 +23,21 @@ test('missing marker or misconfigured environment fails closed',async()=>{
   assert.equal(response.status,503);
 });
 
-test('production is blocked despite a correct database marker and a forged release variable',async()=>{
+test('legacy release variables cannot bypass the production hold',async()=>{
  let called=false;
  const env={...envWithMarker('production','production'),SAATHI_RELEASE_APPROVED:'true'};
+ const r=await onRequest({request:request(),env,next:async()=>{called=true;return new Response('unsafe')}});
+ assert.equal(r.status,503);assert.equal(called,false);
+});
+test('owner-authorized release override opens production only with its matching database marker',async()=>{
+ let called=false;
+ const env={...envWithMarker('production','production'),SAATHI_PRODUCTION_RELEASE_OVERRIDE:'owner-authorized-restricted-pilot-2026-10-15'};
+ const r=await onRequest({request:request(),env,next:async()=>{called=true;return new Response('ok')}});
+ assert.equal(r.status,200);assert.equal(called,true);
+});
+test('owner release override cannot let preview access production records',async()=>{
+ let called=false;
+ const env={...envWithMarker('production','preview'),SAATHI_PRODUCTION_RELEASE_OVERRIDE:'owner-authorized-restricted-pilot-2026-10-15'};
  const r=await onRequest({request:request(),env,next:async()=>{called=true;return new Response('unsafe')}});
  assert.equal(r.status,503);assert.equal(called,false);
 });
