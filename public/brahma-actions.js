@@ -26,7 +26,7 @@ export function detectBrahmaAction(input){
   const subject=search[1].trim().replace(/[.!?]$/,'');
   if(subject.length<4||subject.length>150||/[\u0000-\u001f<>\\]/.test(subject))return null;
   const url='https://www.google.com/search?q='+encodeURIComponent(subject);
-  return {kind:'web-search',status:'ACTION_READY',label:'Search: '+subject.slice(0,90),url,notice:'The search link is ready. Results have not been read or verified by Saathi. Open the link to view them.'};
+  return {kind:'web-search',status:'ACTION_READY',label:'Search: '+subject.slice(0,90),url,notice:'The search link is ready but not yet opened. Results have not been read or verified by Saathi. Open the link to view them.'};
  }
  return null;
 }
