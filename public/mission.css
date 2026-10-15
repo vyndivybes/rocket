@@ -117,3 +117,24 @@
  .nav-group[open] .nav-group-items{max-height:55vh;overflow:auto}
  .nav-group-items button{white-space:normal}
 }
+
+/* Focused Mission Control landing and feature hub. */
+.mission-home{display:grid;gap:18px}
+.mission-welcome{padding:26px 28px;border:1px solid #526d83;border-radius:20px;background:linear-gradient(120deg,#1d3554,#183647)}
+.mission-welcome h2{font-size:clamp(24px,3vw,36px);letter-spacing:-.04em;margin:10px 0}
+.mission-welcome p{max-width:650px}
+.mission-quick{display:grid;gap:12px}
+.mission-quick>.tiles{margin-top:0}
+.mission-feature-card{display:flex;flex-direction:column;align-items:flex-start;gap:6px}
+.mission-feature-card .actions{margin-top:auto}
+.mission-agenda{padding:0 20px 14px}
+.mission-agenda summary{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:17px 0;cursor:pointer;list-style:none}
+.mission-agenda summary::-webkit-details-marker{display:none}
+.mission-agenda summary::after{content:'+';color:#a8c7d2;font-size:20px}
+.mission-agenda[open] summary::after{content:'−'}
+.features-hub{display:grid;gap:16px}
+.features-hub>.tiles{margin-top:0}
+.features-hub>.tiles .card{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.features-hub>.tiles .btn{margin-left:auto}
+.nav-group{min-width:0}
+@media(max-width:620px){.mission-welcome{padding:20px}.mission-agenda summary{align-items:flex-start;flex-direction:column}}
