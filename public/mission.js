@@ -301,6 +301,57 @@ root.addEventListener('change',async e=>{
  render();flash(kind==='image'?'Image ready. Enter a question and approve analysis.':'Local video ready. Pause at the frame you want to discuss.');
 });
 
+
+function companionReply(question,reply,{spoken=false,reference=null,notice=''}={}){
+ state.answer=String(reply||'').slice(0,10000);
+ state.answerReference=reference;
+ state.conversation.push({role:'student',text:question},{role:'saathi',text:state.answer});
+ state.conversation=state.conversation.slice(-24); // In-session only; conversation is not saved
+ state.tab='companion';render();
+ flash(notice||'Reply ready. Check academic facts against your textbook.');
+ if(spoken){voiceStatus('answered','Reply ready. Review the answer.');announce(state.answer);}
+}
+async function handleCompanionQuestion(raw,spoken=false){
+ const question=stripCompanionCall(String(raw||'').trim(),state.nameConfigured?state.companionName:null);
+ if(question.length<4)throw Error('Please ask a longer question.');
+ const link=detectStudyLinkQuestion(question);
+ if(link){
+  const notice=await importStudyLink(link.url);
+  if(state.linkSource?.status!=='ready'||state.linkText.length<40){companionReply(question,notice,{spoken});return}
+  const source={type:state.linkSource.kind,url:state.linkSource.url||'',title:state.linkSource.title,text:state.linkText};
+  const response=await api('ask',{question:link.question,mode:'teacher',source});
+  companionReply(question,response.answer,{spoken,reference:response.knowledgeReference,notice:'Answer based on imported readable text only; verify the source.'});return;
+ }
+ const local=answerPersonalRequest(question,{schedule:state.schedule,tasks:state.tasks,memories:state.memories});
+ if(local){companionReply(question,local.answer,{spoken,notice:'Answered locally using private study data.'});return}
+ const skill=routeCompanionSkill(question);
+ if(skill?.kind==='read-tasks'){
+  const open=state.tasks.filter(t=>!t.done).slice(0,10);
+  companionReply(question,open.length?'Your open tasks: '+open.map(x=>x.title+(x.due_date?' (due '+x.due_date+')':'')).join('; ')+'.':'You have no unfinished tasks.',{spoken});return;
+ }
+ if(skill?.kind==='read-notes'){
+  companionReply(question,state.notes.length?'Your private note titles: '+state.notes.slice(0,10).map(n=>n.title).join('; ')+'.':'You have no saved notes.',{spoken});return;
+ }
+ if(skill?.kind==='read-schedule'){
+  const active=state.schedule.filter(x=>x.enabled).slice(0,10);
+  companionReply(question,active.length?'Your saved activities: '+active.map(x=>x.title+' at '+x.time).join('; ')+'.':'You have no active scheduled activities.',{spoken});return;
+ }
+ if(skill?.answer){companionReply(question,skill.answer,{spoken});return}
+ if(skill?.kind?.startsWith('create-')){
+  if(!confirm(skill.confirmation)){companionReply(question,'Nothing was saved. You can change the request whenever you like.',{spoken});return}
+  const path={'create-task':'tasks','create-schedule':'schedule','create-note':'notes','create-memory':'personal-memory'}[skill.kind];
+  if(!path)throw Error('The requested skill is not available.');
+  await api(path,skill.payload);
+  const data=await api(path);
+  if(path==='schedule')state.schedule=data.items;
+  else if(path==='personal-memory')state.memories=data.memories;
+  else state[path]=data[path];
+  companionReply(question,'Saved successfully. '+skill.notice,{spoken,notice:'Approved action saved to the learner account.'});return;
+ }
+ const answer=await api('ask',{question,mode:skill?.mode||state.mode});
+ companionReply(question,answer.answer,{spoken,reference:answer.knowledgeReference,notice:'Saathi replied in '+(skill?.mode||state.mode)+' mode. Check important facts.'});
+}
+
 root.addEventListener('submit',async e=>{
  e.preventDefault();const form=e.target,fd=new FormData(form);const btn=form.querySelector('[type=submit]');if(btn)btn.disabled=true;
  try{
@@ -317,7 +368,7 @@ root.addEventListener('submit',async e=>{
  if(form.id==='study-question-form'){state.linkText=String(fd.get('text')||'');state.linkQuestion=String(fd.get('question')||'');if(!state.linkSource)state.linkSource={kind:'manual',url:'',title:'Learner-pasted study passage'};const source={type:state.linkSource.kind==='manual'?'manual':state.linkSource.kind,url:state.linkSource.url||'',title:state.linkSource.title,text:state.linkText};const result=await api('ask',{mode:'teacher',question:state.linkQuestion,source});state.linkAnswer=result.answer;state.linkEvidence=result.sourceEvidence||[];render();flash('Answer based on the supplied source excerpts. Review the evidence and confirm accuracy.')}
  if(form.id==='memory-form'){const entry={action:fd.get('id')?'update':'create',category:fd.get('category'),text:fd.get('text'),useInChat:fd.get('useInChat')!==null};if(fd.get('id'))entry.id=fd.get('id');await api('personal-memory',entry);state.memories=(await api('personal-memory')).memories;render();flash(entry.useInChat?'Memory saved and enabled for AI recall.':'Memory saved privately without AI recall.');}
  if(form.id==='name-form'){const saved=await api('companion-preferences',{name:fd.get('name')});state.companionName=saved.name;state.nameConfigured=true;state.tab='home';render();flash('Your AI is now named '+saved.name+'. You can rename it whenever you like.')}
- if(form.id==='talk-form'){micSession?.stop();const requestedByVoice=voiceReplyRequested;voiceReplyRequested=false;if(requestedByVoice){voiceSpeaker().cancel();voiceStatus('working',voiceAcknowledgement('WORKING'));}const question=String(fd.get('question')||document.getElementById('question').value);const link=detectStudyLinkQuestion(question);if(link){state.tab='links';state.linkQuestion=link.question;const notice=await importStudyLink(link.url);render();flash(notice+' Continue with the study text.');}else{const phrase=stripCompanionCall(question,state.nameConfigured?state.companionName:null);const local=answerPersonalRequest(phrase,{schedule:state.schedule,tasks:state.tasks,memories:state.memories});if(local){state.answer=local.answer;render();flash('Daily briefing from your private schedule — no AI quota used.');if(requestedByVoice){voiceStatus('answered','Reply ready. Check the explanation.');announce(state.answer);}}else{const answer=await api('ask',{question,mode:state.mode});state.answer=answer.answer;state.answerReference=answer.knowledgeReference;render();flash(state.companionName+' replied. Check important facts against your school materials.');if(requestedByVoice){voiceStatus('answered','Reply ready. Check the explanation.');announce(state.answer);}}}}
+ if(form.id==='talk-form'){micSession?.stop();const requestedByVoice=voiceReplyRequested;voiceReplyRequested=false;if(requestedByVoice){voiceSpeaker().cancel();voiceStatus('working',voiceAcknowledgement('WORKING'));}const question=String(fd.get('question')||document.getElementById('question').value);await handleCompanionQuestion(question,requestedByVoice);}
  if(form.id==='note-form'){const item={title:fd.get('title'),body:fd.get('body')};if(fd.get('id')){item.action='update';item.id=fd.get('id')}await api('notes',item);await refresh('notes');flash('Note saved privately.')}
  if(form.id==='schedule-form'){const item={title:fd.get('title'),kind:fd.get('kind'),time:fd.get('time'),minutes:Number(fd.get('minutes')),days:fd.getAll('days').map(Number)};if(fd.get('id')){item.id=fd.get('id');item.action='update'}await api('schedule',item);await refresh('schedule');flash('Activity saved. Reminders only work when this page is open.') }
  }catch(err){flash(err.message)}finally{const button=form.querySelector('[type=submit]');if(button)button.disabled=false}
