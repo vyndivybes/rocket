@@ -102,14 +102,14 @@ test('AI call invokes allowed model, handles crisis before inference and enforce
  const x=await seeded();const cookie=await signIn(x.env);
  const urgent=await ask({request:req('/api/ask',{method:'POST',cookie,body:{question:'I want to die'}}),env:x.env});
  assert.equal((await body(urgent)).kind,'urgent');assert.equal(x.inference,0);
- for(let i=0;i<12;i++){
+ for(let i=0;i<50;i++){
   const resp=await ask({request:req('/api/ask',{method:'POST',cookie,body:{question:'Explain electromagnetic induction'}}),env:x.env});
   assert.equal(resp.status,200);
   assert.equal((await body(resp)).kind,'teacher');
  }
- assert.equal(x.inference,12);
+ assert.equal(x.inference,50);
  const extra=await ask({request:req('/api/ask',{method:'POST',cookie,body:{question:'Explain electromagnetic induction'}}),env:x.env});
- assert.equal(extra.status,429);assert.equal(x.inference,12);
+ assert.equal(extra.status,429);assert.equal(x.inference,50);
 });
 test('logout invalidates session immediately',async()=>{
  const {env}=await seeded();const cookie=await signIn(env);
