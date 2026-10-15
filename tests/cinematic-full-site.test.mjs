@@ -11,7 +11,8 @@ test('every user-facing Saathi page loads one cohesive bold motion design system
  }
 });
 test('cinematic learner and companion experiences use the shared visual language',()=>{
- assert.match(read('public/app.js'),/saathi-feature-stage/);
+ assert.match(read('public/app.js'),/saathi-login-feature/);
+ assert.match(read('public/experience-ui.js'),/saathi-feature-stage/);
  assert.match(read('public/mission.js'),/saathi-feature-stage/);
  assert.match(read('public/welcome-display.js'),/data-immersive/);
 });
