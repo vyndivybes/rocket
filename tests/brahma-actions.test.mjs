@@ -19,7 +19,7 @@ test('excludes privileged actions, redirects and fake control claims',()=>{
  for(const s of ['open https://localhost:8443/', 'open file:///C:/Windows', 'run powershell shutdown', 'delete my browser history', 'open the bank login'])assert.equal(detectBrahmaAction(s),null,s);
  assert.equal(detectBrahmaAction('Saathi control my computer').kind,'device-handoff');
  assert.equal(detectBrahmaAction('Saathi, open nasa.gov@evil.org'),null);
- assert.equal(detectBrahmaAction('search web for a').kind,undefined);
+ assert.equal(detectBrahmaAction('search web for a'),null);
 });
 test('receipts never include user-supplied scripts or executable href schemes',()=>{
  const a=detectBrahmaAction('search the web for aircraft pressure & Bernoulli');
