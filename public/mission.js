@@ -173,6 +173,30 @@ root.addEventListener('click',async e=>{
  if(dataset.pack){state.packId=dataset.pack==='all'?null:dataset.pack;state.tab='knowledge';render();return}
  if(dataset.knowledgeQuestion){const pack=state.knowledgePacks.find(p=>p.id===state.packId),module=pack?.modules.find(m=>m.id===dataset.knowledgeQuestion);if(module){state.mode=pack.id==='aviation'?'pilot':pack.id==='art'?'artist':pack.id==='study-skills'?'planner':'teacher';state.tab='companion';render();document.getElementById('question').value='Please explain '+module.title+' step by step using an example and one practice question.';}return}
  try{
+ if(dataset.forgeTry){
+  const skill=state.skills.find(x=>x.id===dataset.forgeTry);if(!skill)return;
+  try{await handleCompanionQuestion('Try '+skill.name+' skill with a short practice session')}catch(err){flash(err.message)}return;
+ }
+ if(dataset.forgeEdit){
+  const skill=state.skills.find(x=>x.id===dataset.forgeEdit);if(!skill)return;
+  const details=document.getElementById('skill-forge');if(details)details.open=true;
+  const form=document.getElementById('forge-form');if(!form)return;
+  for(const key of ['id','name','purpose','mode','blueprint','revision'])form.elements[key].value=String(skill[key]);
+  form.elements.name.focus();flash('Revise the skill and save it as a draft, then try it again.');return;
+ }
+ if(dataset.forgeStatus){
+  const skill=state.skills.find(x=>x.id===dataset.forgeStatus);if(!skill)return;
+  try{
+   const result=await api('skills',{action:skill.status==='active'?'deactivate':'activate',id:skill.id});
+   state.skills=state.skills.map(x=>x.id===result.skill.id?result.skill:x);
+   render();flash(result.skill.name+' is now '+result.skill.status+'.');
+  }catch(err){flash(err.message)}return;
+ }
+ if(dataset.forgeDelete){
+  const skill=state.skills.find(x=>x.id===dataset.forgeDelete);if(!skill)return;
+  if(!confirm('Delete your skill “'+skill.name+'”? This cannot be undone.'))return;
+  try{await api('skills',{action:'delete',id:skill.id});state.skills=state.skills.filter(x=>x.id!==skill.id);render();flash('Skill removed.')}catch(err){flash(err.message)}return;
+ }
  if(dataset.removeMemory){if(!confirm('Delete this saved memory?'))return;await api('personal-memory',{action:'delete',id:dataset.removeMemory});state.memories=(await api('personal-memory')).memories;render();flash('Memory deleted.');return}
  if(dataset.toggleMemory){const m=state.memories.find(x=>x.id===dataset.toggleMemory);if(!m)return;const updated=await api('personal-memory',{action:'update',id:m.id,category:m.category,text:m.text,useInChat:!m.useInChat});state.memories=(await api('personal-memory')).memories;render();flash(updated.memory.useInChat?'AI recall enabled for this memory.':'AI recall disabled for this memory.');return}
  if(dataset.editMemory){const m=state.memories.find(x=>x.id===dataset.editMemory);if(!m)return;const f=document.getElementById('memory-form');f.elements.id.value=m.id;f.elements.category.value=m.category;f.elements.text.value=m.text;f.elements.useInChat.checked=m.useInChat;f.elements.text.focus();flash('Editing a memory. Save to apply changes.');return}
@@ -434,6 +458,14 @@ root.addEventListener('submit',async e=>{
  if(form.id==='source-link-form'){state.linkQuestion='';const notice=await importStudyLink(String(fd.get('url')||'').trim());render();flash(notice);}
  if(form.id==='study-question-form'){state.linkText=String(fd.get('text')||'');state.linkQuestion=String(fd.get('question')||'');if(!state.linkSource)state.linkSource={kind:'manual',url:'',title:'Learner-pasted study passage'};const source={type:state.linkSource.kind==='manual'?'manual':state.linkSource.kind,url:state.linkSource.url||'',title:state.linkSource.title,text:state.linkText};const result=await api('ask',{mode:'teacher',question:state.linkQuestion,source});state.linkAnswer=result.answer;state.linkEvidence=result.sourceEvidence||[];render();flash('Answer based on the supplied source excerpts. Review the evidence and confirm accuracy.')}
  if(form.id==='memory-form'){const entry={action:fd.get('id')?'update':'create',category:fd.get('category'),text:fd.get('text'),useInChat:fd.get('useInChat')!==null};if(fd.get('id'))entry.id=fd.get('id');await api('personal-memory',entry);state.memories=(await api('personal-memory')).memories;render();flash(entry.useInChat?'Memory saved and enabled for AI recall.':'Memory saved privately without AI recall.');}
+ if(form.id==='forge-form'){
+  const entry={name:String(fd.get('name')||''),purpose:String(fd.get('purpose')||''),mode:String(fd.get('mode')||''),blueprint:String(fd.get('blueprint')||'')};
+  const id=String(fd.get('id')||'');
+  const payload=id?{...entry,action:'update',id,revision:Number(fd.get('revision'))}:{...entry,action:'create'};
+  const result=await api('skills',payload);
+  state.skills=(await api('skills')).skills;
+  render();flash('“'+result.skill.name+'” saved as a draft. Try it in Skill Forge or chat.');return;
+ }
  if(form.id==='name-form'){const saved=await api('companion-preferences',{name:fd.get('name')});state.companionName=saved.name;state.nameConfigured=true;state.tab='home';render();flash('Your AI is now named '+saved.name+'. You can rename it whenever you like.')}
  if(form.id==='talk-form'){micSession?.stop();const requestedByVoice=voiceReplyRequested;voiceReplyRequested=false;if(requestedByVoice){voiceSpeaker().cancel();voiceStatus('working',voiceAcknowledgement('WORKING'));}const question=String(fd.get('question')||document.getElementById('question').value);await handleCompanionQuestion(question,requestedByVoice);}
  if(form.id==='note-form'){const item={title:fd.get('title'),body:fd.get('body')};if(fd.get('id')){item.action='update';item.id=fd.get('id')}await api('notes',item);await refresh('notes');flash('Note saved privately.')}
