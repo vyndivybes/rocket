@@ -1,7 +1,7 @@
 import {youtubeIntent} from './youtube-discovery.js';
 import {detectBrahmaAction} from './brahma-actions.js';
 import {buildLoginBriefing} from './live-briefing.js';
-import {parseScheduleIntent,proactiveSearchHint,skillUpgradeIntent} from './saathi-orchestrator.js';
+import {parseScheduleIntent,needsReminderDetails,proactiveSearchHint,skillUpgradeIntent} from './saathi-orchestrator.js';
 const root=document.querySelector('#saathi-experience'),form=document.querySelector('#saathi-command-form'),field=document.querySelector('#saathi-command'),mic=document.querySelector('#saathi-mic'),send=document.querySelector('#saathi-send'),answer=document.querySelector('#saathi-answer'),media=document.querySelector('#saathi-media'),alert=document.querySelector('#saathi-alert'),phase=document.querySelector('#saathi-phase');
 let user=null,recognition=null,speaking=null,busy=false,mode='companion',lastTopic='',active=true;
 let sessionTurns=[],pendingAction=null,conversationEnabled=false;
@@ -58,6 +58,8 @@ try{
  if(/^(?:clear|erase|delete) (?:my )?(?:chat history|conversation history)$/i.test(q)){
   pendingAction={kind:'erase-history'};report('Delete your saved conversation history permanently? Please confirm.');actionButton('Yes, erase my history',async()=>{try{await api('dialogue',{action:'clear'});sessionTurns=[];report('Saved conversation history erased.')}catch(e){report(e.message)}});actionButton('Cancel',()=>{pendingAction=null;report('No history was deleted.')});setPhase('READY');return;
  }
+ if(/^upgrade your skills[.!?]?$/i.test(q)){report('Which new learning skill should I develop? For example, ask me to upgrade my skills to teach aircraft navigation. I can generate a safe learning plan and sandboxed code, not modify the core application.');setPhase('READY');return}
+ if(needsReminderDetails(q)){report('I can save a recurring reminder. Please give the activity, time, and weekday, for example: “Remind me to revise Physics at 6 PM every Friday.” For a one-time date, the current schedule needs a dedicated one-off reminder capability.');setPhase('READY');return}
  const scheduleIntent=parseScheduleIntent(q);
  if(scheduleIntent){pendingAction={kind:'schedule',payload:scheduleIntent};report('I understood: '+scheduleIntent.title+' at '+scheduleIntent.time+'. Repeat days: '+scheduleIntent.days.join(', ')+'. Shall I save this to your real schedule?');actionButton('Save reminder',async()=>{try{setPhase('WORKING');await api('schedule',scheduleIntent);report('Saved: '+scheduleIntent.title+' at '+scheduleIntent.time+'. This is in your schedule. Delivery outside the app depends on notification permissions.');await recordTurn(q,'Reminder saved to schedule.');setPhase('READY')}catch(e){report('Unable to save: '+e.message);setPhase('ERROR')}finally{pendingAction=null}});actionButton('Cancel',()=>{pendingAction=null;report('Reminder was not saved.')});return}
  const upgrade=skillUpgradeIntent(q);
