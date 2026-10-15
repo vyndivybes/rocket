@@ -16,13 +16,19 @@ export function attachImmersiveScene({root=document,win=window}={}){
   raf=win.requestAnimationFrame(()=>{
    t.style.setProperty('--px',String(pos.x));
    t.style.setProperty('--py',String(pos.y));
+   t.style.setProperty('--drift-x',Math.round(pos.x*18)+'px');
+   t.style.setProperty('--drift-y',Math.round(pos.y*14)+'px');
+   t.style.setProperty('--reverse-x',Math.round(pos.x*-24)+'px');
+   t.style.setProperty('--reverse-y',Math.round(pos.y*-18)+'px');
+   t.style.setProperty('--tilt-x',(pos.y*-10).toFixed(2)+'deg');
+   t.style.setProperty('--tilt-y',(pos.x*12).toFixed(2)+'deg');
    t.style.setProperty('--spot-x',String(Math.round((pos.x+1)*50))+'%');
    t.style.setProperty('--spot-y',String(Math.round((pos.y+1)*50))+'%');
   });
  };
  const reset=event=>{
   const t=event.target?.closest?.('[data-immersive]');if(!t)return;
-  t.style.setProperty('--px','0');t.style.setProperty('--py','0');
+  t.style.setProperty('--px','0');t.style.setProperty('--py','0');t.style.setProperty('--drift-x','0px');t.style.setProperty('--drift-y','0px');t.style.setProperty('--reverse-x','0px');t.style.setProperty('--reverse-y','0px');t.style.setProperty('--tilt-x','0deg');t.style.setProperty('--tilt-y','0deg');
  };
  root.addEventListener('pointermove',pointer,{passive:true});
  root.addEventListener('pointerout',reset,{passive:true});
