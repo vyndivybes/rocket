@@ -51,17 +51,42 @@ voiceSelect.addEventListener('change',()=>{const chosen=voiceSelect.value;select
  alert.textContent='Voice preference saved on this device. Tap Preview voice to hear it.';
 });
 if(window.speechSynthesis){syncVoiceOptions();window.speechSynthesis.addEventListener?.('voiceschanged',syncVoiceOptions)}
-function say(text){try{
- if(!window.speechSynthesis||!window.SpeechSynthesisUtterance)return;
- window.speechSynthesis.cancel();
- const utter=new SpeechSynthesisUtterance(String(text).slice(0,650));
- const settings=voiceSettings({preset:selectedPreset});
- const voice=chooseVoice(window.speechSynthesis.getVoices(),{preset:selectedPreset,voiceName:selectedVoiceName});
- if(voice){utter.voice=voice;utter.lang=voice.lang||settings.lang}else utter.lang=settings.lang;
- utter.rate=settings.rate;utter.pitch=settings.pitch;
- utter.onend=()=>{if(conversationEnabled&&active&&!busy&&!aiQuotaExhausted)setTimeout(()=>beginListening(),300)};
- window.speechSynthesis.speak(utter);speaking=utter;
-}catch{alert.textContent='Voice output is unavailable on this browser.'}}
+let speechWatchdog=null,speechGeneration=0;
+function cancelSpeech(){speechGeneration++;clearTimeout(speechWatchdog);speechWatchdog=null;try{window.speechSynthesis?.cancel()}catch{}speaking=null}
+function say(text){
+ const synth=window.speechSynthesis;
+ if(!synth||!window.SpeechSynthesisUtterance){alert.textContent='Speech output is unavailable in this browser. Text remains available.';setPhase('READY');return}
+ cancelSpeech();const generation=speechGeneration;
+ const content=String(text||'').replace(/\s+/g,' ').trim().slice(0,850);
+ if(!content)return;
+ // Mobile Web Speech engines can remain indefinitely "pending" on longer utterances.
+ const chunks=content.match(/.{1,170}(?:[.!?](?=\s|$)|(?=\s)|$)/g)||[content];
+ let index=0,started=false;
+ function endSpeech(problem){
+  if(generation!==speechGeneration)return;
+  clearTimeout(speechWatchdog);speechWatchdog=null;speaking=null;
+  if(problem){alert.textContent='Voice playback was interrupted or unavailable; the answer is still visible as text.'}
+  if(conversationEnabled&&active&&!busy&&!aiQuotaExhausted){setPhase('READY');setTimeout(beginListening,350)}
+  else if(!aiQuotaExhausted)setPhase('READY');
+ }
+ function next(){
+  if(generation!==speechGeneration)return;
+  if(index>=chunks.length){endSpeech(false);return}
+  const utter=new SpeechSynthesisUtterance(chunks[index++].trim());
+  const settings=voiceSettings({preset:selectedPreset});
+  const voice=chooseVoice(synth.getVoices(),{preset:selectedPreset,voiceName:selectedVoiceName});
+  if(voice){utter.voice=voice;utter.lang=voice.lang||settings.lang}else utter.lang=settings.lang;
+  utter.rate=settings.rate;utter.pitch=settings.pitch;
+  utter.onstart=()=>{started=true;if(generation===speechGeneration){setPhase('SPEAKING');alert.textContent='Saathi speaking. Select Stop voice to interrupt.'}};
+  utter.onend=()=>{if(generation!==speechGeneration)return;clearTimeout(speechWatchdog);next()};
+  utter.onerror=()=>{if(generation===speechGeneration){cancelSpeech();alert.textContent='Speech playback failed; read the displayed answer or choose another voice.';setPhase('READY')}};
+  speaking=utter;
+  clearTimeout(speechWatchdog);
+  speechWatchdog=setTimeout(()=>{if(generation!==speechGeneration)return;cancelSpeech();alert.textContent='Speech playback timed out. Try a different voice or use the text response.';setPhase('READY')},14000);
+  try{synth.resume?.();synth.speak(utter)}catch{cancelSpeech();alert.textContent='Speech could not start. Try a different voice.';setPhase('READY')}
+ }
+ next();
+}
 document.getElementById('saathi-voice-preview').addEventListener('click',()=>{say('Hello. I am Saathi, your AI learning companion. How may I assist you today?')});
 
 document.getElementById('saathi-brief-voice').addEventListener('click',()=>{if(!welcomeData)return;say(buildLoginBriefing({...welcomeData,weather:weatherData}).text);setPhase('SPEAKING');});
@@ -165,7 +190,7 @@ form.addEventListener('submit',e=>{e.preventDefault();command(field.value)});
 const liveButton=document.getElementById('saathi-live-conversation');
 function stopConversation(){
  conversationEnabled=false;liveButton.setAttribute('aria-pressed','false');liveButton.textContent='Start conversation';
- try{recognition?.abort()}catch{}window.speechSynthesis?.cancel();setPhase('STOPPED');
+ try{recognition?.abort()}catch{}cancelSpeech();setPhase('STOPPED');
  alert.textContent='Voice conversation stopped. Type or press Start conversation to resume.';
 }
 function beginListening(){
@@ -189,11 +214,11 @@ else mic.addEventListener('click',()=>{
   let finalText='';
   r.onstart=()=>{setPhase('LISTENING');mic.setAttribute('aria-pressed','true');alert.textContent='Microphone listening—tap again to stop'};
   r.onresult=e=>{let draft='';for(let i=0;i<e.results.length;i++){draft+=e.results[i][0].transcript+' ';if(e.results[i].isFinal)finalText+=e.results[i][0].transcript+' '}field.value=draft.trim()};
-  r.onerror=e=>{alert.textContent='Voice unavailable ('+e.error+'). Type your question.';setPhase('READY')};
+  r.onerror=e=>{conversationEnabled=false;liveButton.setAttribute('aria-pressed','false');liveButton.textContent='Start conversation';alert.textContent='Voice unavailable ('+e.error+'). Use typing or restart conversation.';setPhase('READY')};
   r.onend=()=>{recognition=null;mic.setAttribute('aria-pressed','false');alert.textContent='';if(finalText.trim().length>2){command(finalText.trim()).then(()=>{if(conversationEnabled&&active&&!aiQuotaExhausted){say(answer.textContent||'How can I help?')}})}else{if(!aiQuotaExhausted)setPhase('READY');if(conversationEnabled&&active&&!aiQuotaExhausted)setTimeout(beginListening,400)}};
   r.start();
  }catch{recognition=null;alert.textContent='Microphone unavailable. Use typing.'}
 });
 document.querySelector('#saathi-stop').addEventListener('click',()=>{stopConversation()});
 root.addEventListener('saathi:part',e=>{const part=e.detail.part;if(busy||field.disabled)return;field.value='Explain the '+part+' of an aircraft with a real-world physics example';field.focus({preventScroll:true});alert.textContent='Aircraft component selected. Press send or speak to study it.'});
-window.addEventListener('pagehide',()=>{active=false;recognition?.abort();window.speechSynthesis?.cancel()},{once:true});
+window.addEventListener('pagehide',()=>{active=false;recognition?.abort();cancelSpeech()},{once:true});
