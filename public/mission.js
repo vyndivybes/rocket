@@ -7,12 +7,13 @@ import {stripCompanionCall,DEFAULT_COMPANION_NAME} from './companion-name.js';
 import {answerPersonalRequest} from './personal-requests.js';
 import {routeCompanionSkill} from './companion-skill-router.js';
 import {draftSkillFromRequest,routeSavedSkillRequest,buildSkillQuestion} from './skill-forge.js';
+import {detectBuildRequest,buildSandboxDocument} from './builder-lab.js';
 import {createVoiceReadback} from './voice-readback.js';
 import {createVoiceCapture,voiceAcknowledgement} from './voice-interaction.js';
 import {detectMediaFile,frameTimeLabel} from './media-file.js';
 const root=document.getElementById('mission-root');
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const state={user:null,tab:'companion',mode:'companion',notes:[],schedule:[],tasks:[],knowledgePacks:[],packId:null,memories:[],linkSource:null,linkUrl:'',linkText:'',linkQuestion:'',linkAnswer:'',linkEvidence:[],answer:'',answerReference:null,mediaFile:null,mediaObjectUrl:null,mediaKind:null,mediaQuestion:'',mediaAnswer:'',mediaTimeLabel:null,visionEnabled:false,adaptivePlan:null,companionName:DEFAULT_COMPANION_NAME,nameConfigured:false,notifications:false,pushStatus:null,welcome:null,seen:new Set(),conversation:[],skills:[],forgeAvailable:false};
+const state={user:null,tab:'companion',mode:'companion',notes:[],schedule:[],tasks:[],knowledgePacks:[],packId:null,memories:[],linkSource:null,linkUrl:'',linkText:'',linkQuestion:'',linkAnswer:'',linkEvidence:[],answer:'',answerReference:null,mediaFile:null,mediaObjectUrl:null,mediaKind:null,mediaQuestion:'',mediaAnswer:'',mediaTimeLabel:null,visionEnabled:false,adaptivePlan:null,companionName:DEFAULT_COMPANION_NAME,nameConfigured:false,notifications:false,pushStatus:null,welcome:null,seen:new Set(),conversation:[],skills:[],forgeAvailable:false,builds:[],builderAvailable:false,selectedBuild:null,buildVersions:[]};
 const sketchState=createSketchState();
 let micSession=null,voiceReplyRequested=false,spokenReply=null;
 function voiceSpeaker(){
@@ -56,7 +57,7 @@ function home(){
 function companion(){
  const history=state.conversation.slice(0,-1).slice(-12).map(entry=>'<div class="listitem"><div><strong>'+esc(entry.role==='student'?'You':state.companionName)+'</strong><p style="white-space:pre-wrap;overflow-wrap:anywhere">'+esc(entry.text)+'</p></div></div>').join('');
  const modes=[['companion','Companion'],['teacher','Patient teacher'],['planner','Organiser'],['pilot','Pilot mentor'],['artist','Art mentor']];
- return '<section class="card"><h2>What is on your mind?</h2><div class="modebuttons">'+modes.map(x=>'<button type="button" data-mode="'+x[0]+'" class="'+(state.mode===x[0]?'active':'')+'">'+x[1]+'</button>').join('')+'</div><p class="muted">'+esc(state.companionName)+' is your AI assistant, not a human friend or professional adviser. It can teach and help you save a task, routine, private note or memory after you confirm. Background notifications depend on device readiness. For Maths, Physics, Chemistry or Biology, ask one question at a time and request worked steps. For checked answers, use <a href="/">Lessons &amp; practice</a> in your learning workspace.</p><div class="saathi-voice-indicator" id="saathi-voice-indicator" data-phase="ready" role="status" aria-live="polite"><span aria-hidden="true" class="saathi-voice-ring"></span>Tap Speak to start listening</div><div role="log" aria-label="Recent conversation">'+history+'</div><form id="talk-form"><label class="form-field">Your question or idea<textarea id="question" required minlength="4" maxlength="1600" placeholder="Help me understand Newton’s laws using an aircraft"></textarea></label><label class="form-field">Attach a study image, PDF, Word, PowerPoint or text file<input id="companion-file" type="file" accept=".png,.jpg,.jpeg,.webp,.pdf,.docx,.pptx,.txt,text/plain,image/png,image/jpeg,image/webp,application/pdf"></label><div class="actions"><button class="btn" type="submit" id="ask-button">Ask '+esc(state.companionName)+'</button><button class="btn secondary" id="voice" type="button">🎙 Speak</button><button class="btn ghost" type="button" id="speak-answer" '+(state.answer?'':'disabled')+'>Read reply aloud</button></div></form><div class="actions"><button type="button" class="btn secondary" data-memory-draft="1">Save a memory from my question (review first)</button></div><p class="small">Microphone activates only when you press Speak. Partial transcripts are drafts and nothing is submitted until you select Ask; spoken questions can receive a spoken reply. Browser speech recognition may use a vendor service. AI messages are not saved in the app’s database but are sent to Cloudflare Workers AI for processing.</p>'+(state.answer?'<div class="ai-answer" id="answer">'+esc(state.answer)+'</div>'+(state.answerReference?'<p class="small">Related reference: <a href="'+esc(state.answerReference.url)+'" target="_blank" rel="noopener noreferrer">'+esc(state.answerReference.publisher)+' · '+esc(state.answerReference.title)+' ↗</a>. This does not certify the AI answer.</p>':''):'<p class="notice">Try: “What’s my plan today?”, “What should I do next?”, “Why do planes fly?” or “Create a skill called Flight Deck Trainer that quizzes me on cockpit instruments”.</p>')+'</section>'+forgePanel();
+ return '<section class="card"><h2>What is on your mind?</h2><div class="modebuttons">'+modes.map(x=>'<button type="button" data-mode="'+x[0]+'" class="'+(state.mode===x[0]?'active':'')+'">'+x[1]+'</button>').join('')+'</div><p class="muted">'+esc(state.companionName)+' is your AI assistant, not a human friend or professional adviser. It can teach and help you save a task, routine, private note or memory after you confirm. Background notifications depend on device readiness. For Maths, Physics, Chemistry or Biology, ask one question at a time and request worked steps. For checked answers, use <a href="/">Lessons &amp; practice</a> in your learning workspace.</p><div class="saathi-voice-indicator" id="saathi-voice-indicator" data-phase="ready" role="status" aria-live="polite"><span aria-hidden="true" class="saathi-voice-ring"></span>Tap Speak to start listening</div><div role="log" aria-label="Recent conversation">'+history+'</div><form id="talk-form"><label class="form-field">Your question or idea<textarea id="question" required minlength="4" maxlength="1600" placeholder="Help me understand Newton’s laws using an aircraft"></textarea></label><label class="form-field">Attach a study image, PDF, Word, PowerPoint or text file<input id="companion-file" type="file" accept=".png,.jpg,.jpeg,.webp,.pdf,.docx,.pptx,.txt,text/plain,image/png,image/jpeg,image/webp,application/pdf"></label><div class="actions"><button class="btn" type="submit" id="ask-button">Ask '+esc(state.companionName)+'</button><button class="btn secondary" id="voice" type="button">🎙 Speak</button><button class="btn ghost" type="button" id="speak-answer" '+(state.answer?'':'disabled')+'>Read reply aloud</button></div></form><div class="actions"><button type="button" class="btn secondary" data-memory-draft="1">Save a memory from my question (review first)</button></div><p class="small">Microphone activates only when you press Speak. Partial transcripts are drafts and nothing is submitted until you select Ask; spoken questions can receive a spoken reply. Browser speech recognition may use a vendor service. AI messages are not saved in the app’s database but are sent to Cloudflare Workers AI for processing.</p>'+(state.answer?'<div class="ai-answer" id="answer">'+esc(state.answer)+'</div>'+(state.answerReference?'<p class="small">Related reference: <a href="'+esc(state.answerReference.url)+'" target="_blank" rel="noopener noreferrer">'+esc(state.answerReference.publisher)+' · '+esc(state.answerReference.title)+' ↗</a>. This does not certify the AI answer.</p>':''):'<p class="notice">Try: “What’s my plan today?”, “What should I do next?”, “Why do planes fly?” or “Create a skill called Flight Deck Trainer that quizzes me on cockpit instruments”.</p>')+'</section>'+forgePanel()+builderLabPanel();
 }
 
 function forgePanel(){
@@ -64,6 +65,15 @@ function forgePanel(){
  const cards=state.skills.map(s=>'<div class="listitem"><div><span class="tag">'+esc(s.status)+'</span><h3>'+esc(s.name)+'</h3><p class="small">'+esc(s.purpose)+'</p><p class="small">'+esc(s.blueprint)+' · '+esc(s.mode)+' · revision '+Number(s.revision)+'</p></div><div class="actions"><button class="btn secondary" type="button" data-forge-try="'+esc(s.id)+'">Try</button><button class="btn secondary" type="button" data-forge-edit="'+esc(s.id)+'">Edit</button><button class="btn secondary" type="button" data-forge-status="'+esc(s.id)+'">'+(s.status==='active'?'Pause':'Activate')+'</button><button class="btn warn" type="button" data-forge-delete="'+esc(s.id)+'">Delete</button></div></div>').join('');
  return '<details class="card" id="skill-forge" style="margin-top:16px"><summary><strong>Skill Forge</strong> — create, test and improve your own AI tools ('+state.skills.length+')</summary><p class="muted">Describe a new learning skill in chat, for example: <strong>Create a skill called Flight Deck Trainer that quizzes me on cockpit instruments</strong>. Try it here, then activate when you like. These are AI teaching and creative templates, not executable code or installed apps.</p>'+
  (state.forgeAvailable?'<form id="forge-form"><input name="id" type="hidden"><input name="revision" type="hidden"><label class="form-field">Skill name<input name="name" minlength="3" maxlength="48" required placeholder="Flight Deck Trainer"></label><label class="form-field">What should it help you do?<textarea name="purpose" minlength="12" maxlength="260" required placeholder="Quiz me on cockpit instruments with examples."></textarea></label><div class="row"><label class="form-field">Focus<select name="mode">'+opts(['teacher','pilot','artist','planner','companion'],'teacher')+'</select></label><label class="form-field">Activity<select name="blueprint">'+opts(['quiz','coach','creative','project','explain'],'quiz')+'</select></label></div><div class="actions"><button type="submit" class="btn">Save draft skill</button><button type="reset" class="btn ghost">Clear</button></div></form><h3>Your creations</h3>'+(cards||'<p class="notice">You have not created a skill yet. Start with a quiz, creative project, art coach or aviation learning guide.</p>'):'<p class="notice">Skill Forge storage is not yet available in this preview. The app still supports regular learning.</p>')+'</details>';
+}
+
+function builderLabPanel(){
+ const items=state.builds.map(p=>'<div class="listitem"><div><h3>'+esc(p.title)+'</h3><p class="small">'+esc(p.description)+'</p><p class="small">Version '+Number(p.revision)+' · Private experiment</p></div><div class="actions"><button class="btn secondary" data-build-view="'+esc(p.id)+'" type="button">Preview & improve</button><button class="btn warn" data-build-delete="'+esc(p.id)+'" type="button">Delete</button></div></div>').join('');
+ const current=state.selectedBuild;
+ const versions=state.buildVersions.filter(v=>Number(v.revision)<Number(current?.revision)).map(v=>'<button class="btn secondary" type="button" data-build-restore="'+Number(v.revision)+'">Restore version '+Number(v.revision)+'</button>').join('');
+ const view=current?'<h3>Your prototype: '+esc(current.title)+'</h3><p class="small">This is untrusted generated code, isolated from Saathi. Version '+Number(current.revision)+'. It cannot use your accounts, internet or Saathi data.</p><iframe sandbox="allow-scripts" loading="lazy" title="Isolated learner project" style="display:block;width:100%;min-height:310px;border:1px solid #8a9bab;border-radius:12px;background:white" src="/api/builder-preview?id='+encodeURIComponent(current.id)+'"></iframe><form id="builder-revise-form"><label class="form-field">Improve this prototype<textarea name="prompt" required minlength="12" maxlength="600" placeholder="Add a score counter and clearer feedback."></textarea></label><div class="actions"><button type="submit" class="btn secondary">Build improved version</button><button type="button" class="btn ghost" data-build-export="'+esc(current.id)+'">Export source JSON</button></div></form><details><summary>Inspect generated code</summary><pre style="white-space:pre-wrap;overflow-wrap:anywhere;max-height:340px;overflow:auto">'+esc(JSON.stringify({html:current.html,css:current.css,js:current.js},null,2))+'</pre></details>'+(versions?'<p class="small">Previous saved versions</p><div class="actions">'+versions+'</div>':''):'<p class="notice">Create an interactive experiment or select a saved project to preview it.</p>';
+ return '<section class="card" id="builder-lab" style="margin-top:16px"><h2>Build & Upgrade Lab</h2><p class="muted">Use your AI to create interactive quizzes, creative tools, games or simulations. Experiment and improve versions safely. This upgrades your personal collection of tools, <strong>not</strong> the underlying Saathi source code or model.</p>'+
+ (state.builderAvailable?'<form id="builder-new-form"><label class="form-field">What do you want to invent?<textarea name="prompt" required minlength="12" maxlength="600" placeholder="Build an interactive aircraft cockpit instrument quiz."></textarea></label><button class="btn" type="submit">Generate prototype</button></form><h3>My projects ('+state.builds.length+'/8)</h3>'+(items||'<p class="small">No creations yet. Your first project starts with an idea.</p>')+view:'<p class="notice">Builder storage is not yet available in this preview. Existing Skill Forge remains usable.</p>')+'</section>';
 }
 
 function schedule(){
@@ -173,6 +183,36 @@ root.addEventListener('click',async e=>{
  if(dataset.pack){state.packId=dataset.pack==='all'?null:dataset.pack;state.tab='knowledge';render();return}
  if(dataset.knowledgeQuestion){const pack=state.knowledgePacks.find(p=>p.id===state.packId),module=pack?.modules.find(m=>m.id===dataset.knowledgeQuestion);if(module){state.mode=pack.id==='aviation'?'pilot':pack.id==='art'?'artist':pack.id==='study-skills'?'planner':'teacher';state.tab='companion';render();document.getElementById('question').value='Please explain '+module.title+' step by step using an example and one practice question.';}return}
  try{
+ if(dataset.buildView){
+  try{await selectLearnerBuild(dataset.buildView);render();document.getElementById('builder-lab')?.scrollIntoView({block:'start'});}catch(err){flash(err.message)}
+  return;
+ }
+ if(dataset.buildDelete){
+  const project=state.builds.find(p=>p.id===dataset.buildDelete);if(!project)return;
+  if(!confirm('Delete “'+project.title+'” and its saved versions? This cannot be undone.'))return;
+  try{
+   await api('builder-lab',{action:'delete',id:project.id,confirm:'DELETE MY PROJECT'});
+   if(state.selectedBuild?.id===project.id){state.selectedBuild=null;state.buildVersions=[];}
+   await reloadLearnerBuilds();render();flash('Project deleted.');
+  }catch(err){flash(err.message)}
+  return;
+ }
+ if(dataset.buildRestore){
+  const current=state.selectedBuild;if(!current)return;
+  const version=Number(dataset.buildRestore);
+  if(!confirm('Restore version '+version+' of your project as a new revision?'))return;
+  try{
+   await api('builder-lab',{action:'restore',id:current.id,revision:version,currentRevision:current.revision});
+   await selectLearnerBuild(current.id);await reloadLearnerBuilds();render();flash('Previous version restored in a new revision.');
+  }catch(err){flash(err.message)}return;
+ }
+ if(dataset.buildExport){
+  const project=state.selectedBuild;if(!project||project.id!==dataset.buildExport)return;
+  const data={title:project.title,revision:project.revision,html:project.html,css:project.css,js:project.js,notice:'Source export. Preview in Saathi uses an isolated sandbox. This file is not a deployed app.'};
+  const url=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));
+  const anchor=document.createElement('a');anchor.href=url;anchor.download='saathi-project-'+project.title.toLowerCase().replace(/[^a-z0-9-]+/g,'-').slice(0,35)+'.json';anchor.click();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);flash('Source JSON exported. It has not been installed or deployed.');return;
+ }
  if(dataset.forgeTry){
   const skill=state.skills.find(x=>x.id===dataset.forgeTry);if(!skill)return;
   try{await handleCompanionQuestion('Try '+skill.name+' skill with a short practice session')}catch(err){flash(err.message)}return;
@@ -377,9 +417,34 @@ function companionReply(question,reply,{spoken=false,reference=null,notice=''}={
  flash(notice||'Reply ready. Check academic facts against your textbook.');
  if(spoken){voiceStatus('answered','Reply ready. Review the answer.');announce(state.answer);}
 }
+async function selectLearnerBuild(id){
+ const detail=await api('builder-lab?id='+encodeURIComponent(id));
+ state.selectedBuild=detail.project;state.buildVersions=detail.versions||[];
+ return detail.project;
+}
+async function reloadLearnerBuilds(){
+ const info=await api('builder-lab');
+ state.builds=info.projects||[];state.builderAvailable=true;
+}
+async function runLearnerBuild(prompt,revise=false,spoken=false){
+ const prior=revise?state.selectedBuild:null;
+ if(revise&&!prior)throw Error('Choose your project before revising it.');
+ flash(revise?'Improving your project safely…':'Generating an isolated prototype…');
+ const result=await api('builder-lab',revise?{action:'revise',id:prior.id,revision:prior.revision,prompt}:{action:'generate',prompt});
+ await reloadLearnerBuilds();
+ await selectLearnerBuild(result.id);
+ companionReply(prompt,'Your '+(revise?'improved':'new')+' prototype “'+state.selectedBuild.title+'” is saved as version '+state.selectedBuild.revision+'. Open Build & Upgrade Lab below to try it. This changes your personal project, not Saathi itself.',{spoken,notice:'Saved to your private Builder Lab. It runs only inside an isolated preview.'});
+}
+
 async function handleCompanionQuestion(raw,spoken=false){
  const question=stripCompanionCall(String(raw||'').trim(),state.nameConfigured?state.companionName:null);
  if(question.length<4)throw Error('Please ask a longer question.');
+ const build=detectBuildRequest(question);
+ if(build){await runLearnerBuild(build,false,spoken);return}
+ if(state.selectedBuild&&/^(?:improve|upgrade|refine|change|modify)\s+(?:my|this)\s+(?:prototype|project|app|game|tool)\b/i.test(question)){
+  await runLearnerBuild(question,true,spoken);return;
+ }
+
  const proposed=draftSkillFromRequest(question);
  if(proposed){
   const result=await api('skills',{action:'create',...proposed});
@@ -458,6 +523,10 @@ root.addEventListener('submit',async e=>{
  if(form.id==='source-link-form'){state.linkQuestion='';const notice=await importStudyLink(String(fd.get('url')||'').trim());render();flash(notice);}
  if(form.id==='study-question-form'){state.linkText=String(fd.get('text')||'');state.linkQuestion=String(fd.get('question')||'');if(!state.linkSource)state.linkSource={kind:'manual',url:'',title:'Learner-pasted study passage'};const source={type:state.linkSource.kind==='manual'?'manual':state.linkSource.kind,url:state.linkSource.url||'',title:state.linkSource.title,text:state.linkText};const result=await api('ask',{mode:'teacher',question:state.linkQuestion,source});state.linkAnswer=result.answer;state.linkEvidence=result.sourceEvidence||[];render();flash('Answer based on the supplied source excerpts. Review the evidence and confirm accuracy.')}
  if(form.id==='memory-form'){const entry={action:fd.get('id')?'update':'create',category:fd.get('category'),text:fd.get('text'),useInChat:fd.get('useInChat')!==null};if(fd.get('id'))entry.id=fd.get('id');await api('personal-memory',entry);state.memories=(await api('personal-memory')).memories;render();flash(entry.useInChat?'Memory saved and enabled for AI recall.':'Memory saved privately without AI recall.');}
+ if(form.id==='builder-new-form'||form.id==='builder-revise-form'){
+  const prompt=String(fd.get('prompt')||'').trim();
+  await runLearnerBuild(prompt,form.id==='builder-revise-form');return;
+ }
  if(form.id==='forge-form'){
   const entry={name:String(fd.get('name')||''),purpose:String(fd.get('purpose')||''),mode:String(fd.get('mode')||''),blueprint:String(fd.get('blueprint')||'')};
   const id=String(fd.get('id')||'');
@@ -478,6 +547,6 @@ function checkReminders(){
  if(state.seen.size>200)state.seen.clear();
 }
 async function init(){
- try{state.user=await api('me');if(state.user.role!=='student'){root.innerHTML='<main class="boot"><h1>Student-only space</h1><a href="/">Back to dashboard</a></main>';return}const [notes,schedule,tasks,prefs,packs,memories,mediaStatus,adaptivePlan,pushStatus,welcome,skillData]=await Promise.all([api('notes'),api('schedule'),api('tasks'),api('companion-preferences'),api('knowledge-packs').catch(()=>({packs:[]})),api('personal-memory'),api('media-status').catch(()=>({enabled:false})),api('adaptive-plan').catch(()=>null),api('push-device').catch(()=>({ready:false,notice:'Background push status unavailable; export a calendar instead.'})),api('welcome-once').catch(()=>null),api('skills').catch(()=>({skills:[],unavailable:true}))]);state.skills=skillData.skills||[];state.forgeAvailable=skillData.unavailable!==true;state.notes=notes.notes;state.schedule=schedule.items;state.tasks=tasks.tasks;state.knowledgePacks=packs.packs;state.memories=memories.memories;state.visionEnabled=mediaStatus.enabled===true;state.adaptivePlan=adaptivePlan;state.pushStatus=pushStatus;state.welcome=welcome;state.companionName=prefs.name;state.nameConfigured=prefs.configured;if(!prefs.configured)state.tab='identity';render();setInterval(checkReminders,30000)}catch{root.innerHTML='<main class="boot"><h1>Sign in as a student</h1><p>Mission Control requires the learner login.</p><a href="/">Go to learner login</a></main>'}
+ try{state.user=await api('me');if(state.user.role!=='student'){root.innerHTML='<main class="boot"><h1>Student-only space</h1><a href="/">Back to dashboard</a></main>';return}const [notes,schedule,tasks,prefs,packs,memories,mediaStatus,adaptivePlan,pushStatus,welcome,skillData,buildData]=await Promise.all([api('notes'),api('schedule'),api('tasks'),api('companion-preferences'),api('knowledge-packs').catch(()=>({packs:[]})),api('personal-memory'),api('media-status').catch(()=>({enabled:false})),api('adaptive-plan').catch(()=>null),api('push-device').catch(()=>({ready:false,notice:'Background push status unavailable; export a calendar instead.'})),api('welcome-once').catch(()=>null),api('skills').catch(()=>({skills:[],unavailable:true})),api('builder-lab').catch(()=>({projects:[],unavailable:true}))]);state.builds=buildData.projects||[];state.builderAvailable=buildData.unavailable!==true;state.skills=skillData.skills||[];state.forgeAvailable=skillData.unavailable!==true;state.notes=notes.notes;state.schedule=schedule.items;state.tasks=tasks.tasks;state.knowledgePacks=packs.packs;state.memories=memories.memories;state.visionEnabled=mediaStatus.enabled===true;state.adaptivePlan=adaptivePlan;state.pushStatus=pushStatus;state.welcome=welcome;state.companionName=prefs.name;state.nameConfigured=prefs.configured;if(!prefs.configured)state.tab='identity';render();setInterval(checkReminders,30000)}catch{root.innerHTML='<main class="boot"><h1>Sign in as a student</h1><p>Mission Control requires the learner login.</p><a href="/">Go to learner login</a></main>'}
 }
 init();
