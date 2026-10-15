@@ -2,3 +2,11 @@
 .saathi-brief-actions{display:flex;gap:9px;flex-wrap:wrap;padding:12px 20px 0}.saathi-brief-actions button{background:#1b455b;color:#f2f9fa;border:1px solid #98c4d184;border-radius:9px;padding:8px 12px;min-height:40px;font-size:12px;font-weight:650}.saathi-brief-actions button:hover{background:#2e627a}.conversation[data-phase='SPEAKING'] .pulse{background:#e6c08f;box-shadow:0 0 15px #e6c08f}@media(max-width:700px){.saathi-brief-actions{padding:10px 14px 0}.saathi-brief-actions button{flex:1}}
 
 .saathi-voice-settings{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 20px 0;color:#c7dfe8;font-size:12px}.saathi-voice-settings label{font-weight:700}.saathi-voice-settings select{min-width:185px;max-width:300px;flex:1;background:#173b50;color:#f4fbff;border:1px solid #94c5d0;border-radius:10px;padding:9px 12px;font-size:13px}.saathi-voice-settings button{color:#f3fafb;background:#25556a;border:1px solid #8fbcca;border-radius:10px;padding:9px 12px;font-size:12px}.saathi-voice-settings button:hover{background:#36718a}@media(max-width:700px){.saathi-voice-settings{padding:10px 14px 0}.saathi-voice-settings select{max-width:none}}
+
+.saathi-options{margin:0 16px 16px;border-top:1px solid #aecdd02a;color:#d5e7ec}
+.saathi-options>summary{padding:11px 5px 3px;cursor:pointer;font-size:12px;font-weight:700;color:#b9d4de;list-style:none}
+.saathi-options>summary::-webkit-details-marker{display:none}
+.saathi-options>summary::after{content:'+';float:right;font-size:17px}
+.saathi-options[open]>summary::after{content:'−'}
+.saathi-options-body{display:grid;gap:4px}
+@media(max-width:700px){.saathi-options{margin:0 12px 12px}}
