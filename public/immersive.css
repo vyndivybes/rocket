@@ -132,3 +132,15 @@ select option{background:#fff;color:#214e65}
  .welcome-stage *, .hero *{animation:none!important;transition:none!important;transform:none!important}
  .welcome-stage,.hero{perspective:none}
 }
+
+
+.core-capability-panel{margin:20px 0}
+.core-capability-panel .row{justify-content:space-between;align-items:center;margin-bottom:12px}
+.core-capability-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(205px,1fr));gap:14px;margin-top:16px}
+.core-capability-card{position:relative;display:flex;flex-direction:column;align-items:flex-start;min-height:213px;transform-style:preserve-3d;border-radius:20px;padding:19px;background:linear-gradient(138deg,#f5fbfa,#fffaf2);border:1px solid #c5e1e1;box-shadow:0 8px 27px #6d99a01a;transition:transform .22s ease,box-shadow .22s ease}
+.core-capability-card:hover{transform:translateY(-5px) rotateX(2deg);box-shadow:0 19px 37px #67999e2d}
+.core-capability-card .btn{margin-top:auto}
+.core-capability-card h3{margin:10px 0 5px!important;font-size:17px}
+.core-capability-card p{font-size:13px;line-height:1.6;color:#517080;flex:1}
+.core-capability-symbol{width:40px;height:40px;border-radius:13px;display:grid;place-items:center;background:radial-gradient(circle at top left,#fff,#c7e8e3);border:1px solid #add6d0;color:#3a838d;font-size:23px;box-shadow:0 7px 18px #6faca629}
+@media(prefers-reduced-motion:reduce){.core-capability-card:hover{transform:none}}
