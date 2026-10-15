@@ -72,11 +72,22 @@ export function setupSaathiMotion({doc=document,win=window}={}){
   for(const key of ['--saathi-shift-x','--saathi-shift-y'])stage.style.setProperty(key,'0px');
  };
  doc.addEventListener('pointermove',pointer,{passive:true});doc.addEventListener('pointerout',reset,{passive:true});
+ const studioControls=event=>{
+  const control=event.target?.closest?.('button[data-studio-prev],button[data-studio-next]');
+  if(!control)return;
+  const section=control.closest?.('.saathi-studio-showcase');
+  const rail=section?.querySelector('.saathi-studio-rail');
+  if(!rail)return;
+  const item=rail.querySelector('.saathi-studio-slide');
+  const distance=(item?.getBoundingClientRect().width||rail.clientWidth)+20;
+  rail.scrollBy({left:control.hasAttribute('data-studio-prev')?-distance:distance,behavior:reduced?.matches?'instant':'smooth'});
+ };
+ doc.addEventListener('click',studioControls);
  const hidden=()=>{if(doc.hidden)win.cancelAnimationFrame?.(raf)};
  doc.addEventListener('visibilitychange',hidden);
  return ()=>{
   disposed=true;observer?.disconnect();mutation.disconnect();win.cancelAnimationFrame?.(raf);
-  doc.removeEventListener('pointermove',pointer);doc.removeEventListener('pointerout',reset);doc.removeEventListener('visibilitychange',hidden);
+  doc.removeEventListener('pointermove',pointer);doc.removeEventListener('pointerout',reset);doc.removeEventListener('visibilitychange',hidden);doc.removeEventListener('click',studioControls);
   for(const fn of disposers)fn();
  };
 }
