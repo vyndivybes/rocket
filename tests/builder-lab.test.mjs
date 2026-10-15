@@ -7,6 +7,7 @@ const payload={title:'Cockpit Quiz',html:'<main><h1>Flight instruments</h1><butt
 test('AI builder parses bounded self-contained widget JSON and rejects extra unsupported forms',()=>{
  assert.deepEqual(parseGeneratedBuild(JSON.stringify(payload)),payload);
  assert.deepEqual(parseGeneratedBuild('  '+JSON.stringify(payload)+'  '),payload);
+ assert.deepEqual(parseGeneratedBuild('\x60\x60\x60json\n'+JSON.stringify(payload)+'\n\x60\x60\x60'),payload);
  assert.equal(parseGeneratedBuild(JSON.stringify({...payload,html:'<iframe src="https://evil.test"></iframe>'})),null);
  assert.equal(parseGeneratedBuild(JSON.stringify({...payload,js:'fetch("https://evil.test")'})),null);
  assert.equal(parseGeneratedBuild('Here is your code: '+JSON.stringify(payload)),null);
