@@ -2,7 +2,7 @@ import {validateSkillInput} from './skill-forge.js';
 const safeText=s=>typeof s==='string'&&!/[\u0000-\u001f\u007f<>]/.test(s)&&!/(?:ignore|bypass|override|reveal).*?(?:safety|system|instruction|prompt)|(?:password|api\s*key|secret|phone\s*number|home\s*address|phish|steal|spy|malware|ransomware|powershell|eval\s*\(|exec\s*\(|sudo|fetch\s*\(|https?:\/\/|javascript:|rm\s+-rf|send\s+(?:a\s+)?message)/i.test(s);
 export function validateForgeGoal(goal){
  if(typeof goal!=='string'||goal.trim().length<12||goal.length>300)return 'Describe one learning or creative capability in 12–300 characters.';
- if(!safeText(goal)||/(?:install (?:an? )?(?:app|package)|write to (?:github|repository)|remove files|system command|external api|message strangers|track someone)/i.test(goal))return 'This skill requests unsupported access or unsafe instructions.';
+ if(!safeText(goal)||/(?:\b(?:install|download|import)\b.{0,48}\b(?:npm|pip|package|library|dependency|plugin|module|executable)\b|\binstall\s+(?:an?\s+)?app\b|write to (?:github|repository)|remove files|system command|external api|message strangers|track someone)/i.test(goal))return 'This skill requests unsupported access or unsafe instructions.';
  return null;
 }
 export function parseForgeManifest(text){
