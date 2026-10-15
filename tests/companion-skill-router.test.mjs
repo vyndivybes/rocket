@@ -25,6 +25,14 @@ test('incomplete routine descriptions ask for the missing details without invent
   assert.equal(r?.kind,'schedule-needs-details');
   assert.match(r?.answer,/time/i);
 });
+test('casual one-off schedule wording gets a truthful planner clarification, not an AI refusal',()=>{
+  const r=routeCompanionSkill('Can u make a schedule tomorrow at 1 am',now);
+  assert.equal(r?.kind,'schedule-needs-details');
+  assert.match(r?.answer,/I can save a recurring routine/i);
+  assert.match(r?.answer,/one-off timed reminders/i);
+  assert.match(r?.answer,/activity and duration/i);
+  assert.match(r?.answer,/01:00/);
+});
 test('memory review never silently enables AI recall',()=>{
   const r=routeCompanionSkill('Remember that I learn physics best by drawing diagrams.',now);
   assert.equal(r?.kind,'create-memory');
