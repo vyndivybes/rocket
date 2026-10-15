@@ -38,7 +38,8 @@ test('notes are proposed, not silently written',()=>{
   assert.match(r?.payload?.body,/induction/i);
 });
 test('plain teaching, private data deletion, unsafe requests and keyword mentions are never executed as skills',()=>{
-  for(const q of ['Explain magnetic induction','How do I schedule a lesson?','Delete all my notes','Send a message to my teacher','Buy a chemistry textbook','What is a reminder?']){
+  assert.deepEqual(routeCompanionSkill('Explain magnetic induction',now),{kind:'ai',mode:'teacher'});
+ for(const q of ['How do I schedule a lesson?','Delete all my notes','Send a message to my teacher','Buy a chemistry textbook','What is a reminder?']){
     assert.equal(routeCompanionSkill(q,now),null,q);
   }
 });
