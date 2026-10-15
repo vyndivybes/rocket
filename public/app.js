@@ -1,5 +1,5 @@
 import {renderAdminOverview} from './admin-overview.js';
-import {renderMyDay,renderMySpace} from './experience-ui.js';
+import {renderMyDay,renderMySpace,renderStudentFeatureGallery} from './experience-ui.js';
 import {renderGuidedTeaching,extractPracticePrompt} from './guided-ui.js';
 const root=document.querySelector('#app');
 let currentUser=null, tasks=[], topics=[], references=[], profile=null, lessons=[], practice={total:0,correct:0,byLesson:[]},activeLessonId=null,activeQuestionId='base',tab='overview',experience=null,ideas=[],experienceReady=false,guidedContext=null;
@@ -135,7 +135,7 @@ function featuresView(){
    <a class="feature-hub-card" href="/syllabus.html"><span>06 · REFERENCE</span><strong>2026–27 syllabus</strong><small>Check subject and chapter coverage.</small></a>
    <a class="feature-hub-card" href="#setup" data-go="setup"><span>07 · PROFILE</span><strong>My subjects</strong><small>Choose board, stream and subjects.</small></a>
    <a class="feature-hub-card" href="#myspace" data-go="myspace"><span>08 · OPTIONS</span><strong>Settings</strong><small>Nickname, appearance, learning style and quiet time.</small></a>
-  </div></div>`;
+  </div>${renderStudentFeatureGallery()}</div>`;
 }
 function content(){if(currentUser.role==='admin')return `<div><div class="row between" style="margin:24px 0 10px"><h2>System overview</h2><button id="admin-summary" type="button" class="btn secondary">Refresh overview</button></div><div id="admin-stats" aria-live="polite" class="muted">Loading operational information…</div></div>`;if(currentUser.role==='parent')return `<div class="grid"><section class="card wide"><h2>Shared study progress</h2><p class="muted">Student-approved task counts, without notes, chat history or emotional monitoring.</p><button class="btn secondary" id="summary">Refresh summary</button><div id="aggregate" class="metric" style="margin-top:16px">—</div><p class="notice">There are no automatic safety alerts in this prototype. If a child may be unsafe, contact appropriate trusted people directly.</p></section></div>`;
   if(tab==='myspace')return renderMySpace(experience,ideas,experienceReady?'ready':'unavailable');
