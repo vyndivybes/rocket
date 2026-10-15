@@ -73,7 +73,7 @@ function companion(){
 function forgePanel(){
  const opts=(choices,selected)=>choices.map(x=>'<option value="'+esc(x)+'" '+(selected===x?'selected':'')+'>'+esc(x)+'</option>').join('');
  const cards=state.skills.map(s=>'<div class="listitem"><div><span class="tag">'+esc(s.status)+'</span><h3>'+esc(s.name)+'</h3><p class="small">'+esc(s.purpose)+'</p><p class="small">'+esc(s.blueprint)+' · '+esc(s.mode)+' · revision '+Number(s.revision)+'</p></div><div class="actions"><button class="btn secondary" type="button" data-forge-try="'+esc(s.id)+'">Try</button><button class="btn secondary" type="button" data-forge-edit="'+esc(s.id)+'">Edit</button><button class="btn secondary" type="button" data-forge-status="'+esc(s.id)+'">'+(s.status==='active'?'Pause':'Activate')+'</button><button class="btn warn" type="button" data-forge-delete="'+esc(s.id)+'">Delete</button></div></div>').join('');
- return '<details class="card" id="skill-forge" style="margin-top:16px"><summary><strong>Skill Forge</strong> — create, test and improve your own AI tools ('+state.skills.length+')</summary><p class="muted">Describe a new learning skill in chat, for example: <strong>Create a skill called Flight Deck Trainer that quizzes me on cockpit instruments</strong>. Try it here, then activate when you like. These are AI teaching and creative templates, not executable code or installed apps.</p>'+
+ return '<details class="card" id="skill-forge" style="margin-top:16px"><summary><strong>Skill Forge</strong> — create, test and improve your own AI tools ('+state.skills.length+')</summary><p class="muted">Tell your AI to invent its own reusable learning skills: <strong>“Forge a skill for cockpit instrument quizzes”</strong>. Saathi writes a structured teaching plan, checks the manifest and registers it automatically. You can pause or edit skills any time. Skill plans cannot run code, install apps or change your accounts. You can also create a simple manual skill below.</p>'+
  (state.forgeAvailable?'<form id="forge-form"><input name="id" type="hidden"><input name="revision" type="hidden"><label class="form-field">Skill name<input name="name" minlength="3" maxlength="48" required placeholder="Flight Deck Trainer"></label><label class="form-field">What should it help you do?<textarea name="purpose" minlength="12" maxlength="260" required placeholder="Quiz me on cockpit instruments with examples."></textarea></label><div class="row"><label class="form-field">Focus<select name="mode">'+opts(['teacher','pilot','artist','planner','companion'],'teacher')+'</select></label><label class="form-field">Activity<select name="blueprint">'+opts(['quiz','coach','creative','project','explain'],'quiz')+'</select></label></div><div class="actions"><button type="submit" class="btn">Save draft skill</button><button type="reset" class="btn ghost">Clear</button></div></form><h3>Your creations</h3>'+(cards||'<p class="notice">You have not created a skill yet. Start with a quiz, creative project, art coach or aviation learning guide.</p>'):'<p class="notice">Skill Forge storage is not yet available in this preview. The app still supports regular learning.</p>')+'</details>';
 }
 
@@ -243,13 +243,14 @@ root.addEventListener('click',async e=>{
   try{
    const result=await api('skills',{action:skill.status==='active'?'deactivate':'activate',id:skill.id});
    state.skills=state.skills.map(x=>x.id===result.skill.id?result.skill:x);
+   state.forgedSkills=state.forgedSkills.map(x=>x.id===result.skill.id?{...x,status:result.skill.status}:x);
    render();flash(result.skill.name+' is now '+result.skill.status+'.');
   }catch(err){flash(err.message)}return;
  }
  if(dataset.forgeDelete){
   const skill=state.skills.find(x=>x.id===dataset.forgeDelete);if(!skill)return;
   if(!confirm('Delete your skill “'+skill.name+'”? This cannot be undone.'))return;
-  try{await api('skills',{action:'delete',id:skill.id});state.skills=state.skills.filter(x=>x.id!==skill.id);render();flash('Skill removed.')}catch(err){flash(err.message)}return;
+  try{await api('skills',{action:'delete',id:skill.id});state.skills=state.skills.filter(x=>x.id!==skill.id);state.forgedSkills=state.forgedSkills.filter(x=>x.id!==skill.id);render();flash('Skill removed.')}catch(err){flash(err.message)}return;
  }
  if(dataset.removeMemory){if(!confirm('Delete this saved memory?'))return;await api('personal-memory',{action:'delete',id:dataset.removeMemory});state.memories=(await api('personal-memory')).memories;render();flash('Memory deleted.');return}
  if(dataset.toggleMemory){const m=state.memories.find(x=>x.id===dataset.toggleMemory);if(!m)return;const updated=await api('personal-memory',{action:'update',id:m.id,category:m.category,text:m.text,useInChat:!m.useInChat});state.memories=(await api('personal-memory')).memories;render();flash(updated.memory.useInChat?'AI recall enabled for this memory.':'AI recall disabled for this memory.');return}
@@ -463,6 +464,19 @@ async function handleCompanionQuestion(raw,spoken=false){
   await runLearnerBuild(question,true,spoken);return;
  }
 
+ const forgeGoal=detectForgeIntent(question);
+ if(forgeGoal){
+  flash('Skill Forge is writing and checking a new learning capability…');
+  const result=await api('auto-forge',{action:'forge',goal:forgeGoal});
+  state.forgedSkills.unshift(result.skill);
+  state.skills.unshift({id:result.skill.id,name:result.skill.name,purpose:result.skill.purpose,mode:result.skill.mode,blueprint:result.skill.blueprint,status:result.skill.status,revision:result.skill.revision});
+  companionReply(question,'I designed and registered “'+result.skill.name+'” for you! It is active. I can automatically use it when you ask about '+result.skill.triggers.slice(0,2).join(' or ')+'. You can pause or change it in Skill Forge whenever you like. The skill is an AI-written teaching plan, not executable computer code.',{spoken,notice:'Skill plan passed '+result.skill.checks+' structural checks. Academic quality must still be judged during use.'});return;
+ }
+ const triggered=matchForgedSkill(question,state.forgedSkills);
+ if(triggered){
+  const reply=await api('ask',{question:assembleForgedPrompt(triggered,question),mode:triggered.mode});
+  companionReply(question,reply.answer,{spoken,reference:reply.knowledgeReference,notice:'Used your active learner-forged '+triggered.name+' plan. Check teaching accuracy.'});return;
+ }
  const proposed=draftSkillFromRequest(question);
  if(proposed){
   const result=await api('skills',{action:'create',...proposed});
@@ -480,10 +494,12 @@ async function handleCompanionQuestion(raw,spoken=false){
   const action=savedSkill.status==='active'?'activate':'deactivate';
   const updated=await api('skills',{action,id:savedSkill.skill.id});
   state.skills=state.skills.map(x=>x.id===updated.skill.id?updated.skill:x);
+  state.forgedSkills=state.forgedSkills.map(x=>x.id===updated.skill.id?{...x,status:updated.skill.status}:x);
   companionReply(question,'“'+updated.skill.name+'” is now '+updated.skill.status+'. You can change this any time.',{spoken});return;
  }
  if(savedSkill?.kind==='run-skill'){
-  const prompt=buildSkillQuestion(savedSkill.skill,savedSkill.topic);
+  const custom=state.forgedSkills.find(x=>x.id===savedSkill.skill.id);
+  const prompt=custom?assembleForgedPrompt(custom,savedSkill.topic):buildSkillQuestion(savedSkill.skill,savedSkill.topic);
   const reply=await api('ask',{question:prompt,mode:savedSkill.skill.mode});
   companionReply(question,reply.answer,{spoken,reference:reply.knowledgeReference,notice:'Executed learner-created text skill “'+savedSkill.skill.name+'”. AI response, not a validated textbook answer.'});return;
  }
@@ -552,6 +568,7 @@ root.addEventListener('submit',async e=>{
   const payload=id?{...entry,action:'update',id,revision:Number(fd.get('revision'))}:{...entry,action:'create'};
   const result=await api('skills',payload);
   state.skills=(await api('skills')).skills;
+  state.forgedSkills=(await api('auto-forge').catch(()=>({skills:[]}))).skills;
   render();flash('“'+result.skill.name+'” saved as a draft. Try it in Skill Forge or chat.');return;
  }
  if(form.id==='name-form'){const saved=await api('companion-preferences',{name:fd.get('name')});state.companionName=saved.name;state.nameConfigured=true;state.tab='home';render();flash('Your AI is now named '+saved.name+'. You can rename it whenever you like.')}
@@ -566,6 +583,6 @@ function checkReminders(){
  if(state.seen.size>200)state.seen.clear();
 }
 async function init(){
- try{state.user=await api('me');if(state.user.role!=='student'){root.innerHTML='<main class="boot"><h1>Student-only space</h1><a href="/">Back to dashboard</a></main>';return}const [notes,schedule,tasks,prefs,packs,memories,mediaStatus,adaptivePlan,pushStatus,welcome,skillData,buildData]=await Promise.all([api('notes'),api('schedule'),api('tasks'),api('companion-preferences'),api('knowledge-packs').catch(()=>({packs:[]})),api('personal-memory'),api('media-status').catch(()=>({enabled:false})),api('adaptive-plan').catch(()=>null),api('push-device').catch(()=>({ready:false,notice:'Background push status unavailable; export a calendar instead.'})),api('welcome-once').catch(()=>null),api('skills').catch(()=>({skills:[],unavailable:true})),api('builder-lab').catch(()=>({projects:[],unavailable:true}))]);state.builds=buildData.projects||[];state.builderAvailable=buildData.unavailable!==true;state.skills=skillData.skills||[];state.forgeAvailable=skillData.unavailable!==true;state.notes=notes.notes;state.schedule=schedule.items;state.tasks=tasks.tasks;state.knowledgePacks=packs.packs;state.memories=memories.memories;state.visionEnabled=mediaStatus.enabled===true;state.adaptivePlan=adaptivePlan;state.pushStatus=pushStatus;state.welcome=welcome;state.companionName=prefs.name;state.nameConfigured=prefs.configured;if(!prefs.configured)state.tab='identity';render();setInterval(checkReminders,30000)}catch{root.innerHTML='<main class="boot"><h1>Sign in as a student</h1><p>Mission Control requires the learner login.</p><a href="/">Go to learner login</a></main>'}
+ try{state.user=await api('me');if(state.user.role!=='student'){root.innerHTML='<main class="boot"><h1>Student-only space</h1><a href="/">Back to dashboard</a></main>';return}const [notes,schedule,tasks,prefs,packs,memories,mediaStatus,adaptivePlan,pushStatus,welcome,skillData,buildData,forgedData]=await Promise.all([api('notes'),api('schedule'),api('tasks'),api('companion-preferences'),api('knowledge-packs').catch(()=>({packs:[]})),api('personal-memory'),api('media-status').catch(()=>({enabled:false})),api('adaptive-plan').catch(()=>null),api('push-device').catch(()=>({ready:false,notice:'Background push status unavailable; export a calendar instead.'})),api('welcome-once').catch(()=>null),api('skills').catch(()=>({skills:[],unavailable:true})),api('builder-lab').catch(()=>({projects:[],unavailable:true})),api('auto-forge').catch(()=>({skills:[]}))]);state.forgedSkills=forgedData.skills||[];state.builds=buildData.projects||[];state.builderAvailable=buildData.unavailable!==true;state.skills=skillData.skills||[];state.forgeAvailable=skillData.unavailable!==true;state.notes=notes.notes;state.schedule=schedule.items;state.tasks=tasks.tasks;state.knowledgePacks=packs.packs;state.memories=memories.memories;state.visionEnabled=mediaStatus.enabled===true;state.adaptivePlan=adaptivePlan;state.pushStatus=pushStatus;state.welcome=welcome;state.companionName=prefs.name;state.nameConfigured=prefs.configured;if(!prefs.configured)state.tab='identity';render();setInterval(checkReminders,30000)}catch{root.innerHTML='<main class="boot"><h1>Sign in as a student</h1><p>Mission Control requires the learner login.</p><a href="/">Go to learner login</a></main>'}
 }
 init();
