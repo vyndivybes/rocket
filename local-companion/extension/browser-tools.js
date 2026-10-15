@@ -4,7 +4,7 @@ export function safePublicLink(value){
  if(typeof value!=='string'||value.length>1800)return null;
  try{
   const url=new URL(value);
-  if(url.protocol!=='https:'||url.username||url.password||url.port||!url.hostname.includes('.')||/\b(?:localhost|local|internal)\b|^(?:10|127|192\.168)\./i.test(url.hostname))return null;
+  if(url.protocol!=='https:'||url.username||url.password||url.port||!url.hostname.includes('.')||/^(?:\d{1,3}\.){3}\d{1,3}$|^\[|\b(?:localhost|local|internal)\b/i.test(url.hostname))return null;
   return url.href;
  }catch{return null}
 }
