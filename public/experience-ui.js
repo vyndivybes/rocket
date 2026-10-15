@@ -1,4 +1,5 @@
 import {selectRevisionFocus} from './revision-focus.js';
+import {renderStudioScenes} from './studio-scenes.js';
 // Pure, testable HTML views. Only preapproved IDs are used in navigation.
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const controls=[
@@ -21,6 +22,16 @@ export function renderMyDay({tasks=[],practice={},lessons=[],prefs}={}){
   `<a class="btn secondary activity-link" href="${c.href}">${esc(c.button)}</a>`}
   </section>`).join('');
  return `<div class="learner-home">
+ <section class="saathi-feature-stage saathi-learner-feature" aria-label="Your learning universe">
+  <div class="saathi-feature-copy"><span class="saathi-scene-label">✳ SAATHI · LET CURIOSITY LEAD</span>
+   <h1>THINK BIG.<br><span>MAKE MAGIC.</span></h1>
+   <p>Learn a concept. Sketch your dream. Discover the science of flight. There are so many ways to grow.</p>
+   <div class="row"><button class="btn" data-go="teacher">Ask Saathi →</button><a href="/mission.html" class="btn secondary">Open my AI universe ↗</a></div>
+  </div><div class="saathi-feature-scene" aria-hidden="true"><div class="saathi-stage-planet">S</div></div>
+  <div class="saathi-sticker" aria-hidden="true">100%<br>YOUR<br>JOURNEY</div>
+ </section>
+ <div class="saathi-showcase-strip"><strong class="saathi-showcase-title">TODAY IS FULL OF POSSIBILITIES.</strong><p>Pick a direction and follow your curiosity. Your work is saved only when you choose to save it.</p></div>
+ ${renderStudioScenes('student')}
  <section class="card day-intro wide"><div class="row between"><span class="chip">My day</span>
  <button type="button" class="btn outline small" data-go="myspace">Make this space mine</button></div>
  <h2 class="day-title">What would you like to do today?</h2>
