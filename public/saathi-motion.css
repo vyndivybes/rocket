@@ -222,3 +222,45 @@ a:hover{text-decoration-thickness:2px}
 @media (max-width:1100px){.saathi-login-layout{grid-template-columns:1fr;gap:22px}.saathi-login-feature{min-height:430px}.saathi-login-feature h2{font-size:clamp(58px,12vw,100px)}.saathi-login-planet{width:190px;height:190px;font-size:130px}.saathi-login-layout .login-card{max-width:700px}}
 @media (max-width:767px){.saathi-login-layout{padding:18px}.saathi-login-feature{min-height:390px;padding:25px}.saathi-login-feature h2{font-size:clamp(52px,12vw,85px)}.saathi-login-feature p{max-width:26ch}.saathi-login-planet{width:140px;height:140px;font-size:92px;right:-30px;bottom:-37px}.saathi-login-burst{font-size:50px}.learner-home .activity-grid{grid-template-columns:1fr}.activity-card{min-height:205px}}
 @media (prefers-reduced-motion:reduce){.saathi-login-planet,.saathi-login-burst{animation:none!important}}
+
+
+/* Four-dimensional Saathi lab reel, combining editorial art direction, strong
+   typographic hierarchy, sticky horizontal exploration, and sculptural objects. */
+.saathi-studio-showcase{margin:clamp(42px,6vw,96px) 0;overflow:hidden}
+.saathi-studio-heading{display:flex;align-items:end;justify-content:space-between;gap:18px;margin-bottom:23px}
+.saathi-studio-heading h2{font-family:Impact,"Arial Narrow",sans-serif;font-size:clamp(46px,6.3vw,108px)!important;line-height:.91!important;letter-spacing:-.04em;color:var(--wonder-mulberry)!important;margin:9px 0 0!important;text-transform:uppercase;max-width:900px}
+.saathi-studio-heading h2 em{font-style:normal;color:var(--wonder-tangerine);-webkit-text-stroke:1px var(--wonder-mulberry)}
+.saathi-studio-controls{display:flex;gap:9px;flex:0 0 auto}
+.saathi-studio-controls button{width:55px;height:55px;border-radius:100%;border:2px solid var(--wonder-mulberry);background:var(--wonder-yellow);color:var(--wonder-mulberry);font-size:27px;font-weight:800;box-shadow:3px 5px 0 #51284835;cursor:pointer}
+.saathi-studio-controls button:hover{transform:translateY(-2px);background:var(--wonder-mulberry);color:white}
+.saathi-studio-rail{display:flex;gap:clamp(15px,2vw,25px);overflow-x:auto;overscroll-behavior-inline:contain;scroll-snap-type:x mandatory;padding:5px 13px 30px 4px;scrollbar-width:thin;scrollbar-color:#712d61 #f7d6c6;scroll-behavior:smooth}
+.saathi-studio-slide{flex:0 0 min(660px,84vw);scroll-snap-align:start;position:relative;overflow:hidden;isolation:isolate;min-height:clamp(360px,34vw,500px);padding:clamp(24px,3vw,48px);border:3px solid var(--wonder-mulberry);border-radius:clamp(23px,3.5vw,45px);box-shadow:7px 10px 0 #622c4b24;display:flex;flex-direction:column;justify-content:space-between;transform-style:preserve-3d}
+.saathi-studio-slide:before{content:"";z-index:-1;position:absolute;inset:0;opacity:.27;background:repeating-radial-gradient(circle at 83% 67%,transparent 0 19px,#61234d 20px 21px,transparent 22px 46px)}
+.saathi-studio-slide.saathi-studio-sky{background:var(--wonder-blue)}
+.saathi-studio-slide.saathi-studio-art{background:var(--wonder-rose)}
+.saathi-studio-slide.saathi-studio-learn{background:var(--wonder-mint)}
+.saathi-studio-slide.saathi-studio-plan{background:var(--wonder-lilac)}
+.saathi-studio-meta{position:relative;z-index:2;display:flex;justify-content:space-between;gap:12px;font-weight:900;text-transform:uppercase;letter-spacing:.1em;font-size:12px}
+.saathi-studio-inner{position:relative;z-index:3;margin-top:75px;max-width:68%}
+.saathi-studio-inner h3{font-family:Impact,"Arial Narrow",sans-serif;color:var(--wonder-mulberry)!important;font-size:clamp(43px,4.7vw,82px)!important;line-height:.94!important;text-transform:uppercase;letter-spacing:-.02em;margin:0 0 21px!important}
+.saathi-studio-inner p{font-size:16px;font-weight:700;line-height:1.44;color:#573453!important}
+.saathi-studio-action{display:inline-flex;align-items:center;justify-content:center;padding:12px 18px;background:var(--wonder-mulberry);color:white!important;border:2px solid var(--wonder-mulberry);border-radius:90px;font-weight:800;font-size:14px;text-decoration:none!important;cursor:pointer;margin-top:12px;box-shadow:4px 5px 0 #61234d2c}
+.saathi-studio-action:hover{background:#fff7e7;color:var(--wonder-mulberry)!important}
+.saathi-studio-sculpture{position:absolute;right:-11%;top:30%;width:55%;height:64%;display:grid;place-items:center;transform-style:preserve-3d;transform:rotate(-13deg)}
+.saathi-studio-shape{width:min(250px,92%);aspect-ratio:1;display:grid;place-items:center;border-radius:34% 68% 51% 63%;border:3px solid var(--wonder-mulberry);box-shadow:inset -23px -15px 0 #732a6940,13px 17px 0 #5d315245,0 20px 36px #653b5f35;background:radial-gradient(circle at 21% 18%,#fffbd9,#f7d886 29%,#f39b83 69%,#be7eab 100%);font:clamp(80px,12vw,175px)/1 Impact,"Arial Narrow",sans-serif;color:var(--wonder-mulberry);transform:rotate(12deg) rotateY(-17deg);transition:transform .45s ease}
+.saathi-studio-slide:hover .saathi-studio-shape{transform:rotate(24deg) rotateY(13deg) translateY(-10px)}
+.saathi-studio-art .saathi-studio-shape{border-radius:100% 23% 80% 51%;background:radial-gradient(circle at 30% 25%,#fff9df,#c69fe0 58%,#9b76cb)}
+.saathi-studio-learn .saathi-studio-shape{border-radius:47% 56% 18% 72%;background:radial-gradient(circle at 22% 18%,#fff7cb,#c9e3cb 54%,#7db0a6)}
+.saathi-studio-plan .saathi-studio-shape{border-radius:42% 87% 59% 34%;background:radial-gradient(circle at 25% 18%,#fff2cf,#cfafec 53%,#a183d2)}
+.saathi-studio-hint{color:#65435d!important;font-size:12px;font-weight:750;text-transform:uppercase;letter-spacing:.13em;margin-top:9px}
+@media(max-width:767px){
+ .saathi-studio-heading{align-items:center}
+ .saathi-studio-heading h2{font-size:clamp(38px,10vw,66px)!important}
+ .saathi-studio-controls button{width:45px;height:45px}
+ .saathi-studio-slide{flex-basis:90vw;min-height:410px;padding:24px}
+ .saathi-studio-sculpture{width:49%;right:-13%;top:36%}
+ .saathi-studio-shape{width:170px;font-size:110px}
+ .saathi-studio-inner{max-width:80%;margin-top:90px}
+ .saathi-studio-inner h3{font-size:clamp(42px,10vw,64px)!important}
+}
+@media(prefers-reduced-motion:reduce){.saathi-studio-rail{scroll-behavior:auto}.saathi-studio-shape,.saathi-studio-slide:hover .saathi-studio-shape{transform:none}}
