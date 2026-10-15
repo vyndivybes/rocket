@@ -2,6 +2,9 @@ import {buildCalendar} from './calendar-export.js';
 import {matchVoiceCommand} from './voice-commands.js';
 import {createSketchState} from './sketch-state.js';
 import {buildDailyBrief} from './daily-brief.js';
+import {renderWelcomeScene} from './welcome-display.js';
+import {composeWelcomeReport,voicePhaseLabel} from './briefing-experience.js';
+import {detectForgeIntent,matchForgedSkill,assembleForgedPrompt} from './forged-skill-engine.js';
 import {detectStudyLinkQuestion} from './link-intent.js';
 import {stripCompanionCall,DEFAULT_COMPANION_NAME} from './companion-name.js';
 import {answerPersonalRequest} from './personal-requests.js';
@@ -13,18 +16,25 @@ import {createVoiceCapture,voiceAcknowledgement} from './voice-interaction.js';
 import {detectMediaFile,frameTimeLabel} from './media-file.js';
 const root=document.getElementById('mission-root');
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const state={user:null,tab:'companion',mode:'companion',notes:[],schedule:[],tasks:[],knowledgePacks:[],packId:null,memories:[],linkSource:null,linkUrl:'',linkText:'',linkQuestion:'',linkAnswer:'',linkEvidence:[],answer:'',answerReference:null,mediaFile:null,mediaObjectUrl:null,mediaKind:null,mediaQuestion:'',mediaAnswer:'',mediaTimeLabel:null,visionEnabled:false,adaptivePlan:null,companionName:DEFAULT_COMPANION_NAME,nameConfigured:false,notifications:false,pushStatus:null,welcome:null,seen:new Set(),conversation:[],skills:[],forgeAvailable:false,builds:[],builderAvailable:false,selectedBuild:null,buildVersions:[]};
+const state={user:null,tab:'companion',mode:'companion',notes:[],schedule:[],tasks:[],knowledgePacks:[],packId:null,memories:[],linkSource:null,linkUrl:'',linkText:'',linkQuestion:'',linkAnswer:'',linkEvidence:[],answer:'',answerReference:null,mediaFile:null,mediaObjectUrl:null,mediaKind:null,mediaQuestion:'',mediaAnswer:'',mediaTimeLabel:null,visionEnabled:false,adaptivePlan:null,companionName:DEFAULT_COMPANION_NAME,nameConfigured:false,notifications:false,pushStatus:null,welcome:null,seen:new Set(),conversation:[],skills:[],forgeAvailable:false,builds:[],builderAvailable:false,selectedBuild:null,buildVersions:[],forgedSkills:[],voicePhase:'idle',voiceAutoSend:false,introHidden:false};
 const sketchState=createSketchState();
 let micSession=null,voiceReplyRequested=false,spokenReply=null;
 function voiceSpeaker(){
  if(!spokenReply)spokenReply=createVoiceReadback({
   synthesis:window.speechSynthesis,UtteranceClass:window.SpeechSynthesisUtterance,
-  onError:()=>flash('Browser voice playback is unavailable; the written reply is still visible.')
+  onError:()=>{state.voicePhase='error';refreshVoiceDisplay();flash('Browser voice playback is unavailable; the written reply is still visible.')},
+  onState:phase=>{state.voicePhase=phase==='SPEAKING'?'speaking':phase==='QUEUED'?'thinking':phase==='ERROR'?'error':'idle';refreshVoiceDisplay()}
  });
  return spokenReply;
 }
 function announce(text){return voiceSpeaker().speak(text)}
+function refreshVoiceDisplay(){
+ const orb=document.getElementById('saathi-orb');if(orb){orb.dataset.phase=state.voicePhase;orb.setAttribute('aria-label','Assistant '+voicePhaseLabel(state.voicePhase))}
+ const status=document.getElementById('welcome-voice-phase');if(status)status.textContent=voicePhaseLabel(state.voicePhase);
+}
 function voiceStatus(phase,message){
+ state.voicePhase=phase==='working'?'thinking':phase==='answered'?'idle':phase;
+ refreshVoiceDisplay();
  const indicator=document.getElementById('saathi-voice-indicator');
  if(indicator){indicator.dataset.phase=phase;const ring=document.createElement('span');ring.className='saathi-voice-ring';ring.setAttribute('aria-hidden','true');indicator.replaceChildren(ring,document.createTextNode(message));}
  const button=document.getElementById('voice');
@@ -57,13 +67,13 @@ function home(){
 function companion(){
  const history=state.conversation.slice(0,-1).slice(-12).map(entry=>'<div class="listitem"><div><strong>'+esc(entry.role==='student'?'You':state.companionName)+'</strong><p style="white-space:pre-wrap;overflow-wrap:anywhere">'+esc(entry.text)+'</p></div></div>').join('');
  const modes=[['companion','Companion'],['teacher','Patient teacher'],['planner','Organiser'],['pilot','Pilot mentor'],['artist','Art mentor']];
- return '<section class="card"><h2>What is on your mind?</h2><div class="modebuttons">'+modes.map(x=>'<button type="button" data-mode="'+x[0]+'" class="'+(state.mode===x[0]?'active':'')+'">'+x[1]+'</button>').join('')+'</div><p class="muted">'+esc(state.companionName)+' is your AI assistant, not a human friend or professional adviser. It can teach and help you save a task, routine, private note or memory after you confirm. Background notifications depend on device readiness. For Maths, Physics, Chemistry or Biology, ask one question at a time and request worked steps. For checked answers, use <a href="/">Lessons &amp; practice</a> in your learning workspace.</p><div class="saathi-voice-indicator" id="saathi-voice-indicator" data-phase="ready" role="status" aria-live="polite"><span aria-hidden="true" class="saathi-voice-ring"></span>Tap Speak to start listening</div><div role="log" aria-label="Recent conversation">'+history+'</div><form id="talk-form"><label class="form-field">Your question or idea<textarea id="question" required minlength="4" maxlength="1600" placeholder="Help me understand Newton’s laws using an aircraft"></textarea></label><label class="form-field">Attach a study image, PDF, Word, PowerPoint or text file<input id="companion-file" type="file" accept=".png,.jpg,.jpeg,.webp,.pdf,.docx,.pptx,.txt,text/plain,image/png,image/jpeg,image/webp,application/pdf"></label><div class="actions"><button class="btn" type="submit" id="ask-button">Ask '+esc(state.companionName)+'</button><button class="btn secondary" id="voice" type="button">🎙 Speak</button><button class="btn ghost" type="button" id="speak-answer" '+(state.answer?'':'disabled')+'>Read reply aloud</button></div></form><div class="actions"><button type="button" class="btn secondary" data-memory-draft="1">Save a memory from my question (review first)</button></div><p class="small">Microphone activates only when you press Speak. Partial transcripts are drafts and nothing is submitted until you select Ask; spoken questions can receive a spoken reply. Browser speech recognition may use a vendor service. AI messages are not saved in the app’s database but are sent to Cloudflare Workers AI for processing.</p>'+(state.answer?'<div class="ai-answer" id="answer">'+esc(state.answer)+'</div>'+(state.answerReference?'<p class="small">Related reference: <a href="'+esc(state.answerReference.url)+'" target="_blank" rel="noopener noreferrer">'+esc(state.answerReference.publisher)+' · '+esc(state.answerReference.title)+' ↗</a>. This does not certify the AI answer.</p>':''):'<p class="notice">Try: “What’s my plan today?”, “What should I do next?”, “Why do planes fly?” or “Create a skill called Flight Deck Trainer that quizzes me on cockpit instruments”.</p>')+'</section>'+forgePanel()+builderLabPanel();
+ return (!state.introHidden?renderWelcomeScene({schedule:state.schedule,tasks:state.tasks,assistant:state.companionName,phase:state.voicePhase,voiceAutoSend:state.voiceAutoSend}):'<button type="button" class="btn ghost" id="show-intro">▶ Open today’s briefing</button>')+'<section class="card"><h2>What is on your mind?</h2><div class="modebuttons">'+modes.map(x=>'<button type="button" data-mode="'+x[0]+'" class="'+(state.mode===x[0]?'active':'')+'">'+x[1]+'</button>').join('')+'</div><p class="muted">'+esc(state.companionName)+' is your AI assistant, not a human friend or professional adviser. It can teach and help you save a task, routine, private note or memory after you confirm. Background notifications depend on device readiness. For Maths, Physics, Chemistry or Biology, ask one question at a time and request worked steps. For checked answers, use <a href="/">Lessons &amp; practice</a> in your learning workspace.</p><div class="saathi-voice-indicator" id="saathi-voice-indicator" data-phase="ready" role="status" aria-live="polite"><span aria-hidden="true" class="saathi-voice-ring"></span>Tap Speak to start listening</div><div role="log" aria-label="Recent conversation">'+history+'</div><form id="talk-form"><label class="form-field">Your question or idea<textarea id="question" required minlength="4" maxlength="1600" placeholder="Help me understand Newton’s laws using an aircraft"></textarea></label><label class="form-field">Attach a study image, PDF, Word, PowerPoint or text file<input id="companion-file" type="file" accept=".png,.jpg,.jpeg,.webp,.pdf,.docx,.pptx,.txt,text/plain,image/png,image/jpeg,image/webp,application/pdf"></label><div class="actions"><button class="btn" type="submit" id="ask-button">Ask '+esc(state.companionName)+'</button><button class="btn secondary" id="voice" type="button">🎙 Speak</button><button class="btn ghost" type="button" id="speak-answer" '+(state.answer?'':'disabled')+'>Read reply aloud</button></div></form><div class="actions"><button type="button" class="btn secondary" data-memory-draft="1">Save a memory from my question (review first)</button></div><p class="small">Microphone activates only when you press Speak. Partial transcripts are drafts and nothing is submitted until you select Ask; spoken questions can receive a spoken reply. Browser speech recognition may use a vendor service. AI messages are not saved in the app’s database but are sent to Cloudflare Workers AI for processing.</p>'+(state.answer?'<div class="ai-answer" id="answer">'+esc(state.answer)+'</div>'+(state.answerReference?'<p class="small">Related reference: <a href="'+esc(state.answerReference.url)+'" target="_blank" rel="noopener noreferrer">'+esc(state.answerReference.publisher)+' · '+esc(state.answerReference.title)+' ↗</a>. This does not certify the AI answer.</p>':''):'<p class="notice">Try: “What’s my plan today?”, “What should I do next?”, “Why do planes fly?” or “Create a skill called Flight Deck Trainer that quizzes me on cockpit instruments”.</p>')+'</section>'+forgePanel()+builderLabPanel();
 }
 
 function forgePanel(){
  const opts=(choices,selected)=>choices.map(x=>'<option value="'+esc(x)+'" '+(selected===x?'selected':'')+'>'+esc(x)+'</option>').join('');
  const cards=state.skills.map(s=>'<div class="listitem"><div><span class="tag">'+esc(s.status)+'</span><h3>'+esc(s.name)+'</h3><p class="small">'+esc(s.purpose)+'</p><p class="small">'+esc(s.blueprint)+' · '+esc(s.mode)+' · revision '+Number(s.revision)+'</p></div><div class="actions"><button class="btn secondary" type="button" data-forge-try="'+esc(s.id)+'">Try</button><button class="btn secondary" type="button" data-forge-edit="'+esc(s.id)+'">Edit</button><button class="btn secondary" type="button" data-forge-status="'+esc(s.id)+'">'+(s.status==='active'?'Pause':'Activate')+'</button><button class="btn warn" type="button" data-forge-delete="'+esc(s.id)+'">Delete</button></div></div>').join('');
- return '<details class="card" id="skill-forge" style="margin-top:16px"><summary><strong>Skill Forge</strong> — create, test and improve your own AI tools ('+state.skills.length+')</summary><p class="muted">Describe a new learning skill in chat, for example: <strong>Create a skill called Flight Deck Trainer that quizzes me on cockpit instruments</strong>. Try it here, then activate when you like. These are AI teaching and creative templates, not executable code or installed apps.</p>'+
+ return '<details class="card" id="skill-forge" style="margin-top:16px"><summary><strong>Skill Forge</strong> — create, test and improve your own AI tools ('+state.skills.length+')</summary><p class="muted">Tell your AI to invent its own reusable learning skills: <strong>“Forge a skill for cockpit instrument quizzes”</strong>. Saathi writes a structured teaching plan, checks the manifest and registers it automatically. You can pause or edit skills any time. Skill plans cannot run code, install apps or change your accounts. You can also create a simple manual skill below.</p>'+
  (state.forgeAvailable?'<form id="forge-form"><input name="id" type="hidden"><input name="revision" type="hidden"><label class="form-field">Skill name<input name="name" minlength="3" maxlength="48" required placeholder="Flight Deck Trainer"></label><label class="form-field">What should it help you do?<textarea name="purpose" minlength="12" maxlength="260" required placeholder="Quiz me on cockpit instruments with examples."></textarea></label><div class="row"><label class="form-field">Focus<select name="mode">'+opts(['teacher','pilot','artist','planner','companion'],'teacher')+'</select></label><label class="form-field">Activity<select name="blueprint">'+opts(['quiz','coach','creative','project','explain'],'quiz')+'</select></label></div><div class="actions"><button type="submit" class="btn">Save draft skill</button><button type="reset" class="btn ghost">Clear</button></div></form><h3>Your creations</h3>'+(cards||'<p class="notice">You have not created a skill yet. Start with a quiz, creative project, art coach or aviation learning guide.</p>'):'<p class="notice">Skill Forge storage is not yet available in this preview. The app still supports regular learning.</p>')+'</details>';
 }
 
@@ -161,6 +171,10 @@ async function refresh(kind){const data=await api(kind);state[kind]=kind==='sche
 root.addEventListener('click',async e=>{
  const b=e.target.closest('button');if(!b)return;
  const dataset=b.dataset;
+ if(b.id==='play-welcome'){micSession?.stop();const text=composeWelcomeReport({schedule:state.schedule,tasks:state.tasks},state.companionName).spoken;if(!announce(text))voiceStatus('error','Speech not available; the written agenda is still visible.');return}
+ if(b.id==='stop-welcome'){voiceSpeaker().cancel();state.voicePhase='idle';refreshVoiceDisplay();flash('Voice stopped.');return}
+ if(b.id==='show-intro'){state.introHidden=false;render();return}
+ if(dataset.welcomeHide){voiceSpeaker().cancel();state.introHidden=true;render();return}
  if(dataset.dismissWelcome){if(dataset.dismissWelcome!==state.welcome?.version)return;try{await api('welcome-once',{action:'dismiss',version:dataset.dismissWelcome});state.welcome={...state.welcome,show:false};render();flash('Enjoy exploring Saathi!')}catch(err){flash('Could not save your choice: '+err.message)}return}
  if(dataset.tab){voiceReplyRequested=false;micSession?.stop();state.tab=dataset.tab;render();return}
  if(dataset.mode){state.mode=dataset.mode;render();return}
@@ -229,13 +243,14 @@ root.addEventListener('click',async e=>{
   try{
    const result=await api('skills',{action:skill.status==='active'?'deactivate':'activate',id:skill.id});
    state.skills=state.skills.map(x=>x.id===result.skill.id?result.skill:x);
+   state.forgedSkills=state.forgedSkills.map(x=>x.id===result.skill.id?{...x,status:result.skill.status}:x);
    render();flash(result.skill.name+' is now '+result.skill.status+'.');
   }catch(err){flash(err.message)}return;
  }
  if(dataset.forgeDelete){
   const skill=state.skills.find(x=>x.id===dataset.forgeDelete);if(!skill)return;
   if(!confirm('Delete your skill “'+skill.name+'”? This cannot be undone.'))return;
-  try{await api('skills',{action:'delete',id:skill.id});state.skills=state.skills.filter(x=>x.id!==skill.id);render();flash('Skill removed.')}catch(err){flash(err.message)}return;
+  try{await api('skills',{action:'delete',id:skill.id});state.skills=state.skills.filter(x=>x.id!==skill.id);state.forgedSkills=state.forgedSkills.filter(x=>x.id!==skill.id);render();flash('Skill removed.')}catch(err){flash(err.message)}return;
  }
  if(dataset.removeMemory){if(!confirm('Delete this saved memory?'))return;await api('personal-memory',{action:'delete',id:dataset.removeMemory});state.memories=(await api('personal-memory')).memories;render();flash('Memory deleted.');return}
  if(dataset.toggleMemory){const m=state.memories.find(x=>x.id===dataset.toggleMemory);if(!m)return;const updated=await api('personal-memory',{action:'update',id:m.id,category:m.category,text:m.text,useInChat:!m.useInChat});state.memories=(await api('personal-memory')).memories;render();flash(updated.memory.useInChat?'AI recall enabled for this memory.':'AI recall disabled for this memory.');return}
@@ -304,6 +319,10 @@ root.addEventListener('click',async e=>{
     }
     const field=document.getElementById('question');
     if(field){field.value=phrase;field.focus();}
+    if(state.voiceAutoSend){
+     voiceReplyRequested=false;voiceStatus('thinking','I heard you. Preparing your reply.');
+     handleCompanionQuestion(phrase,true).catch(err=>voiceStatus('error',err.message));return;
+    }
     voiceReplyRequested=true;
     voiceStatus('heard','I heard your question. Review it and select Ask to send it.');
     announce(voiceAcknowledgement('HEARD'));
@@ -445,6 +464,19 @@ async function handleCompanionQuestion(raw,spoken=false){
   await runLearnerBuild(question,true,spoken);return;
  }
 
+ const forgeGoal=detectForgeIntent(question);
+ if(forgeGoal){
+  flash('Skill Forge is writing and checking a new learning capability…');
+  const result=await api('auto-forge',{action:'forge',goal:forgeGoal});
+  state.forgedSkills.unshift(result.skill);
+  state.skills.unshift({id:result.skill.id,name:result.skill.name,purpose:result.skill.purpose,mode:result.skill.mode,blueprint:result.skill.blueprint,status:result.skill.status,revision:result.skill.revision});
+  companionReply(question,'I designed and registered “'+result.skill.name+'” for you! It is active. I can automatically use it when you ask about '+result.skill.triggers.slice(0,2).join(' or ')+'. You can pause or change it in Skill Forge whenever you like. The skill is an AI-written teaching plan, not executable computer code.',{spoken,notice:'Skill plan passed '+result.skill.checks+' structural checks. Academic quality must still be judged during use.'});return;
+ }
+ const triggered=matchForgedSkill(question,state.forgedSkills);
+ if(triggered){
+  const reply=await api('ask',{question:assembleForgedPrompt(triggered,question),mode:triggered.mode});
+  companionReply(question,reply.answer,{spoken,reference:reply.knowledgeReference,notice:'Used your active learner-forged '+triggered.name+' plan. Check teaching accuracy.'});return;
+ }
  const proposed=draftSkillFromRequest(question);
  if(proposed){
   const result=await api('skills',{action:'create',...proposed});
@@ -462,10 +494,12 @@ async function handleCompanionQuestion(raw,spoken=false){
   const action=savedSkill.status==='active'?'activate':'deactivate';
   const updated=await api('skills',{action,id:savedSkill.skill.id});
   state.skills=state.skills.map(x=>x.id===updated.skill.id?updated.skill:x);
+  state.forgedSkills=state.forgedSkills.map(x=>x.id===updated.skill.id?{...x,status:updated.skill.status}:x);
   companionReply(question,'“'+updated.skill.name+'” is now '+updated.skill.status+'. You can change this any time.',{spoken});return;
  }
  if(savedSkill?.kind==='run-skill'){
-  const prompt=buildSkillQuestion(savedSkill.skill,savedSkill.topic);
+  const custom=state.forgedSkills.find(x=>x.id===savedSkill.skill.id);
+  const prompt=custom?assembleForgedPrompt(custom,savedSkill.topic):buildSkillQuestion(savedSkill.skill,savedSkill.topic);
   const reply=await api('ask',{question:prompt,mode:savedSkill.skill.mode});
   companionReply(question,reply.answer,{spoken,reference:reply.knowledgeReference,notice:'Executed learner-created text skill “'+savedSkill.skill.name+'”. AI response, not a validated textbook answer.'});return;
  }
@@ -508,6 +542,7 @@ async function handleCompanionQuestion(raw,spoken=false){
  companionReply(question,answer.answer,{spoken,reference:answer.knowledgeReference,notice:'Saathi replied in '+(skill?.mode||state.mode)+' mode. Check important facts.'});
 }
 
+root.addEventListener('change',e=>{if(e.target?.id==='voice-auto-send'){state.voiceAutoSend=e.target.checked;flash(state.voiceAutoSend?'After you tap Speak, final spoken questions will be submitted automatically.':'Spoken questions will wait for your review.')}});
 root.addEventListener('submit',async e=>{
  e.preventDefault();const form=e.target,fd=new FormData(form);const btn=form.querySelector('[type=submit]');if(btn)btn.disabled=true;
  try{
@@ -533,6 +568,7 @@ root.addEventListener('submit',async e=>{
   const payload=id?{...entry,action:'update',id,revision:Number(fd.get('revision'))}:{...entry,action:'create'};
   const result=await api('skills',payload);
   state.skills=(await api('skills')).skills;
+  state.forgedSkills=(await api('auto-forge').catch(()=>({skills:[]}))).skills;
   render();flash('“'+result.skill.name+'” saved as a draft. Try it in Skill Forge or chat.');return;
  }
  if(form.id==='name-form'){const saved=await api('companion-preferences',{name:fd.get('name')});state.companionName=saved.name;state.nameConfigured=true;state.tab='home';render();flash('Your AI is now named '+saved.name+'. You can rename it whenever you like.')}
@@ -547,6 +583,6 @@ function checkReminders(){
  if(state.seen.size>200)state.seen.clear();
 }
 async function init(){
- try{state.user=await api('me');if(state.user.role!=='student'){root.innerHTML='<main class="boot"><h1>Student-only space</h1><a href="/">Back to dashboard</a></main>';return}const [notes,schedule,tasks,prefs,packs,memories,mediaStatus,adaptivePlan,pushStatus,welcome,skillData,buildData]=await Promise.all([api('notes'),api('schedule'),api('tasks'),api('companion-preferences'),api('knowledge-packs').catch(()=>({packs:[]})),api('personal-memory'),api('media-status').catch(()=>({enabled:false})),api('adaptive-plan').catch(()=>null),api('push-device').catch(()=>({ready:false,notice:'Background push status unavailable; export a calendar instead.'})),api('welcome-once').catch(()=>null),api('skills').catch(()=>({skills:[],unavailable:true})),api('builder-lab').catch(()=>({projects:[],unavailable:true}))]);state.builds=buildData.projects||[];state.builderAvailable=buildData.unavailable!==true;state.skills=skillData.skills||[];state.forgeAvailable=skillData.unavailable!==true;state.notes=notes.notes;state.schedule=schedule.items;state.tasks=tasks.tasks;state.knowledgePacks=packs.packs;state.memories=memories.memories;state.visionEnabled=mediaStatus.enabled===true;state.adaptivePlan=adaptivePlan;state.pushStatus=pushStatus;state.welcome=welcome;state.companionName=prefs.name;state.nameConfigured=prefs.configured;if(!prefs.configured)state.tab='identity';render();setInterval(checkReminders,30000)}catch{root.innerHTML='<main class="boot"><h1>Sign in as a student</h1><p>Mission Control requires the learner login.</p><a href="/">Go to learner login</a></main>'}
+ try{state.user=await api('me');if(state.user.role!=='student'){root.innerHTML='<main class="boot"><h1>Student-only space</h1><a href="/">Back to dashboard</a></main>';return}const [notes,schedule,tasks,prefs,packs,memories,mediaStatus,adaptivePlan,pushStatus,welcome,skillData,buildData,forgedData]=await Promise.all([api('notes'),api('schedule'),api('tasks'),api('companion-preferences'),api('knowledge-packs').catch(()=>({packs:[]})),api('personal-memory'),api('media-status').catch(()=>({enabled:false})),api('adaptive-plan').catch(()=>null),api('push-device').catch(()=>({ready:false,notice:'Background push status unavailable; export a calendar instead.'})),api('welcome-once').catch(()=>null),api('skills').catch(()=>({skills:[],unavailable:true})),api('builder-lab').catch(()=>({projects:[],unavailable:true})),api('auto-forge').catch(()=>({skills:[]}))]);state.forgedSkills=forgedData.skills||[];state.builds=buildData.projects||[];state.builderAvailable=buildData.unavailable!==true;state.skills=skillData.skills||[];state.forgeAvailable=skillData.unavailable!==true;state.notes=notes.notes;state.schedule=schedule.items;state.tasks=tasks.tasks;state.knowledgePacks=packs.packs;state.memories=memories.memories;state.visionEnabled=mediaStatus.enabled===true;state.adaptivePlan=adaptivePlan;state.pushStatus=pushStatus;state.welcome=welcome;state.companionName=prefs.name;state.nameConfigured=prefs.configured;if(!prefs.configured)state.tab='identity';render();setInterval(checkReminders,30000)}catch{root.innerHTML='<main class="boot"><h1>Sign in as a student</h1><p>Mission Control requires the learner login.</p><a href="/">Go to learner login</a></main>'}
 }
 init();
