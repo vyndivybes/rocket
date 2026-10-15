@@ -10,7 +10,7 @@ test('Brahma action gateway is reachable through assistant conversation, includi
  const s=read('public/mission.js');assert.match(s,/detectBrahmaAction\(question\)/);
  assert.match(s,/buildAgentReceipt/);assert.match(s,/brahmaActionPanel\(\)/);
  assert.match(s,/target="_blank" rel="noopener noreferrer"/);
- assert.match(s,/companionReply\(question,requestedAction\.notice/);
+ assert.match(s,/companionReply\(question,state\.agentAction\.notice/);
 });
 test('No vendor trackers, remote photo dependencies or proprietary commercial scripting injected',()=>{
  const css=read('public/cinematic-realism.css');
