@@ -101,3 +101,19 @@
 .saathi-upgrade-heading .actions{margin:0}
 .saathi-upgrade-frame{display:block;width:100%;height:330px;min-height:260px;border:1px solid #7cb2ad;border-radius:12px;background:#fff;margin-top:12px}
 @media(max-width:620px){.saathi-upgrade-frame{height:390px}.saathi-upgrade-heading .actions{width:100%}.saathi-upgrade-heading .actions .btn{flex:1}}
+
+/* Mission Control navigation grouped under Features and Settings. */
+.nav-group{border:1px solid #3a506c;background:#101e34;border-radius:12px;overflow:hidden}
+.nav-group>summary{padding:12px 13px;color:#dae6f2;cursor:pointer;list-style:none;font-size:13px;font-weight:750}
+.nav-group>summary::-webkit-details-marker{display:none}
+.nav-group>summary::after{content:'+';float:right;color:#9fc7d0}
+.nav-group[open]>summary::after{content:'−'}
+.nav-group-items{display:grid;gap:3px;padding:4px 6px 8px}
+.nav-group-items button{width:100%;font-size:13px;padding:10px 11px}
+.nav-group-items button.active{background:#25415a;color:#fff}
+@media(max-width:900px){
+ .tabs{display:flex;align-items:flex-start;gap:8px}
+ .tabs>.nav-group{flex:0 0 auto;min-width:110px}
+ .nav-group[open] .nav-group-items{max-height:55vh;overflow:auto}
+ .nav-group-items button{white-space:normal}
+}
