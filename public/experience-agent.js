@@ -1,11 +1,12 @@
 import {youtubeIntent} from './youtube-discovery.js';
 import {detectBrahmaAction} from './brahma-actions.js';
 import {buildLoginBriefing} from './live-briefing.js';
+import {isQuotaError,quotaRecoveryMessage} from './ai-quota-recovery.js';
 import {VOICE_PRESETS,chooseVoice,voiceSettings} from './voice-profiles.js';
 import {parseOneTimeReminder,parseScheduleIntent,needsReminderDetails,proactiveSearchHint,skillUpgradeIntent} from './saathi-orchestrator.js';
 const root=document.querySelector('#saathi-experience'),form=document.querySelector('#saathi-command-form'),field=document.querySelector('#saathi-command'),mic=document.querySelector('#saathi-mic'),send=document.querySelector('#saathi-send'),answer=document.querySelector('#saathi-answer'),media=document.querySelector('#saathi-media'),alert=document.querySelector('#saathi-alert'),phase=document.querySelector('#saathi-phase');
 let user=null,recognition=null,speaking=null,busy=false,mode='companion',lastTopic='',active=true;
-let sessionTurns=[],pendingAction=null,conversationEnabled=false;
+let sessionTurns=[],pendingAction=null,conversationEnabled=false,aiQuotaExhausted=false;
 function setPhase(p){phase.textContent='SAATHI '+p;root.querySelector('.conversation').dataset.phase=p;root.dispatchEvent(new CustomEvent('saathi:phase',{detail:p}))}
 function report(text){answer.replaceChildren();const p=document.createElement('p');p.textContent=String(text).slice(0,11000);answer.append(p);answer.scrollTop=0}
 function clearMedia(){media.replaceChildren()}
@@ -58,7 +59,7 @@ function say(text){try{
  const voice=chooseVoice(window.speechSynthesis.getVoices(),{preset:selectedPreset,voiceName:selectedVoiceName});
  if(voice){utter.voice=voice;utter.lang=voice.lang||settings.lang}else utter.lang=settings.lang;
  utter.rate=settings.rate;utter.pitch=settings.pitch;
- utter.onend=()=>{if(conversationEnabled&&active&&!busy)setTimeout(()=>beginListening(),300)};
+ utter.onend=()=>{if(conversationEnabled&&active&&!busy&&!aiQuotaExhausted)setTimeout(()=>beginListening(),300)};
  window.speechSynthesis.speak(utter);speaking=utter;
 }catch{alert.textContent='Voice output is unavailable on this browser.'}}
 document.getElementById('saathi-voice-preview').addEventListener('click',()=>{say('Hello. I am Saathi, your AI learning companion. How may I assist you today?')});
@@ -134,6 +135,7 @@ try{
   if(action?.url){report(action.notice);link(action.label+' ↗',action.url)}
   else if(action?.kind==='device-handoff'){report(action.notice);link('Device setup and specialist tools ↗','/mission.html')}
   else{
+   if(aiQuotaExhausted)throw Error('Daily study AI limit reached. Try tomorrow.');
    const response=await api('ask',{question:q,mode});
    report(response.answer||'I could not produce an explanation. Please try asking differently.');
    if(/\b(?:aircraft|aerodynamics|lift|wing|aviation|plane|flight)\b/i.test(q)){link('Explore the aircraft parts above ↗','#saathi-stage')}
@@ -146,7 +148,17 @@ try{
  await recordTurn(q,responseText);
  if(!video){const suggestion=proactiveSearchHint(q,responseText);if(suggestion){actionButton('Find YouTube lessons',()=>command('find video explaining '+suggestion.topic));actionButton('Search Google',()=>{clearMedia();link('Open Google search ↗','https://www.google.com/search?q='+encodeURIComponent(suggestion.topic))});alert.textContent=suggestion.label}}
  setPhase('READY');
-}catch(err){report(err.message+'. Your existing lessons remain accessible.');setPhase('ERROR')}
+}catch(err){
+ if(isQuotaError(err.message)){
+  aiQuotaExhausted=true;
+  stopConversation();
+  report(quotaRecoveryMessage());
+  clearMedia();
+  link('Open saved study workspace ↗','/?workspace=1');
+  link('Open free educational resources ↗','https://ncert.nic.in/');
+  setPhase('AI LIMIT REACHED');
+ }else{report(err.message+'. Your existing lessons remain accessible.');setPhase('ERROR')}
+}
 finally{busy=false;send.disabled=false;field.focus({preventScroll:true})}
 }
 form.addEventListener('submit',e=>{e.preventDefault();command(field.value)});
@@ -178,7 +190,7 @@ else mic.addEventListener('click',()=>{
   r.onstart=()=>{setPhase('LISTENING');mic.setAttribute('aria-pressed','true');alert.textContent='Microphone listening—tap again to stop'};
   r.onresult=e=>{let draft='';for(let i=0;i<e.results.length;i++){draft+=e.results[i][0].transcript+' ';if(e.results[i].isFinal)finalText+=e.results[i][0].transcript+' '}field.value=draft.trim()};
   r.onerror=e=>{alert.textContent='Voice unavailable ('+e.error+'). Type your question.';setPhase('READY')};
-  r.onend=()=>{recognition=null;mic.setAttribute('aria-pressed','false');alert.textContent='';if(finalText.trim().length>2){command(finalText.trim()).then(()=>{if(conversationEnabled&&active){say(answer.textContent||'How can I help?')}})}else{setPhase('READY');if(conversationEnabled&&active)setTimeout(beginListening,400)}};
+  r.onend=()=>{recognition=null;mic.setAttribute('aria-pressed','false');alert.textContent='';if(finalText.trim().length>2){command(finalText.trim()).then(()=>{if(conversationEnabled&&active&&!aiQuotaExhausted){say(answer.textContent||'How can I help?')}})}else{if(!aiQuotaExhausted)setPhase('READY');if(conversationEnabled&&active&&!aiQuotaExhausted)setTimeout(beginListening,400)}};
   r.start();
  }catch{recognition=null;alert.textContent='Microphone unavailable. Use typing.'}
 });
